@@ -1,0 +1,248 @@
+﻿module LibDworkin.Renderer
+
+open Geometry
+open SpecializedCollections
+
+open Microsoft.FSharp.NativeInterop
+
+open Android.Opengl
+open Javax.Microedition.Khronos
+
+open OpenTK.Graphics.ES20
+open OpenTK
+
+
+#nowarn "9"
+[<AutoOpen>]
+module Helpers =
+    /// Wrapper around GL.Generate<...> functions that lets you return result explicitly.
+    let gen1 (generatingFunction : int * nativeptr<int> -> unit) : int = 
+        let output = NativePtr.stackalloc<int> 1
+        generatingFunction(1, output)
+        NativePtr.read output
+    
+    let fullScreenQuadVertices = [| 
+        -1.0f; -1.0f; 
+         1.0f; -1.0f; 
+         1.0f;  1.0f; 
+         1.0f;  1.0f; 
+        -1.0f;  1.0f;
+        -1.0f; -1.0f;|]
+ 
+
+type Shader(vertexShader, fragmentShader) =
+    // adapted code from OpenTK examples
+    let status_code = ref 0
+    let info = ref ""
+
+    let compile (shaderType : ShaderType) source =
+        let res = GL.CreateShader(shaderType)
+        GL.ShaderSource(res, source)
+        GL.CompileShader(res)
+        GL.GetShaderInfoLog(res, info)
+        GL.GetShader(res, ShaderParameter.CompileStatus, status_code)
+        if !status_code <> 1 then failwith !info
+        res
+    
+    let program = GL.CreateProgram()
+    do
+        GL.AttachShader(program, compile ShaderType.FragmentShader fragmentShader)
+        GL.AttachShader(program, compile ShaderType.VertexShader vertexShader)
+        GL.LinkProgram(program)
+        GL.GetProgramInfoLog(program, info)
+        GL.GetProgram(program, ProgramParameter.LinkStatus, status_code)
+
+        if !status_code <> 1 then failwith !info
+    
+    member this.Program = program
+
+
+/// Interface that defines methods for drawing shapes such as triangle, quad, or circle
+type IShapesRenderer = 
+    interface
+        abstract member DrawTriangle : Vector2 * Vector2 * Vector2 -> unit
+        abstract member DrawQuad : Vector2 * Vector2 * Vector2 * Vector2 -> unit
+    end
+
+
+type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService) =
+    inherit Java.Lang.Object()
+
+    // fields
+    let mutable shapesVertices = Buffer<Vector2>(128)
+    let mutable shapesVertexIndices = Buffer<int>(128)
+
+    let mutable maskTexture = 0
+    let mutable maskFrameBuffer = 0
+    let mutable maskRenderBuffer = 0
+    let mutable quadVBO = 0
+    let mutable maskedImageShader : Shader option = None
+    let mutable shapesDrawingShader : Shader option = None
+    let mutable shapesVBO = 0
+
+    let mutable wallpaperWidth = 0
+    let mutable wallpaperHeight = 0
+
+    member internal this.MaskTexture = maskTexture
+    member internal this.MaskFrameBuffer = maskFrameBuffer
+    member internal this.QuadVBO = quadVBO
+
+    member this.TextFromAsset(filename : string) =
+        use reader = new System.IO.StreamReader(wallpaperService.Assets.Open(filename))
+        reader.ReadToEnd()
+
+    interface GLSurfaceView.IRenderer with
+        member this.Dispose() = 
+            GL.DeleteTexture maskTexture
+            GL.DeleteFramebuffers(1, [| maskFrameBuffer |])
+            GL.DeleteBuffers(2, [| quadVBO; shapesVBO |])
+            GL.DeleteRenderbuffers(1, [| maskRenderBuffer |])
+            base.Dispose()
+
+        member this.Handle: nativeint = 
+            base.Handle
+
+        member this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
+            this.OnSurfaceChanged(gl, width, height)
+
+        member this.OnSurfaceCreated(gl: Opengles.IGL10, config: Egl.EGLConfig) = 
+            this.OnSurfaceCreated(gl, config)
+
+        member this.OnDrawFrame(gl : Opengles.IGL10) =
+            this.OnDrawFrame(gl)
+    
+    interface IShapesRenderer with
+        member this.DrawTriangle(a, b, c) =
+            let currIndex = shapesVertices.Size
+            shapesVertices.Add a
+            shapesVertices.Add b
+            shapesVertices.Add c
+            shapesVertexIndices.Add currIndex
+            shapesVertexIndices.Add (currIndex + 1)
+            shapesVertexIndices.Add (currIndex + 2)
+        
+        member this.DrawQuad(a, b, c, d) =
+            let currIndex = shapesVertices.Size
+            shapesVertices.Add a
+            shapesVertices.Add b
+            shapesVertices.Add c
+            shapesVertices.Add d
+            // triangle a b c
+            shapesVertexIndices.Add currIndex
+            shapesVertexIndices.Add (currIndex + 1)
+            shapesVertexIndices.Add (currIndex + 2)
+            // triangle c a d
+            shapesVertexIndices.Add (currIndex + 2)
+            shapesVertexIndices.Add currIndex
+            shapesVertexIndices.Add (currIndex + 3)
+
+    abstract member OnSurfaceChanged : Opengles.IGL10 * int * int -> unit
+    default this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
+        // Set the OpenGL viewport to fill the entire surface. 
+        GL.Viewport(0, 0, width, height)
+        wallpaperWidth <- width
+        wallpaperHeight <- height
+
+        if maskTexture = 0 then 
+            maskTexture <- gen1 GL.GenTextures
+            GL.BindTexture(TextureTarget.Texture2D, maskTexture)
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
+                          PixelFormat.Rgb, PixelType.UnsignedShort565, nativeint 0)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+                
+            maskFrameBuffer <- gen1 GL.GenFramebuffers
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                    TextureTarget.Texture2D, maskTexture, 0)
+            
+            GL.ClearColor(0.5f, 0.5f, 0.5f, 1.0f)
+            GL.Clear(ClearBufferMask.ColorBufferBit)
+
+            GL.BindTexture(TextureTarget.Texture2D, 0)
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+    
+    abstract member OnSurfaceCreated : Opengles.IGL10 * Egl.EGLConfig -> unit
+    default this.OnSurfaceCreated(gl: Opengles.IGL10, config: Egl.EGLConfig) = 
+        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+        
+        maskedImageShader <- Some(Shader(this.TextFromAsset "shaders/DrawMaskedImage.vert", this.TextFromAsset "shaders/DrawMaskedImage.frag"))
+        shapesDrawingShader <- Some(
+            Shader("attribute vec2 pos; void main() { gl_Position = vec4(pos, 0.0, 1.0); }", 
+                   "void main() { gl_FragColor = vec4(1.0); }"))
+        
+        quadVBO <- gen1 GL.GenBuffers
+        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
+        GL.BufferData(BufferTarget.ArrayBuffer, 
+                      nativeint (fullScreenQuadVertices.Length * sizeof<float32>), 
+                      fullScreenQuadVertices, 
+                      BufferUsage.StaticDraw)
+        
+        shapesVBO <- gen1 GL.GenBuffers 
+
+        GL.Disable(EnableCap.DepthTest)
+        GL.Disable(EnableCap.CullFace)
+
+    
+    abstract member OnDrawFrame : Opengles.IGL10 -> unit
+    default this.OnDrawFrame(gl : Opengles.IGL10) =
+        // Clear the rendering surface. 
+        GL.Clear(ClearBufferMask.ColorBufferBit)
+    
+    member this.DrawMaskedImage() =
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+        GL.UseProgram(maskedImageShader.Value.Program)
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, maskTexture)
+        GL.Uniform1(GL.GetUniformLocation(maskedImageShader.Value.Program, "mask"), 0)
+        GL.Uniform2(GL.GetUniformLocation(maskedImageShader.Value.Program, "screenDimensions"), float32 wallpaperWidth, float32 wallpaperHeight)
+        let aTexCoords = GL.GetAttribLocation(maskedImageShader.Value.Program, "texCoords")
+        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
+        GL.EnableVertexAttribArray(aTexCoords)
+        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
+        
+        GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        
+        GL.DisableVertexAttribArray(aTexCoords)
+        GL.BindTexture(TextureTarget.Texture2D, 0)
+         
+        GL.UseProgram(0)
+    
+    member this.RenderShapes() =
+        if shapesVertexIndices.Size > 0 then
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+            GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
+            GL.UseProgram(shapesDrawingShader.Value.Program)
+            let aPos = GL.GetAttribLocation(shapesDrawingShader.Value.Program, "pos")
+            GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
+            GL.BufferData(BufferTarget.ArrayBuffer, 
+                          nativeint (shapesVertices.Size * sizeof<Vector2>), 
+                          shapesVertices.Array, 
+                          BufferUsage.StreamDraw)
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+            
+            GL.DrawElements(BeginMode.Triangles, shapesVertexIndices.Size, DrawElementsType.UnsignedInt, shapesVertexIndices.Array)
+
+            GL.DisableVertexAttribArray(aPos)
+            GL.UseProgram(0)
+            
+            shapesVertices.Clear()
+            shapesVertexIndices.Clear()
+
+type TestRenderer(wallpaperService) =
+    inherit BaseRenderer(wallpaperService)                
+    
+    override this.OnSurfaceChanged(gl, w, h) =
+        base.OnSurfaceChanged(gl, w, h)
+        GL.ClearColor(0.5f, 0.0f, 0.5f, 1.0f)
+        GL.Clear(ClearBufferMask.ColorBufferBit)
+
+    override this.OnDrawFrame(gl : Opengles.IGL10) =
+        (this :> IShapesRenderer).DrawQuad(Vector2(-1.0f, -1.0f), Vector2(0.0f, -1.0f), Vector2(0.0f, 0.0f), Vector2(-1.0f, 0.0f))
+        (this :> IShapesRenderer).DrawQuad(Vector2(0.0f, 0.0f), Vector2(0.0f, 1.0f), Vector2(1.0f, 1.0f), Vector2(1.0f, 0.0f))
+        
+        this.RenderShapes()
+        this.DrawMaskedImage()
