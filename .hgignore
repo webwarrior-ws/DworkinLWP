@@ -1,0 +1,22 @@
+syntax: glob
+
+bin/
+obj/
+packages/
+.vs/
+
+## MSTest test Results
+
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+## NUnit
+
+*.VisualState.xml
+TestResult.xml
+
+## Visual Studio profiler
+
+*.psess
+*.vsp
+*.vspx
