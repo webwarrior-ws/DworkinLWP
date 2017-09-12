@@ -1,4 +1,4 @@
-﻿module Geometry
+﻿module LibDworkin.Geometry
 
 
 type Point = OpenTK.Vector2
@@ -11,6 +11,8 @@ module Single =
     let Pi = float32 System.Math.PI
     let HalfPi = float32 (System.Math.PI * 0.5)
     let TwoPi = float32 (System.Math.PI * 2.0)
+
+    let radiansInDegree = Pi / 180.0f
 
 
 type OpenTK.Vector2 with
@@ -74,7 +76,7 @@ type OpenTK.Box2 with
 
 
 let inline deg2rad degrees =
-    degrees / 180.0f * Single.Pi
+    degrees * Single.radiansInDegree
 
 /// linear interpolation between a and by at t [0, 1]
 let inline lerp a b t =

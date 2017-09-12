@@ -2,6 +2,7 @@
 
 open Geometry
 open SpecializedCollections
+open AgentAbstractions
 
 open Microsoft.FSharp.NativeInterop
 
@@ -57,14 +58,6 @@ type Shader(vertexShader, fragmentShader) =
     member this.Program = program
 
 
-/// Interface that defines methods for drawing shapes such as triangle, quad, or circle
-type IShapesRenderer = 
-    interface
-        abstract member DrawTriangle : Vector2 * Vector2 * Vector2 -> unit
-        abstract member DrawQuad : Vector2 * Vector2 * Vector2 * Vector2 -> unit
-    end
-
-
 type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService) =
     inherit Java.Lang.Object()
 
@@ -111,7 +104,7 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
         member this.OnDrawFrame(gl : Opengles.IGL10) =
             this.OnDrawFrame(gl)
     
-    interface IShapesRenderer with
+    interface ICanvas with
         member this.DrawTriangle(a, b, c) =
             let currIndex = shapesVertices.Size
             shapesVertices.Add a
@@ -241,8 +234,9 @@ type TestRenderer(wallpaperService) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
     override this.OnDrawFrame(gl : Opengles.IGL10) =
-        (this :> IShapesRenderer).DrawQuad(Vector2(-1.0f, -1.0f), Vector2(0.0f, -1.0f), Vector2(0.0f, 0.0f), Vector2(-1.0f, 0.0f))
-        (this :> IShapesRenderer).DrawQuad(Vector2(0.0f, 0.0f), Vector2(0.0f, 1.0f), Vector2(1.0f, 1.0f), Vector2(1.0f, 0.0f))
+        let canvas = this :> ICanvas
+        canvas.DrawQuad(Vector2(-1.0f, -1.0f), Vector2(0.0f, -1.0f), Vector2(0.0f, 0.0f), Vector2(-1.0f, 0.0f))
+        canvas.DrawQuad(Vector2(0.0f, 0.0f), Vector2(0.0f, 1.0f), Vector2(1.0f, 1.0f), Vector2(1.0f, 0.0f))
         
         this.RenderShapes()
         this.DrawMaskedImage()

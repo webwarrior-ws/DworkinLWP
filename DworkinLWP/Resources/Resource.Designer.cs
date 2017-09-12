@@ -41,33 +41,17 @@ namespace DworkinLWP
 			}
 		}
 		
-		public partial class Raw
-		{
-			
-			// aapt resource value: 0x7f030000
-			public const int drawmaskedimage = 2130903040;
-			
-			static Raw()
-			{
-				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
-			}
-			
-			private Raw()
-			{
-			}
-		}
-		
 		public partial class String
 		{
 			
-			// aapt resource value: 0x7f040001
-			public const int app_name = 2130968577;
+			// aapt resource value: 0x7f030001
+			public const int app_name = 2130903041;
 			
-			// aapt resource value: 0x7f040000
-			public const int library_name = 2130968576;
+			// aapt resource value: 0x7f030000
+			public const int library_name = 2130903040;
 			
-			// aapt resource value: 0x7f040002
-			public const int wallpaper_description = 2130968578;
+			// aapt resource value: 0x7f030002
+			public const int wallpaper_description = 2130903042;
 			
 			static String()
 			{
