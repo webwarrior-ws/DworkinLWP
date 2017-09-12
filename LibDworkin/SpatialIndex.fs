@@ -1,4 +1,4 @@
-﻿module SpatialIndex
+﻿module LibDworkin.SpatialIndex
 
 open Geometry
 
@@ -28,6 +28,9 @@ type OpenTK.Box2 with
        AABB(this)
 
 
+exception OutOfBounds of objBounds:Rectangle * treeBounds:Rectangle
+
+
 type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
     let mutable objects : 'T[] = Array.zeroCreate(min maxObjects 4)
     let mutable objectBounds : Rectangle[] = Array.zeroCreate(min maxObjects 4)
@@ -46,7 +49,7 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
         let objBounds = obj.Bounds
           
         if not (bounds.Contains objBounds) then
-            failwith "out of bounds"
+            raise (OutOfBounds(objBounds, bounds))
 
         this.Insert(obj, objBounds)
     
@@ -152,6 +155,9 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
     
     member this.TotalItems =
         objectsCount + (match nodes with | Some(trees) -> trees |> Array.sumBy (fun x -> x.TotalItems) | None -> 0 )
+    
+    member this.Depth =
+        1 + (match nodes with | Some(trees) -> trees |> Array.map (fun x -> x.Depth) |> Array.max | None -> 0 )
 
 
 // TODO: move to tests project

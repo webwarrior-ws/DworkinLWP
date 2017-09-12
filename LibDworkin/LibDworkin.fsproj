@@ -56,8 +56,8 @@
     <None Include="packages.config" />
     <Compile Include="Geometry.fs" />
     <Compile Include="SpecializedCollections.fs" />
-    <Compile Include="Renderer.fs" />
     <Compile Include="SpatialIndex.fs" />
+    <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
@@ -70,7 +70,7 @@
     <Reference Include="mscorlib" />
     <Reference Include="Mono.Android" />
     <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
-      <HintPath>..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.13\lib\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
+      <HintPath>..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.14\lib\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
