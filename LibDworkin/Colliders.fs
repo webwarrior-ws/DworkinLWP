@@ -1,0 +1,167 @@
+﻿module LibDworkin.Colliders
+
+
+open Geometry
+open AgentAbstractions
+
+open OpenTK
+
+
+
+type CircleCollider(parent: Agent option, center: Point, radius: float32) =
+    inherit Collider(parent)
+
+    let mutable center = center
+    let mutable radius = radius
+
+    member this.Center 
+        with get() : Point = center
+        and set(p : Point) =
+            center <- p
+            this.FlushCache()
+    
+    member this.Radius
+        with get() : float32 = radius
+        and set(num: float32) =
+            radius <- num
+            this.FlushCache()
+    
+    override this.CalculateBoundingBox() =
+        Rectangle(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
+
+ 
+type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, bearing: float32, centralAngle: float32) =
+    inherit CircleCollider(parent, center, radius)
+
+    static let rightAngles = [| 0.0f; 1.5707963267948966f; 3.141592653589793f; 4.71238898038469f |]
+
+    let mutable bearing = bearing
+    let mutable centralAngle = centralAngle
+    let mutable r1 : Point option = None
+    let mutable r2 : Point option = None
+
+    member this.Bearing
+        with get() : float32 = bearing
+        and set(num: float32) = 
+            bearing <- num
+            this.FlushCache()
+    
+    member this.CentralAngle
+        with get() : float32 = centralAngle
+        and set(num: float32) =
+            if num > Single.TwoPi || num < 0.0f then
+                failwith "Expected number between 0 and 2*pi"
+            centralAngle <- num
+            this.FlushCache()
+    
+    member this.R1 = 
+        match r1 with
+        | Some(p) -> p
+        | None ->
+            let theta = bearing - centralAngle
+            let p = center + Point(radius * cos theta, radius * sin theta)
+            r1 <- Some(p)
+            p
+    
+    member this.R2 = 
+        match r2 with
+        | Some(p) -> p
+        | None ->
+            let theta = bearing + centralAngle
+            let p = center + Point(radius * cos theta, radius * sin theta)
+            r2 <- Some(p)
+            p
+
+    member this.SetParameters(center: Point, radius: float32, bearing: float32) =
+        if bearing = this.Bearing && radius = this.Radius then
+            let shift = center - this.Center
+            this.Center <- center
+            match this.BoundingBox with
+            | Some(rect) -> this.BoundingBox <- Some(rect.TranslateBy(shift))
+            | None -> ()
+            r1 <- r1 |> Option.map ((+) shift)
+            r2 <- r2 |> Option.map ((+) shift)
+        else
+            this.Center <- center
+            this.Radius <- radius
+            this.Bearing <- bearing
+            this.FlushCache()
+     
+    override this.FlushCache() =
+        base.FlushCache();
+        r1 <- None
+        r2 <- None
+         
+    override this.CalculateBoundingBox() =
+        let points = ResizeArray<Point>(5)
+        let intersections =  [| 
+            Point(center.X + radius, center.Y); Point(center.X, center.Y + radius);
+            Point(center.X - radius, center.Y); Point(center.X, center.Y - radius) |]
+        
+        rightAngles |> (Array.iteri (fun i angle -> 
+            let mutable alpha = angle - bearing + (centralAngle * 0.5f)
+            if alpha < 0.0f then
+                alpha <- alpha + Single.TwoPi
+            elif alpha > Single.TwoPi then
+                alpha <- alpha - Single.TwoPi
+            if alpha >= 0.0f && alpha <= centralAngle then
+                points.Add intersections.[i]))
+        
+        if points.Count <= 1 then points.Add center
+        if points.Count < 4 then 
+            points.Add this.R1
+            points.Add this.R2
+        
+        Rectangle.Encompassing(points)
+
+
+type SegmentCollider(parent: Agent option, p1: Point, p2: Point) =
+    inherit Collider(parent)
+
+    member val Start = p1
+    member val End = p2
+
+    override this.CalculateBoundingBox() =
+        Rectangle(min p1.X p2.X, min p1.Y p2.Y, max p1.X p2.X, max p1.Y p2.Y)
+
+
+// collision detection functions
+[<AutoOpen>]
+module CollisionTests =
+    let inline circleCircle (o1 : Point) (r1 : float32) (o2 : Point) (r2 : float32) =
+        let rsum = r1+r2
+        o1.SquaredDistanceTo(o2) <= rsum*rsum
+
+    let circleSegment (o1 : Point) (r1 : float32) (p1 : Point) (p2 : Point) =
+        failwith "need to implement nearestPointOnLineFrom:"
+
+    let segmentSegment (s1start : Point) (s1end : Point) (s2start : Point) (s2end : Point) =
+        failwith "notimplemented"
+    
+    let circlesectorCircle (sector : CircleSectorCollider) (center : Point) (radius : float32) =
+        if circleCircle sector.Center sector.Radius center radius then
+            let gamma = ((center - sector.Center).Theta - sector.Bearing + (sector.CentralAngle * 0.5f)) % Single.TwoPi
+            (gamma >= 0.0f && gamma <= sector.CentralAngle) 
+            || (circleSegment center radius sector.Center sector.R1) 
+            || (circleSegment center radius sector.Center sector.R2)
+        else false
+    
+    let circlesectorSegment (sector : CircleSectorCollider) (p1 : Point) (p2 : Point) =
+        let a = p1 - sector.Center
+        let b = p2 - sector.Center
+        failwith "need to implement nearestPointOnLineFrom:"
+
+
+/// Check two colliders for collision
+let collide (first : Collider) (second : Collider) : bool =
+    match first, second with
+    // most used first
+    | :? CircleSectorCollider as a, (:? CircleCollider as b) -> circlesectorCircle a b.Center b.Radius
+    | :? CircleSectorCollider as a, (:? SegmentCollider as b) -> circlesectorSegment a b.Start b.End
+    | :? CircleCollider as a, (:? CircleSectorCollider as b) -> circlesectorCircle b a.Center a.Radius
+    | :? CircleCollider as a, (:? CircleCollider as b) -> circleCircle a.Center a.Radius b.Center b.Radius
+    // then rest
+    | :? SegmentCollider as a, (:? CircleSectorCollider as b) -> circlesectorSegment b a.Start a.End
+    | :? CircleCollider as a, (:? SegmentCollider as b) -> circleSegment a.Center a.Radius b.Start b.End
+    | :? SegmentCollider as a, (:? CircleCollider as b) -> circleSegment b.Center b.Radius a.Start a.End
+    | _ -> failwith "notimplemented"
