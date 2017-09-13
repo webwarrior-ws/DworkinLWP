@@ -1,5 +1,7 @@
 ﻿module LibDworkin.Geometry
 
+open System.Collections.Generic
+
 
 type Point = OpenTK.Vector2
 
@@ -47,10 +49,14 @@ type OpenTK.Vector2 with
         else
             if this.Y <= y then 1 else 2
     
-    member this.DistanceTo(other : Point) =
+    member this.SquaredDistanceTo(other : Point) =
         let dx = this.X - other.X
         let dy = this.Y - other.Y
-        sqrt (dx*dx + dy*dy)
+        dx*dx + dy*dy
+
+    member inline this.DistanceTo(other : Point) =
+        sqrt (this.SquaredDistanceTo other)
+ 
 
 
 type OpenTK.Box2 with
@@ -72,6 +78,19 @@ type OpenTK.Box2 with
     
     member this.Merge(rect : Rectangle) = 
         Rectangle.FromTLRB(min this.Top rect.Top, min this.Left rect.Left, max this.Right rect.Right, max this.Bottom rect.Bottom)
+    
+    member this.TranslateBy(p : Point) =
+        Rectangle.FromTLRB(this.Top + p.Y, this.Left + p.X, this.Right + p.X, this.Bottom + p.Y)
+    
+    static member Encompassing(points: #IList<Point>) =
+        let mutable result = Rectangle(points.[0], points.[0])
+        for i=1 to points.Count-1 do
+            let p = points.[i]
+            result.Left <- min result.Left p.X
+            result.Top <- min result.Top p.Y
+            result.Bottom <- max result.Bottom p.Y
+            result.Right <- max result.Right p.X
+        result
 
 
 
