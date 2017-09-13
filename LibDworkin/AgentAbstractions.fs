@@ -14,7 +14,7 @@ type ICanvas =
 
 
 [<AbstractClass>]
-type Collider(parent : Agent) =
+type Collider(parent : Agent option) =
     let mutable boundingBox : Rectangle option = None
 
     interface SpatialIndex.IHasBounds with
@@ -27,6 +27,9 @@ type Collider(parent : Agent) =
                 rect
      
     member this.Parent = parent
+    member this.BoundingBox
+        with get() : Rectangle option = boundingBox
+        and set(rect : Rectangle option) = boundingBox <- rect
     
     abstract member CalculateBoundingBox : unit -> Rectangle
     

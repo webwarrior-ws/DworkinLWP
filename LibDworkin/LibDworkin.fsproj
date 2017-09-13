@@ -57,6 +57,8 @@
     <Compile Include="Geometry.fs" />
     <Compile Include="SpecializedCollections.fs" />
     <Compile Include="SpatialIndex.fs" />
+    <Compile Include="AgentAbstractions.fs" />
+    <Compile Include="Colliders.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
