@@ -38,6 +38,10 @@ type OpenTK.Vector2 with
     // Radius in polar coordiantes
     member this.R = sqrt(this.X * this.X + this.Y * this.Y)
 
+    /// Calculate cross product between this and other point
+    member this.Cross(other : Point) =
+        (this.X * other.Y) - (this.Y * other.X)
+
     /// Return 0..3 indicating relative direction to otherPoint.
     /// 0 is downRight, 1=downLeft, 2=upLeft, 3=upRight
     member inline this.QuadrantOf(otherPoint : Point) =
@@ -56,6 +60,25 @@ type OpenTK.Vector2 with
 
     member inline this.DistanceTo(other : Point) =
         sqrt (this.SquaredDistanceTo other)
+    
+    member this.NearestPointAlongLineFromTo(p1 : Point, p2 : Point) =
+        if p1.X = p2.X then
+            Point(p1.X, this.Y)
+        elif p1.Y = p2.Y then
+            Point(this.X, p1.Y)
+        else
+            let x1 = p1.X
+            let y1 = p1.Y
+            let x21 = p2.X - x1
+            let y21 = p2.Y - y1
+            let t = (((this.Y - y1) / x21) + ((this.X - x1) / y21)) / ((x21 / y21) + (y21 / x21))
+            Point(x1 + (t * x21), y1 + (t * y21))
+       
+    member this.NearestPointOnLineFromTo(p1, p2) =
+        this.NearestPointAlongLineFromTo(p1, p2).AdhereTo(Rectangle(p1, p2))
+    
+    member inline this.AdhereTo(aRectangle : Rectangle) =
+        Point(min (max this.X aRectangle.Left) aRectangle.Right, min (max this.Y aRectangle.Top) aRectangle.Bottom)
  
 
 
@@ -69,6 +92,9 @@ type OpenTK.Box2 with
 
     member this.Contains(rect : Rectangle) =
         rect.Left >= this.Left && rect.Top >= this.Top && rect.Right <= this.Right && rect.Bottom <= this.Bottom
+    
+    member this.ContainsPoint(p : Point) =
+        this.Left <= p.X && this.Top <= p.Y && this.Right > p.X && this.Bottom > p.Y 
 
     member inline this.IntersectsWith(rect : Rectangle) = 
         rect.Right > this.Left && rect.Bottom > this.Top && rect.Left < this.Right && rect.Top < this.Bottom
