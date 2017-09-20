@@ -133,10 +133,22 @@ module CollisionTests =
         o1.SquaredDistanceTo(o2) <= rsum*rsum
 
     let circleSegment (o1 : Point) (r1 : float32) (p1 : Point) (p2 : Point) =
-        failwith "need to implement nearestPointOnLineFrom:"
+        o1.NearestPointOnLineFromTo(p1, p2).SquaredDistanceTo(o1) <= (r1 * r1)
 
-    let segmentSegment (s1start : Point) (s1end : Point) (s2start : Point) (s2end : Point) =
-        failwith "notimplemented"
+    let segmentSegment (start1 : Point) (end1 : Point) (start2 : Point) (end2 : Point) =
+        if (start1 = start2) || (end1 = end2) || (start1 = end2) || (start2 = end1) then
+            true
+        else
+            let inline sideOf (p0 : Point) (p1 : Point) (p2 : Point) =
+                sign ((p1-p0).Cross(p2-p0))
+            let sideStart = sideOf start1 end1 start2
+            let sideEnd = sideOf start1 end1 end2
+            if sideStart = sideEnd then
+                false
+            else
+                let sideStart = sideOf start2 end2 start1
+                let sideEnd = sideOf start2 end2 end1
+                sideStart <> sideEnd
     
     let circlesectorCircle (sector : CircleSectorCollider) (center : Point) (radius : float32) =
         if circleCircle sector.Center sector.Radius center radius then
@@ -149,7 +161,14 @@ module CollisionTests =
     let circlesectorSegment (sector : CircleSectorCollider) (p1 : Point) (p2 : Point) =
         let a = p1 - sector.Center
         let b = p2 - sector.Center
-        failwith "need to implement nearestPointOnLineFrom:"
+        let p = Point(0.0f, 0.0f).NearestPointOnLineFromTo(a, b)
+        if Point.Dot(p, p) > (sector.Radius * sector.Radius) then
+            false
+        else
+            let angle = ((p.Theta - sector.Bearing) + (sector.CentralAngle / 2.0f)) % Single.TwoPi
+            (angle >= 0.0f && angle <= sector.CentralAngle) ||
+            (segmentSegment sector.Center sector.R1 p1 p2) || 
+            (segmentSegment sector.Center sector.R2 p1 p2)
 
 
 /// Check two colliders for collision
@@ -164,4 +183,5 @@ let collide (first : Collider) (second : Collider) : bool =
     | :? SegmentCollider as a, (:? CircleSectorCollider as b) -> circlesectorSegment b a.Start a.End
     | :? CircleCollider as a, (:? SegmentCollider as b) -> circleSegment a.Center a.Radius b.Start b.End
     | :? SegmentCollider as a, (:? CircleCollider as b) -> circleSegment b.Center b.Radius a.Start a.End
+    | :? SegmentCollider as a, (:? SegmentCollider as b) -> segmentSegment a.Start a.End b.Start b.End
     | _ -> failwith "notimplemented"
