@@ -75,10 +75,8 @@ type OpenTK.Vector2 with
             Point(x1 + (t * x21), y1 + (t * y21))
        
     member this.NearestPointOnLineFromTo(p1, p2) =
-        this.NearestPointAlongLineFromTo(p1, p2).AdhereTo(Rectangle(p1, p2))
-    
-    member inline this.AdhereTo(aRectangle : Rectangle) =
-        Point(min (max this.X aRectangle.Left) aRectangle.Right, min (max this.Y aRectangle.Top) aRectangle.Bottom)
+        let p = this.NearestPointAlongLineFromTo(p1, p2)
+        Point(min (max p.X p1.X) p2.X, min (max p.Y p1.Y) p2.Y)
  
 
 
