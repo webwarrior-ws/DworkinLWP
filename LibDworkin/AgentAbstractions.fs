@@ -3,6 +3,8 @@
 open Geometry
 
 open OpenTK
+open SpecializedCollections
+open SpatialIndex
 
 
 /// Interface that defines methods for drawing shapes such as triangle, quad, or circle
@@ -95,11 +97,35 @@ type DelayAgent(initialAction : Environment -> Agent option) =
 
 
 [<AbstractClass>]
+type MovingAgent() =
+    inherit Agent()
+
+    let mutable distanceCovered = 0.0f
+
+    member val Position = Point(0.0f, 0.0f) with get, set
+    member val Direction = Point(-1.0f, 0.0f) with get, set
+    
+    abstract member Speed : float32 
+    default this.Speed = 1.0f
+
+    abstract member DistanceCovered : float32 
+    default this.DistanceCovered = distanceCovered
+
+    override this.LiesWithinBounds(bounds) = bounds.ContainsPoint(this.Position)
+
+    override this.Step(canvas) =
+        let currSpeed = this.Speed
+        this.Position <- this.Position + (this.Direction * currSpeed)
+        distanceCovered <- distanceCovered + currSpeed
+
+        base.Step(canvas)
+
+
+[<AbstractClass>]
 type Environment(bounds : Rectangle) = 
     let mutable age = 0
     let agents = ResizeArray<Agent>()
     let mutable currId = 0
-    //let colliders = SmallDictionary.create<int, QuadTree<Collider>>() 
     // TODO: add everything to do with colliders
     // TODO: spawning
     // Collision detection and spawning methods will be added to actual DworkinEnvironment

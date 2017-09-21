@@ -77,6 +77,9 @@ type OpenTK.Vector2 with
     member this.NearestPointOnLineFromTo(p1, p2) =
         let p = this.NearestPointAlongLineFromTo(p1, p2)
         Point(min (max p.X p1.X) p2.X, min (max p.Y p1.Y) p2.Y)
+    
+    member inline this.LeftRotated =
+        Point(this.Y, -this.X)
  
 
 

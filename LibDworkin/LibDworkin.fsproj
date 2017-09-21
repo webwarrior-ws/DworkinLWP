@@ -60,6 +60,7 @@
     <Compile Include="AgentAbstractions.fs" />
     <Compile Include="Colliders.fs" />
     <Compile Include="Renderer.fs" />
+    <Compile Include="ForTesting.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">

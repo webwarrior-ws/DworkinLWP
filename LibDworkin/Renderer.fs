@@ -76,6 +76,7 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
 
+    member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     member internal this.MaskTexture = maskTexture
     member internal this.MaskFrameBuffer = maskFrameBuffer
     member internal this.QuadVBO = quadVBO
@@ -225,18 +226,26 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
             shapesVertices.Clear()
             shapesVertexIndices.Clear()
 
-type TestRenderer(wallpaperService) =
-    inherit BaseRenderer(wallpaperService)                
+
+type DworkinRenderer(wallpaperService, environment : Environment) =
+    inherit BaseRenderer(wallpaperService)
+
+    let mutable environment = environment
+
+    member this.Environment 
+        with get() : Environment = environment
+        and set(e : Environment) = 
+            environment <- e
+            // setup scale and offset
     
     override this.OnSurfaceChanged(gl, w, h) =
         base.OnSurfaceChanged(gl, w, h)
-        GL.ClearColor(0.5f, 0.0f, 0.5f, 1.0f)
-        GL.Clear(ClearBufferMask.ColorBufferBit)
-
+        // setup scale and offset
+    
     override this.OnDrawFrame(gl : Opengles.IGL10) =
-        let canvas = this :> ICanvas
-        canvas.DrawQuad(Vector2(-1.0f, -1.0f), Vector2(0.0f, -1.0f), Vector2(0.0f, 0.0f), Vector2(-1.0f, 0.0f))
-        canvas.DrawQuad(Vector2(0.0f, 0.0f), Vector2(0.0f, 1.0f), Vector2(1.0f, 1.0f), Vector2(1.0f, 0.0f))
-        
+        environment.Step(this)
         this.RenderShapes()
         this.DrawMaskedImage()
+    
+
+    
