@@ -152,7 +152,7 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, maskTexture, 0)
             
-            GL.ClearColor(0.5f, 0.5f, 0.5f, 1.0f)
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
             GL.Clear(ClearBufferMask.ColorBufferBit)
 
             GL.BindTexture(TextureTarget.Texture2D, 0)
@@ -223,6 +223,10 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
             
             shapesVertices.Clear()
             shapesVertexIndices.Clear()
+    
+    member this.SetScale(xs : float32, ys : float32) =
+        GL.UseProgram(shapesDrawingShader.Value.Program)
+        GL.Uniform2(GL.GetUniformLocation(shapesDrawingShader.Value.Program, "scale"), xs, ys)
 
 
 type DworkinRenderer(wallpaperService, environment : Environment) =

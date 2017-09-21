@@ -55,11 +55,15 @@ type CollidingAgent() =
         let prevPos = this.Position
         let prevDir = this.Direction
 
+        this.Direction <- this.Direction + Point(
+            float32((this.Environment.Value.Random.NextDouble() - 0.5) * 0.1), 
+            float32((this.Environment.Value.Random.NextDouble() - 0.5) * 0.1))
+
         base.Step(canvas)
         // detect collisions...
 
-        let prevPerp = prevDir.LeftRotated * 2.0f //* (this.Thickness * 0.5f)
-        let currPerp = this.Direction.LeftRotated * 2.0f //* (this.Thickness * 0.5f)
+        let prevPerp = prevDir.LeftRotated * 3.0f //* (this.Thickness * 0.5f)
+        let currPerp = this.Direction.LeftRotated * 3.0f //* (this.Thickness * 0.5f)
         
         canvas.DrawQuad(prevPos + prevPerp, prevPos - prevPerp, this.Position - currPerp, this.Position + currPerp)
 
@@ -68,9 +72,24 @@ type CollidingAgent() =
 type CollidingAgentsTestRenderer(wallpaperService) =
     inherit BaseRenderer(wallpaperService)
 
-    let environment = CollidingAgentsEnvironment(Rectangle.FromTLRB(0.0f, 0.0f, 800.0f, 600.0f))
+    let mutable environment : CollidingAgentsEnvironment option = None
+
+    override this.OnSurfaceChanged(gl, width, height) =
+        base.OnSurfaceChanged(gl, width, height)
+
+        let bounds = Rectangle.FromTLRB(0.0f, 0.0f, float32 width, float32 height)
+        let env = CollidingAgentsEnvironment(bounds)
+        environment <- Some(env)
+
+        for i=1 to 100 do
+            let agent = CollidingAgent()
+            agent.Position <- Point(float32(env.Random.NextDouble()) * bounds.Width, float32(env.Random.NextDouble()) * bounds.Height)
+            agent.Direction <- Point(float32(env.Random.NextDouble() - 0.5), float32(env.Random.NextDouble() - 0.5))
+            env.AddAgent(agent)
+        
+        this.SetScale(1.0f / float32 width, 1.0f / float32 height)
 
     override this.OnDrawFrame(gl : Opengles.IGL10) =
-        environment.Step(this)
+        environment |> Option.iter (fun env -> env.Step(this))
         this.RenderShapes()
         this.DrawMaskedImage()

@@ -101,9 +101,14 @@ type MovingAgent() =
     inherit Agent()
 
     let mutable distanceCovered = 0.0f
+    let mutable direction = Point(-1.0f, 0.0f)
 
     member val Position = Point(0.0f, 0.0f) with get, set
-    member val Direction = Point(-1.0f, 0.0f) with get, set
+    member this.Direction 
+        with get() : Point = direction
+        and set(dir : Point) =
+            direction <- dir
+            direction.Normalize()
     
     abstract member Speed : float32 
     default this.Speed = 1.0f
@@ -131,6 +136,7 @@ type Environment(bounds : Rectangle) =
     // Collision detection and spawning methods will be added to actual DworkinEnvironment
 
     member this.Age = age
+    member this.Bounds = bounds
 
     abstract member Random : System.Random
     abstract member Paint : OpenTK.Graphics.Color4

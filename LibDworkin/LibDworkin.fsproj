@@ -53,9 +53,9 @@
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidAsset Include="Assets\shaders\DrawShapes.vert" />
+    <AndroidAsset Include="Assets\shaders\DrawShapes.frag" />
     <AndroidAsset Include="Assets\shaders\DrawMaskedImage.vert" />
     <AndroidAsset Include="Assets\shaders\DrawMaskedImage.frag" />
-    <AndroidAsset Include="Assets\shaders\DrawShapes.frag" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="packages.config" />
     <Compile Include="Geometry.fs" />
