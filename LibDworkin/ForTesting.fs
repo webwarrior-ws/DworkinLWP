@@ -42,14 +42,19 @@ type CollidingAgentsEnvironment(bounds) =
     override this.Delay(action, numSteps) = ()
 
     member this.AddCollider(collider : Collider) =
-        quadTree.Insert(collider)
+        try 
+            quadTree.Insert(collider)
+        with
+            | :? OutOfBounds -> ()
     
-    member this.Collides(collider : Collider) =
-        not <| quadTree.Query((collider :> IHasBounds).Bounds, fun c -> not (collide collider c))
+    member this.Collides(collider : Collider, parent : Agent) =
+        quadTree.Exists((collider :> IHasBounds).Bounds, fun c -> Some(parent) <> c.Parent && collide collider c)
  
 
 type CollidingAgent() =
     inherit MovingAgent()
+
+    let mutable lastStop = 0.0f
     
     override this.Step(canvas) =
         let prevPos = this.Position
@@ -60,10 +65,23 @@ type CollidingAgent() =
             float32((this.Environment.Value.Random.NextDouble() - 0.5) * 0.1))
 
         base.Step(canvas)
-        // detect collisions...
+        
+        let r = 1.0f
+        let collider = CircleCollider(Some(this :> Agent), this.Position + this.Direction * r, r-0.1f)
+        let env = this.Environment.Value :?> CollidingAgentsEnvironment
+        
+        if env.Random.NextDouble() < 0.1 then
+            let nextDir = if env.Random.Next(2) = 0 then this.Direction.LeftRotated else -this.Direction.LeftRotated
+            env.AddAgent(CollidingAgent(Position=this.Position, Direction=nextDir))
+        
+        if env.Collides(collider, this) then
+            this.Delete()
+        elif this.DistanceCovered - lastStop > r then
+           env.AddCollider(collider)
+           lastStop <- this.DistanceCovered
 
-        let prevPerp = prevDir.LeftRotated * 3.0f //* (this.Thickness * 0.5f)
-        let currPerp = this.Direction.LeftRotated * 3.0f //* (this.Thickness * 0.5f)
+        let prevPerp = prevDir.LeftRotated * r //* (this.Thickness * 0.5f)
+        let currPerp = this.Direction.LeftRotated * r //* (this.Thickness * 0.5f)
         
         canvas.DrawQuad(prevPos + prevPerp, prevPos - prevPerp, this.Position - currPerp, this.Position + currPerp)
 
