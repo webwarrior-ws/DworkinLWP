@@ -61,8 +61,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <AndroidAsset Include="Assets\shaders\DrawMaskedImage.frag" />
-    <AndroidAsset Include="Assets\shaders\DrawMaskedImage.vert" />
     <None Include="Resources\AboutResources.txt" />
     <None Include="Properties\AndroidManifest.xml">
       <SubType>Designer</SubType>

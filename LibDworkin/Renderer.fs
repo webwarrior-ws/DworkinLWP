@@ -163,9 +163,7 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         
         maskedImageShader <- Some(Shader(this.TextFromAsset "shaders/DrawMaskedImage.vert", this.TextFromAsset "shaders/DrawMaskedImage.frag"))
-        shapesDrawingShader <- Some(
-            Shader("attribute vec2 pos; void main() { gl_Position = vec4(pos, 0.0, 1.0); }", 
-                   "void main() { gl_FragColor = vec4(1.0); }"))
+        shapesDrawingShader <- Some(Shader(this.TextFromAsset "shaders/DrawShapes.vert", this.TextFromAsset "shaders/DrawShapes.frag"))
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
