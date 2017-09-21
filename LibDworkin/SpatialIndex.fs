@@ -81,6 +81,12 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
     
     member this.Iterate(rectangle: Rectangle, action: 'T -> unit) : unit =
         this.Query(rectangle, fun x -> action x; true) |> ignore
+    
+    /// return true if object satisfying given predicate exists
+    member this.Exists(rectangle: Rectangle, predicate: 'T -> bool) : bool =
+        let mutable res = false
+        this.Query(rectangle, fun x -> res <- predicate x; not res) |> ignore
+        res
 
     /// Determine which node the object belongs to. 
     /// -1 means object cannot completely fit within a child node and is part of the parent node.
