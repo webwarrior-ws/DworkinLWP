@@ -111,46 +111,10 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
         member this.Values: ICollection<'V> = 
             this.list.ConvertAll(fun item -> item.Value) :> ICollection<'V>
 end
-    
-
-// extensions to match some Smalltalk dictionary methods
-type IDictionary<'K, 'V> with
-    /// Equivaluent of Smalltalk's #at:ifAbsentPut:
-    member this.GetOrSetIfAbsent (key : 'K, value : unit -> 'V) : 'V =
-        match this.TryGetValue(key) with
-        | (true, v) -> v
-        | (false, _) -> 
-            let computedValue = value()
-            this.[key] <- computedValue
-            computedValue
-    
-    /// Equivaluent of Smalltalk's #at:ifPresent:ifAbsentPut:
-    member this.GetTransformedOrSetIfAbsent (key : 'K, transform: 'V -> 'V, value : unit -> 'V) : 'V =
-        match this.TryGetValue(key) with
-        | (true, v) -> transform v
-        | (false, _) -> 
-            let computedValue = value()
-            this.[key] <- computedValue
-            computedValue
-    
-    /// Equivaluent of Smalltalk's #at:ifAbsent:
-    member this.Get(key : 'K, value : unit -> 'V) : 'V = 
-        match this.TryGetValue(key) with
-        | (true, v) -> v
-        | (false, _) -> value()
-    
-    /// Equivaluent of Smalltalk's #at:ifPresent:ifAbsent:
-    member this.GetTransformed(key : 'K, transform: 'V -> 'X, value : unit -> 'X) : 'X = 
-        match this.TryGetValue(key) with
-        | (true, v) -> transform v
-        | (false, _) -> value()
-    
-    /// Equivaluent of Smalltalk's #at:ifPresent:
-    member this.GetTransformed(key : 'K, transform: 'V -> 'X) : 'X = 
-        this.GetTransformed(key, transform, fun () -> raise (KeyNotFoundException(key.ToString())) )
 
 
 type LayersList<'T when 'T : equality>(items : 'T[], isComplement : bool) = struct
     member this.Contains(item : 'T) = 
         (items |> Array.contains item) <> isComplement
 end
+
