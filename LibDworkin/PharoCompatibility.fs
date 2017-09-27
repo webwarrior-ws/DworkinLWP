@@ -47,3 +47,8 @@ let (|Empty|NotEmpty|) (sequence : #seq<'T>) =
         Empty 
     else
         NotEmpty(sequence)
+
+
+// unified access to size of collections
+type ICollection<'T> with
+    member inline this.Length = this.Count
