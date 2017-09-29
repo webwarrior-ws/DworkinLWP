@@ -52,3 +52,8 @@ let (|Empty|NotEmpty|) (sequence : #seq<'T>) =
 // unified access to size of collections
 type ICollection<'T> with
     member inline this.Length = this.Count
+
+
+/// tests if x lies between a and b
+let inline between a b x =
+    x >= a && x <= b
