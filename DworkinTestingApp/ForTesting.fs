@@ -1,4 +1,4 @@
-﻿module LibDworkin.ForTesting
+﻿module DworkinTestingApp.TestRenderers
 
 open OpenTK
 open OpenTK.Graphics
@@ -13,8 +13,8 @@ open LibDworkin.Colliders
 
 
 
-type ShapesTestRenderer(wallpaperService) =
-    inherit BaseRenderer(wallpaperService)                
+type ShapesTestRenderer(context) =
+    inherit BaseRenderer(context)                
     
     override this.OnSurfaceChanged(gl, w, h) =
         base.OnSurfaceChanged(gl, w, h)
@@ -87,8 +87,8 @@ type CollidingAgent() =
 
 
 
-type CollidingAgentsTestRenderer(wallpaperService) =
-    inherit BaseRenderer(wallpaperService)
+type CollidingAgentsTestRenderer(context) =
+    inherit BaseRenderer(context)
 
     let mutable environment : CollidingAgentsEnvironment option = None
 
