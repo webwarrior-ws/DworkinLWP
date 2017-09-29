@@ -68,13 +68,13 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
         (objectsCount < 1 || (allObjectsBounds.IntersectsWith rectangle |> not) || processItems 0 true) && 
             match nodes with
             | Some(treeNodes) ->
-                match center.QuadrantOf(rectangle.Left, rectangle.Top), 
-                        center.QuadrantOf(rectangle.Right, rectangle.Bottom) with
-                | q1, q2 when q1 = q2 -> 
+                match struct (center.QuadrantOf(rectangle.Left, rectangle.Top), 
+                              center.QuadrantOf(rectangle.Right, rectangle.Bottom)) with
+                | struct (q1, q2) when q1 = q2 -> 
                     treeNodes.[q1].Query(rectangle, predicate)
-                | 2,  0 -> 
+                | struct (2,  0) -> 
                     treeNodes |> Array.forall (fun node -> node.Query(rectangle, predicate))
-                | q1, q2 -> 
+                | struct (q1, q2) -> 
                     treeNodes.[q1].Query(rectangle, predicate) && treeNodes.[q2].Query(rectangle, predicate)
             | None -> false
 

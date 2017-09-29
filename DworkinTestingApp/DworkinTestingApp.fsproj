@@ -29,7 +29,7 @@
     <ErrorReport>prompt</ErrorReport>
     <AndroidLinkMode>None</AndroidLinkMode>
     <ConsolePause>False</ConsolePause>
-    <Tailcalls>False</Tailcalls>
+    <Tailcalls>false</Tailcalls>
     <PlatformTarget>
     </PlatformTarget>
   </PropertyGroup>
