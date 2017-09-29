@@ -99,7 +99,7 @@ type CollidingAgentsTestRenderer(context) =
         let env = CollidingAgentsEnvironment(bounds)
         environment <- Some(env)
 
-        for i=1 to 100 do
+        for i=1 to 1000 do
             let agent = CollidingAgent()
             agent.Position <- Point(float32(env.Random.NextDouble()) * bounds.Width, float32(env.Random.NextDouble()) * bounds.Height)
             agent.Direction <- Point(float32(env.Random.NextDouble() - 0.5), float32(env.Random.NextDouble() - 0.5))
