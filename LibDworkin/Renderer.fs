@@ -58,7 +58,7 @@ type Shader(vertexShader, fragmentShader) =
     member this.Program = program
 
 
-type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService) =
+type BaseRenderer(context : Android.Content.Context) =
     inherit Java.Lang.Object()
 
     // fields
@@ -82,7 +82,7 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
     member internal this.QuadVBO = quadVBO
 
     member this.TextFromAsset(filename : string) =
-        use reader = new System.IO.StreamReader(wallpaperService.Assets.Open(filename))
+        use reader = new System.IO.StreamReader(context.Assets.Open(filename))
         reader.ReadToEnd()
 
     interface GLSurfaceView.IRenderer with
@@ -229,8 +229,8 @@ type BaseRenderer(wallpaperService : Android.Service.Wallpaper.WallpaperService)
         GL.Uniform2(GL.GetUniformLocation(shapesDrawingShader.Value.Program, "scale"), xs, ys)
 
 
-type DworkinRenderer(wallpaperService, environment : Environment) =
-    inherit BaseRenderer(wallpaperService)
+type DworkinRenderer(context, environment : Environment) =
+    inherit BaseRenderer(context)
 
     let mutable environment = environment
 

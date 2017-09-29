@@ -15,7 +15,7 @@
     <AndroidApplication>False</AndroidApplication>
     <AndroidUseLatestPlatformSdk>false</AndroidUseLatestPlatformSdk>
     <AssemblyName>LibDworkin</AssemblyName>
-    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.4</TargetFrameworkVersion>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <TargetFrameworkProfile />
     <Name>LibDworkin</Name>
@@ -65,7 +65,6 @@
     <Compile Include="AgentAbstractions.fs" />
     <Compile Include="Colliders.fs" />
     <Compile Include="Renderer.fs" />
-    <Compile Include="ForTesting.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
