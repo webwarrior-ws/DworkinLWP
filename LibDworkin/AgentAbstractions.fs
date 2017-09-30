@@ -5,6 +5,7 @@ open Geometry
 open OpenTK
 open SpecializedCollections
 open SpatialIndex
+open System
 
 
 /// Interface that defines methods for drawing shapes such as triangle, quad, or circle
@@ -17,27 +18,21 @@ type ICanvas =
 
 [<AbstractClass>]
 type Collider(parent : Agent option) =
-    let mutable boundingBox : Rectangle option = None
-
     interface SpatialIndex.IHasBounds with
         member this.Bounds =
-            match boundingBox with
-            | Some(rect) -> rect
-            | None ->
-                let rect = this.CalculateBoundingBox()
-                boundingBox <- Some(rect)
-                rect
-     
+            if this.BoundingBox.IsEmpty then
+                this.BoundingBox <- this.CalculateBoundingBox()
+            this.BoundingBox
+    
+    /// Note: empty rectangle means no value
+    member val BoundingBox : Rectangle = Rectangle() with get, set
     member this.Parent = parent
-    member this.BoundingBox
-        with get() : Rectangle option = boundingBox
-        and set(rect : Rectangle option) = boundingBox <- rect
     
     abstract member CalculateBoundingBox : unit -> Rectangle
     
     abstract member FlushCache : unit -> unit
     default this.FlushCache() =
-        boundingBox <- None
+        this.BoundingBox <- Rectangle()
 
 
 
