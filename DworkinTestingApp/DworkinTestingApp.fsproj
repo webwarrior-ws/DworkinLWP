@@ -32,6 +32,9 @@
     <Tailcalls>false</Tailcalls>
     <PlatformTarget>
     </PlatformTarget>
+    <AotAssemblies>true</AotAssemblies>
+    <EnableLLVM>false</EnableLLVM>
+    <AndroidSupportedAbis />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>PdbOnly</DebugType>
@@ -64,7 +67,7 @@
     <Compile Include="Properties\AssemblyInfo.fs" />
     <AndroidAsset Include="Assets\AboutAssets.txt" />
     <Content Include="packages.config" />
-    <Compile Include="ForTesting.fs" />
+    <Compile Include="TestRenderers.fs" />
     <Compile Include="MainActivity.fs" />
   </ItemGroup>
   <ItemGroup>
