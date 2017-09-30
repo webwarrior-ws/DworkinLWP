@@ -76,9 +76,8 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
         if bearing = this.Bearing && radius = this.Radius then
             let shift = center - this.Center
             this.Center <- center
-            match this.BoundingBox with
-            | Some(rect) -> this.BoundingBox <- Some(rect.TranslateBy(shift))
-            | None -> ()
+            if not this.BoundingBox.IsEmpty then
+                this.BoundingBox <- this.BoundingBox.TranslateBy(shift)
             r1 <- r1 |> Option.map ((+) shift)
             r2 <- r2 |> Option.map ((+) shift)
         else
