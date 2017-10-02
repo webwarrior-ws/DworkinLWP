@@ -81,7 +81,9 @@ namespace DworkinLWP
                     || Build.Model.Contains("google_sdk") 
                     || Build.Model.Contains("Emulator") 
                     || Build.Model.Contains("Android SDK built for x86")));
-                var renderer = new LibDworkin.ForTesting.CollidingAgentsTestRenderer(enclosingInstance);
+                var renderer = new LibDworkin.Renderer.DworkinRenderer( 
+                    enclosingInstance, 
+                    new LibDworkin.Agents.DworkinEnvironment(new OpenTK.Box2(), 42));
                 if (supportsEs2)
                 {
                     glSurfaceView.SetEGLContextClientVersion(2);

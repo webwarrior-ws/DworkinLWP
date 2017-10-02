@@ -126,9 +126,6 @@ type Environment(bounds : Rectangle) =
     let mutable age = 0
     let agents = ResizeArray<Agent>()
     let mutable currId = 0
-    // TODO: add everything to do with colliders
-    // TODO: spawning
-    // Collision detection and spawning methods will be added to actual DworkinEnvironment
 
     member this.Age = age
     member this.Bounds = bounds
