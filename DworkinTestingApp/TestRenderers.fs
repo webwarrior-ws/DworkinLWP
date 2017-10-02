@@ -18,13 +18,15 @@ type ShapesTestRenderer(context) =
     
     override this.OnSurfaceChanged(gl, w, h) =
         base.OnSurfaceChanged(gl, w, h)
+        this.SetScale(0.5f, 0.5f)
         GL.ClearColor(0.5f, 0.0f, 0.5f, 1.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
     override this.OnDrawFrame(gl : Opengles.IGL10) =
         let canvas = this :> ICanvas
-        canvas.DrawQuad(Vector2(-1.0f, -1.0f), Vector2(0.0f, -1.0f), Vector2(0.0f, 0.0f), Vector2(-1.0f, 0.0f))
-        canvas.DrawQuad(Vector2(0.0f, 0.0f), Vector2(0.0f, 1.0f), Vector2(1.0f, 1.0f), Vector2(1.0f, 0.0f))
+        //canvas.DrawQuad(Point(1.0f, 1.0f), Point(1.0f, 2.0f), Point(2.0f, 2.0f), Point(2.0f, 1.0f))
+        //canvas.DrawQuad(Point(0.0f, 0.0f), Point(0.0f, 1.0f), Point(1.0f, 1.0f), Point(1.0f, 0.0f))
+        canvas.DrawCircle(Point(1.0f, 1.0f), 0.5f)
         
         this.RenderShapes()
         this.DrawMaskedImage()

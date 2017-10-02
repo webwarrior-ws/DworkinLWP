@@ -13,6 +13,7 @@ type ICanvas =
     interface
         abstract member DrawTriangle : Point * Point * Point -> unit
         abstract member DrawQuad : Point * Point * Point * Point -> unit
+        abstract member DrawCircle : Point * float32 -> unit
     end
 
 

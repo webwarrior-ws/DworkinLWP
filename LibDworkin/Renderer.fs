@@ -75,6 +75,7 @@ type BaseRenderer(context : Android.Content.Context) =
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
+    let mutable scale = Point(1.0f, 1.0f)
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     member internal this.MaskTexture = maskTexture
@@ -129,6 +130,21 @@ type BaseRenderer(context : Android.Content.Context) =
             shapesVertexIndices.Add (currIndex + 2)
             shapesVertexIndices.Add currIndex
             shapesVertexIndices.Add (currIndex + 3)
+        
+        member this.DrawCircle(center, radius) =
+            let size = radius * float32(min wallpaperWidth wallpaperHeight) / (min scale.X scale.Y)
+            // account for DPI?
+            let numSteps = max 6 ( min (int (size * 4.0f)) 120)
+            let firstIndex = shapesVertices.Size
+            shapesVertices.Add center
+            let angleStep = Single.TwoPi / (float32 numSteps)
+            for i=1 to numSteps+1 do
+                let angle = angleStep * (float32 i)
+                shapesVertices.Add(center + Point(radius * cos angle, radius * sin angle))
+                shapesVertexIndices.Add firstIndex
+                shapesVertexIndices.Add (firstIndex + i)
+                shapesVertexIndices.Add (firstIndex + (i % numSteps + 1))
+                
 
     abstract member OnSurfaceChanged : Opengles.IGL10 * int * int -> unit
     default this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
@@ -225,6 +241,7 @@ type BaseRenderer(context : Android.Content.Context) =
             shapesVertexIndices.Clear()
     
     member this.SetScale(xs : float32, ys : float32) =
+        scale <- Point(xs, ys)
         GL.UseProgram(shapesDrawingShader.Value.Program)
         GL.Uniform2(GL.GetUniformLocation(shapesDrawingShader.Value.Program, "scale"), xs, ys)
 
