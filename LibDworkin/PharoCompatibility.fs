@@ -59,4 +59,4 @@ let inline between a b x =
     x >= a && x <= b
 
 /// Square of x
-let inline sqr x = x*x 
+let inline squared x = x*x 
