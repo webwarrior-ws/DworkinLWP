@@ -48,7 +48,9 @@ type CollidingAgentsEnvironment(bounds) =
             | :? OutOfBounds -> ()
     
     member this.Collides(collider : Collider, parent : Agent) =
-        quadTree.Exists((collider :> IHasBounds).Bounds, fun c -> Some(parent) <> c.Parent && collide collider c)
+        let criterion (c : Collider) = 
+            (match c.Parent with | Some(p) -> p <> parent | None -> true) && collide collider c
+        quadTree.Exists((collider :> IHasBounds).Bounds, criterion)
  
 
 type CollidingAgent() =
