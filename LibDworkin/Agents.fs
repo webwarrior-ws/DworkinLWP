@@ -42,12 +42,12 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
 
     let mutable id = 0
 
-    member val random = Random(randomSeed)
+    member val Random = Random(randomSeed)
     member val ThicknessFactor = 1.0f with get, set
     member val LengthFactor = 1.0f with get, set
     member val Generation = 1 with get, set
     member val GenerationLimit = 50 with get, set
-    member val Collision : Collision option = None
+    member val Collision : Collision option = None with get, set
 
     member this.Id = id
     
