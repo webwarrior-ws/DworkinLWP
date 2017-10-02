@@ -58,10 +58,10 @@ let noise1d (x : float32) =
     let i1 = i0 + 1
     let x0 = x - float32 i0
     let x1 = x0 - 1.0f
-    let t0 = sqr (1.0f - (sqr x0))
-    let n0 = (sqr t0) * (grad1 perm.[(i0 &&& 255) + 1] x0)
-    let t1 = sqr (1.0f - (sqr x1))
-    let n1 = (sqr t1) * (grad1 perm.[(i1 &&& 255) + 1] x1)
+    let t0 = squared (1.0f - (squared x0))
+    let n0 = (squared t0) * (grad1 perm.[(i0 &&& 255) + 1] x0)
+    let t1 = squared (1.0f - (squared x1))
+    let n1 = (squared t1) * (grad1 perm.[(i1 &&& 255) + 1] x1)
     0.395f * (n0 + n1)
 
 let noise2d (x : float32) (y : float32) =
@@ -82,21 +82,21 @@ let noise2d (x : float32) (y : float32) =
         if t0 < 0.0f then
             0.0f
         else
-            t0 <- sqr (sqr t0)
+            t0 <- squared (squared t0)
             t0 * (grad2 perm.[i + perm.[j]] p0.X p0.Y)
     let mutable t1 = 0.5f - Point.Dot(p1, p1)
     let n1 = 
         if t1 < 0.0f then
             0.0f
         else
-            t1 <- sqr (sqr t1)
+            t1 <- squared (squared t1)
             t1 * (grad2 perm.[(i + i1) + (perm.[j + j1])] p1.X p1.Y)
     let mutable t2 = 0.5f - Point.Dot(p2, p2)
     let n2 = 
         if t2 < 0.0f then
             0.0f
         else
-            t2 <- sqr (sqr t2)
+            t2 <- squared (squared t2)
             t2 * (grad2 perm.[(i + 1) + (perm.[j + 1])] p2.X p2.Y)
     45.0f * ((n0 + n1) + n2)
 
