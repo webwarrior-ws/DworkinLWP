@@ -19,6 +19,8 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
     <Name>DworkinTestingApp</Name>
+    <SelectedDevice>AVD_for_4_65_720p_Galaxy_Nexus</SelectedDevice>
+    <DefaultDevice>AVD_for_4_65_720p_Galaxy_Nexus</DefaultDevice>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
