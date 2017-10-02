@@ -57,3 +57,6 @@ type ICollection<'T> with
 /// tests if x lies between a and b
 let inline between a b x =
     x >= a && x <= b
+
+/// Square of x
+let inline sqr x = x*x 
