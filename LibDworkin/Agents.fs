@@ -9,16 +9,6 @@ open AgentAbstractions
 open Colliders
 
 
-[<Struct>]
-type CollisionLayer = CollisionLayer of int
-
-type Collision =
-    {
-        Subject: Collider
-        Obstacle: Collider
-        Layer: CollisionLayer
-    }
-
 //
 type DworkinEnvironmentConfig = 
     interface
@@ -27,7 +17,7 @@ type DworkinEnvironmentConfig =
 
 
 type DworkinAgentConfig = 
-    interface
+    class
         // TODO: complete
     end
 
@@ -79,5 +69,5 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     override this.Delay(action , numSteps) =
         failwith "notimplemented"
     
-    override this.Paint = OpenTK.Graphics.Color4.White // ?? is needed?
+    override this.Paint = OpenTK.Graphics.Color4.White // ?? is it needed?
 

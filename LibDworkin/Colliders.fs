@@ -184,3 +184,15 @@ let collide (first : Collider) (second : Collider) : bool =
     | :? SegmentCollider as a, (:? CircleCollider as b) -> circleSegment b.Center b.Radius a.Start a.End
     | :? SegmentCollider as a, (:? SegmentCollider as b) -> segmentSegment a.Start a.End b.Start b.End
     | _ -> failwith "notimplemented"
+
+
+
+[<Struct>]
+type CollisionLayer = CollisionLayer of int
+
+type Collision =
+    {
+        Subject: Collider
+        Obstacle: Collider
+        Layer: CollisionLayer
+    }
