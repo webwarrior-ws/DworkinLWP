@@ -9,6 +9,26 @@ open AgentAbstractions
 open Colliders
 
 
+type BranchMark(s : float32) =
+    let mutable cumulativeDensity = 0.0f
+
+    member this.S = s
+    member this.CumulativeDensity = cumulativeDensity
+
+    member val NextInterval : Nullable<float32> = Nullable() with get, set
+
+    member this.IncrementCumulativeDensityBy(number : float32) =
+        cumulativeDensity <- cumulativeDensity + number
+
+
+type BranchMarkList() =
+    inherit ResizeArray<BranchMark>()
+    let zero = BranchMark(0.0f)
+
+    member this.Last = 
+        if this.Count = 0 then zero else this.[this.Count-1]
+
+
 //
 type DworkinEnvironmentConfig = 
     interface
