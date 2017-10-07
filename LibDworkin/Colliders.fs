@@ -189,6 +189,8 @@ let collide (first : Collider) (second : Collider) : bool =
 
 [<Struct>]
 type CollisionLayer = CollisionLayer of int
+    with
+        static member Default = CollisionLayer(0)
 
 type Collision =
     {
