@@ -58,6 +58,7 @@
     <AndroidAsset Include="Assets\shaders\DrawMaskedImage.frag" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="packages.config" />
+    <Compile Include="Aether.fs" />
     <Compile Include="Geometry.fs" />
     <Compile Include="SpecializedCollections.fs" />
     <Compile Include="PharoCompatibility.fs" />
