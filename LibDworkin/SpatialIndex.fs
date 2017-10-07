@@ -39,6 +39,8 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
     let mutable nodes : QuadTree<'T>[] option = None
     let center = bounds.Center
 
+    new(bounds) = QuadTree(bounds, 8)
+
     interface SpatialIndex<'T> with
         member this.Insert(obj) = this.Insert(obj)
         member this.Query(rectangle, predicate) = this.Query(rectangle, predicate)
