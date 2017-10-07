@@ -7,6 +7,7 @@ open SpecializedCollections
 open SpatialIndex
 open AgentAbstractions
 open Colliders
+open System.Collections.Generic
 
 
 type BranchMark(s : float32) =
@@ -50,6 +51,36 @@ type DworkinAgentConfig =
     end
 
 
+// agent attributes
+type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
+    struct
+        member this.Get() : 'T option = 
+            match dictionary.TryGetValue(id) with
+            | (true, v) -> Some(v)
+            | (false, _) -> None
+        
+        member this.Set(value : 'T) : unit =
+            dictionary.[id] <- value
+        
+        member this.GetOrSetIfAbsent(value : unit -> 'T) : 'T =
+            match dictionary.TryGetValue(id) with
+            | (true, v) -> v
+            | (false, _) -> 
+                let res = value()
+                dictionary.[id] <- res
+                res
+    end
+
+
+type AttributesStore() =
+    member val BranchMarks = Dictionary<int, BranchMarkList>()
+
+
+[<AllowNullLiteral>]
+type Attributes(store: AttributesStore, id : int) =
+    member this.BranchMarks = AttributeAccessor(store.BranchMarks, id)
+
+
 type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     inherit MovingAgent()
     (* #paint *)
@@ -58,17 +89,16 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     let mutable thickness = Nullable<float32>()
     let mutable flipFactor = 1.0f
     // readonly (initailized once, then only read):
-    let mutable id = 0
     let mutable brush : Brush = null
 
+    member val private Id = 0 with get, set
     member val Random = Random(randomSeed)
     member val ThicknessFactor = 1.0f with get, set
     member val LengthFactor = 1.0f with get, set
     member val Generation = 1 with get, set
     member val GenerationLimit = 50 with get, set
     member val Collision : Collision option = None with get, set
-
-    member this.Id = id
+    
     member this.Brush =
         if isNull brush then
             ()//brush <- config.Brush.GetBrushFor(this)
