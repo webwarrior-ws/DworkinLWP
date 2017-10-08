@@ -40,6 +40,8 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
     let mutable r1 : Point option = None
     let mutable r2 : Point option = None
 
+    new() = CircleSectorCollider(None, Point(), 0.0f, 0.0f, Single.TwoPi)
+
     member this.Bearing
         with get() : float32 = bearing
         and set(num: float32) = 

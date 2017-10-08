@@ -27,7 +27,7 @@ type Collider(parent : Agent option) =
     
     /// Note: empty rectangle means no value
     member val BoundingBox : Rectangle = Rectangle() with get, set
-    member this.Parent = parent
+    member val Parent = parent with get, set
     
     abstract member CalculateBoundingBox : unit -> Rectangle
     
