@@ -153,6 +153,8 @@ type Environment(bounds : Rectangle) =
     default this.RemoveAgent(agent) = agents.Remove(agent)
     
     abstract member Delay : (Environment -> Agent option) * int -> unit
+
+    member this.AgentsCount = agents.Count
     
     member this.HasAgents = agents.Count > 0
     
