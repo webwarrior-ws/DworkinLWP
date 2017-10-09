@@ -583,7 +583,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             (this.Environment.Value :?> DworkinEnvironment).SpawnUsingOptions(options)
 
     override this.Step(canvas) =
-        if (this.Age = 0) && (config.TerminationConditions.Collision |> Option.forall (fun x -> x.Evaluate(this))) then
+        if this.Age = 0 && (config.TerminationConditions.Collision |> Option.exists (fun x -> x.Evaluate(this))) then
             this.Delete()
         else
             this.Brush.Evaluate(this, canvas)
