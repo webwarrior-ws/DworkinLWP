@@ -48,10 +48,12 @@ type DworkinEnvironmentConfig =
     end
 
 
+[<AbstractClass>]
 type DworkinBranchingStrategy() = 
     abstract Evaluate : DworkinAgent -> unit
 
 
+[<AbstractClass>]
 type DworkinBrushStrategy() = 
     abstract GetBrushFor : DworkinAgent -> Brush
 
@@ -59,10 +61,12 @@ type DworkinBrushStrategy() =
     default this.IsFinal = true
 
 
+[<AbstractClass>]
 type DworkinColliderOptions() = 
     abstract Evaluate : DworkinAgent -> unit
 
 
+[<AbstractClass>]
 type DworkinAgentFormula() = 
     abstract Evaluate : float32 * float32 -> float32
     member this.Evaluate(agent : DworkinAgent) =
@@ -71,17 +75,21 @@ type DworkinAgentFormula() =
 
     static member Factor = 100.0f
 
+[<AbstractClass>]
 type DworkinThicknessFormula() = 
     inherit DworkinAgentFormula()
 
+[<AbstractClass>]
 type DworkinCurvatureFormula() = 
     inherit DworkinAgentFormula()
 
 
+[<AbstractClass>]
 type DworkinSpeed() = 
     abstract Evaluate : DworkinAgent -> float32
 
 
+[<AbstractClass>]
 type DworkinTerminationStrategy() = 
     abstract Evaluate : DworkinAgent -> unit
 
@@ -460,6 +468,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
 
     member inline this.TotalDistance =
         config.TotalDistance
+    
+    member this.IsFlipped =
+        flipFactor < 0.0f
 
     member this.BranchMarks =
         this.Attributes.BranchMarks.GetOrSetIfAbsent(fun () -> SmallDictionary.Create())
@@ -488,7 +499,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList()).Add(aMark)
 
     member this.Branch(anAgentConfig, options) =
-        this.Branch(anAgentConfig, options, ignore)
+        this.Branch(anAgentConfig, options, id)
 
     member this.Branch(anAgentConfig, options : BranchOptions, agentBlock) =
         if this.Generation >= this.GenerationLimit then
@@ -497,7 +508,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             options.Parent <- Some(this.Copy())
             options.Config <- anAgentConfig
             let resultingAgent = this.SpawnUsingOptions(options)
-            match resultingAgent with | Some(agent) -> agent.Do(agentBlock) | None -> ()
+            match resultingAgent with 
+            | Some(agent) -> agent.Do(agentBlock) 
+            | None -> ()
             this.AddBranchMarkFor(BranchMark(this.DistanceCovered), options.Tag)
             resultingAgent
 
@@ -541,14 +554,12 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.Spawn(anAgentConfig, options, id)
 
     member this.Spawn(anAgentConfig, options : AgentSpawnOptions, agentBlock) =
-        if this.Generation >= this.GenerationLimit then
-            None
-        else
+        if this.Generation < this.GenerationLimit then
             options.Parent <- Some(this.Copy())
             options.Config <- anAgentConfig
             match this.SpawnUsingOptions(options) with
-            | Some(agent) -> agent.Do(agentBlock)
-            | None -> None
+            | Some(agent) -> agent.Do(agentBlock) 
+            | None -> ()
     (*
     member this.DrawGeometry(anAthensShape, optionsBlock) =
         let options = GeometrySpawnOptions()
@@ -562,14 +573,14 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.Environment().AddGeometry(g)
     *)
 
-    member this.SpawnUsingOptions(options : AgentSpawnOptions) =
+    member this.SpawnUsingOptions(options : AgentSpawnOptions) : Agent option =
         if this.Generation >= this.GenerationLimit then
             None
         else
             match options.Seed with 
             | Some(_) -> () 
             | None -> options.Seed <- Some(this.Random.Next())
-            this.Environment.SpawnUsingOptions(options)
+            (this.Environment.Value :?> DworkinEnvironment).SpawnUsingOptions(options)
 
     member this.Step(canvas) =
         if (this.Age = 0) && (config.TerminationConditions.Collision |> Option.forall (fun x -> x.Evaluate(this))) then
@@ -608,7 +619,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     override this.Random = random
 
     override this.Delay(action , numSteps) =
-        failwith "notimplemented"
+        this.AddAgent(FixedDelayAgent(numSteps, Action=action))
     
     override this.Paint = OpenTK.Graphics.Color4.White // ?? is it needed?
 
@@ -633,5 +644,28 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     /// Return true if given collider collides with any colliders in given layers
     member this.TestForCollision(layers: LayersList<CollisionLayer>, collider : Collider) : bool =
         this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> collide collider c)
+    
+    // spawning
+    member this.SpawnUsingOptions(options : AgentSpawnOptions) =
+        let seed = match options.Seed with | Some(value) -> value | None -> this.Random.Next()
+        let agent = DworkinAgent(options.Config.Value, seed, Position=options.Position, Direction=options.Direction)
+        match options.Parent with
+        | Some(parent) -> 
+            agent.Parent <- options.Parent
+            agent.ThicknessFactor <- parent.ThicknessFactor
+            agent.LengthFactor <- parent.LengthFactor
+            agent.GenerationLimit <- parent.GenerationLimit
+            if parent.IsFlipped then
+                agent.Flip()
+        | None -> ()
+        agent.Environment <- Some(this :> Environment)
+        let addedAgent : Agent = 
+            match options.Delay with
+            | Some(delayAgent) -> 
+                delayAgent.Action <- fun env -> env.AddAgent(agent); Some(agent :> Agent)
+                delayAgent :> Agent
+            | None -> agent :> Agent
+        this.AddAgent(addedAgent)
+        Some(addedAgent)
 
 
