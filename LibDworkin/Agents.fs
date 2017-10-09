@@ -308,6 +308,72 @@ type DworkinAgentConfig =
             (fun x -> x.TotalDistance), (fun value x -> { x with TotalDistance = value })
 
 
+type SpawnOptions() =
+    let position : Nullable<Point> = Nullable()
+    let direction : Nullable<Point> = Nullable()
+    member val OffsetSideways = 0.0f with get, set
+    member val Offset = 0.0f with get, set
+    member val Angle = 0.0f with get, set
+    member val Parent : DworkinAgent option = None with get, set
+    member val Delay : DelayAgent option = None with get, set
+
+    member this.AngleDeg
+        with set(aNumber) = 
+            this.Angle <- deg2rad aNumber
+
+    member this.Direction =
+        if direction.HasValue then 
+            direction.Value
+        else
+            match this.Parent with 
+            | Some(parent) -> parent.Direction.Rotate(this.Angle * parent.FlipFactor, Point(0.0f, 0.0f)) 
+            | None -> Point(0.0f, -1.0f).Rotate(this.Angle, Point(0.0f, 0.0f))
+
+    member this.OffsetToEdge =
+        match this.Parent with 
+        | Some(parent) -> this.OffsetSideways <- parent.Thickness * 0.5f 
+        | None -> ()
+
+    member this.Position =
+        if position.HasValue then
+            position.Value
+        else
+            match this.Parent with
+            | Some(parent) -> 
+                let mutable pos = parent.Position
+                if this.Offset <> 0.0f then
+                    pos <- pos + (this.Direction * this.Offset)
+                if this.OffsetSideways <> 0.0f then
+                    let perp = 
+                        if between 0.0f Single.Pi (this.Angle % Single.TwoPi) then
+                            parent.Direction.LeftRotated
+                        else
+                            -parent.Direction.LeftRotated
+                    pos <- pos + ((perp * this.OffsetSideways) * parent.FlipFactor)
+                pos
+            | None -> Point(0.0f, 0.0f)
+
+    member this.DelayBy(numberOfSteps) =
+        if numberOfSteps = 0 then
+            this.Delay <- None
+        else
+            this.Delay <- FixedDelayAgent(NumberOfSteps=numberOfSteps)
+
+    member this.DelayUntilActivityStopped() =
+        this.Delay <- ActivityDelayAgent()
+
+  
+type AgentSpawnOptions() =
+    inherit SpawnOptions()
+    member val Config : DworkinAgentConfig option = None with get, set
+    member val Seed : int option = None with get, set
+
+
+type BranchOptions() =
+    inherit AgentSpawnOptions()
+    member val Tag = 0 with get, set
+
+
 // agent attributes
 type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
     struct
@@ -353,8 +419,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     let mutable brush : Brush = null
     let mutable attributes : Attributes = null
 
+    let mutable random = Random(randomSeed)
+
     member val private Id = 0 with get, set
-    member val Random = Random(randomSeed) with get
     member val ThicknessFactor = 1.0f with get, set
     member val LengthFactor : float32 = 1.0f with get, set
     member val Generation = 1 with get, set
@@ -362,7 +429,10 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member val Collision : Collision option = None with get, set
     member val Parent : DworkinAgent option = None with get, set
     
+    member this.Random = random
     member this.Attributes : Attributes = attributes
+    member this.FlipFactor = flipFactor
+    member this.Config = config
 
     member this.Curvature = 
         if not curvature.HasValue then
@@ -386,8 +456,6 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         if isNull brush then
             brush <- config.Brush.GetBrushFor(this)
         brush
-    
-    member this.Config = config
 
     member inline this.TotalDistance =
         config.TotalDistance
@@ -421,11 +489,11 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member this.Branch(anAgentConfig, optionsBlock) =
         this.Branch(anAgentConfig, optionsBlock, ignore)
 
-    member this.Branch(anAgentConfig, options, agentBlock) =
+    member this.Branch(anAgentConfig, options : BranchOptions, agentBlock) =
         if this.Generation >= this.GenerationLimit then
             None
         else
-            options.Parent <- this.Copy()
+            options.Parent <- Some(this.Copy())
             options.Config <- anAgentConfig
             let resultingAgent = this.SpawnUsingOptions(options)
             match resultingAgent with | Some(agent) -> agent.Do(agentBlock) | None -> ()
@@ -447,7 +515,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         copy
     
     member this.PostCopy() =
-        failwith "notimplemented"
+        //random <- random.MemberwiseClone() :?> Random
+        // cannot copy random. Is it an issue?
+        brush <- null
 
     member this.ResetCache() =
         speed <- Nullable()
@@ -466,17 +536,15 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.ThicknessFactor <- factor
         this.LengthFactor <- factor
 
-    member this.Spawn(anAgentConfig, optionsBlock) =
-        this.Spawn(anAgentConfig, optionsBlock, id)
+    member this.Spawn(anAgentConfig, options) =
+        this.Spawn(anAgentConfig, options, id)
 
-    member this.Spawn(anAgentConfig, optionsBlock, agentBlock) =
+    member this.Spawn(anAgentConfig, options : AgentSpawnOptions, agentBlock) =
         if this.Generation >= this.GenerationLimit then
             None
         else
-            let options = AgentSpawnOptions()
             options.Parent <- Some(this.Copy())
-            optionsBlock options
-            options.Config(anAgentConfig)
+            options.Config <- anAgentConfig
             match this.SpawnUsingOptions(options) with
             | Some(agent) -> agent.Do(agentBlock)
             | None -> None
@@ -497,7 +565,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         if this.Generation >= this.GenerationLimit then
             None
         else
-            match options.Seed with | Some(_) -> () | None -> options.Seed <- this.Random.NextInt()
+            match options.Seed with 
+            | Some(_) -> () 
+            | None -> options.Seed <- Some(this.Random.Next())
             this.Environment.SpawnUsingOptions(options)
 
     member this.Step(canvas) =
