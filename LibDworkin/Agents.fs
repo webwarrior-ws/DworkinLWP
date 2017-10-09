@@ -606,7 +606,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
 
 type DworkinEnvironment(bounds, randomSeed : int) =
     inherit Environment(bounds)
-    (* #numDelayAgents *)
+    let mutable numDelayAgents = 0
     let initialQuadTreeBounds = Rectangle.FromTLRB(bounds.Top - 10.0f, bounds.Left - 10.0f, bounds.Right + 15.0f, bounds.Bottom + 15.0f)
     let mutable currId = 0
     let colliders : Collections.Generic.IDictionary<CollisionLayer, QuadTree<Collider>> = SmallDictionary.Create()
@@ -621,7 +621,22 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     override this.Delay(action , numSteps) =
         this.AddAgent(FixedDelayAgent(numSteps, Action=action))
     
+    override this.HasActiveAgents =
+        this.AgentsCount - numDelayAgents > 0
+    
     override this.Paint = OpenTK.Graphics.Color4.White // ?? is it needed?
+
+    override this.AddAgent(agent) =
+        base.AddAgent(agent) 
+        if agent :? DelayAgent then
+            numDelayAgents <- numDelayAgents + 1
+    
+    override this.RemoveAgent(agent) =
+        let oldCount = this.AgentsCount
+        let result = base.RemoveAgent(agent)
+        if agent :? DelayAgent then
+            numDelayAgents <- numDelayAgents - (oldCount - this.AgentsCount)
+        result
 
     member this.AddCollider(aCollider) =
         this.AddColliderToLayer(aCollider, CollisionLayer.Default)
