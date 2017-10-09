@@ -69,23 +69,23 @@ type Agent() =
 
 
 [<AbstractClass>]
-type DelayAgent(initialAction : Environment -> Agent option) =
+type DelayAgent() =
     inherit Agent()
 
-    let mutable action = initialAction
+    member val Action : Environment -> Agent option = (fun _ -> None) with get, set
 
     override this.LiesWithinBounds(bounds) = true
 
     override this.Do(func) =
-        let oldAction = action
-        action <- fun env -> Option.map func (oldAction env)
+        let oldAction = this.Action
+        this.Action <- fun env -> Option.map func (oldAction env)
     
     override this.Step(canvas) =
         base.Step(canvas)
         if this.ReadyToRelease then
             match this.Environment with
             | Some(env) ->
-                action env |> ignore
+                this.Action env |> ignore
                 this.Delete()
             | None -> ()
     

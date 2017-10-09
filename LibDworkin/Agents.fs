@@ -8,6 +8,7 @@ open Geometry
 open SpecializedCollections
 open SpatialIndex
 open AgentAbstractions
+open DelayAgents
 open Colliders
 open PharoCompatibility
 
@@ -357,10 +358,10 @@ type SpawnOptions() =
         if numberOfSteps = 0 then
             this.Delay <- None
         else
-            this.Delay <- FixedDelayAgent(NumberOfSteps=numberOfSteps)
+            this.Delay <- Some(FixedDelayAgent(numberOfSteps) :> DelayAgent)
 
     member this.DelayUntilActivityStopped() =
-        this.Delay <- ActivityDelayAgent()
+        this.Delay <- Some(ActivityDelayAgent() :> DelayAgent)
 
   
 type AgentSpawnOptions() =
@@ -486,8 +487,8 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member this.AddBranchMarkFor(aMark, tag) =
         this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList()).Add(aMark)
 
-    member this.Branch(anAgentConfig, optionsBlock) =
-        this.Branch(anAgentConfig, optionsBlock, ignore)
+    member this.Branch(anAgentConfig, options) =
+        this.Branch(anAgentConfig, options, ignore)
 
     member this.Branch(anAgentConfig, options : BranchOptions, agentBlock) =
         if this.Generation >= this.GenerationLimit then
@@ -561,7 +562,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.Environment().AddGeometry(g)
     *)
 
-    member this.SpawnUsingOptions(options) =
+    member this.SpawnUsingOptions(options : AgentSpawnOptions) =
         if this.Generation >= this.GenerationLimit then
             None
         else
@@ -579,7 +580,10 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             if config.TerminationConditions.AnySatisfy(this) then
                 this.Terminate()
             else
+                let rotation = this.Curvature * this.Speed
                 base.Step(canvas)
+                this.Direction <- this.Direction.Rotate(rotation, Point(0.0f, 0.0f))
+
                 config.Branching.Evaluate(this)
                 this.ResetCache()
 
