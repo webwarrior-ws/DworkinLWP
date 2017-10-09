@@ -106,7 +106,7 @@ type MovingAgent() =
             direction <- dir
             direction.Normalize()
     
-    abstract member Speed : float32 
+    abstract member Speed : float32 with get, set
     default this.Speed = 1.0f
 
     abstract member DistanceCovered : float32 
