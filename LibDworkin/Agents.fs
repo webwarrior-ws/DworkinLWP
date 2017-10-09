@@ -453,7 +453,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
            thickness <- Nullable(config.Thickness.Evaluate(this))
         thickness.Value
     
-    member this.Speed 
+    override this.Speed
         with get() : float32 = 
             if not speed.HasValue then
                speed <- Nullable(config.Speed.Evaluate(this))
@@ -582,7 +582,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             | None -> options.Seed <- Some(this.Random.Next())
             (this.Environment.Value :?> DworkinEnvironment).SpawnUsingOptions(options)
 
-    member this.Step(canvas) =
+    override this.Step(canvas) =
         if (this.Age = 0) && (config.TerminationConditions.Collision |> Option.forall (fun x -> x.Evaluate(this))) then
             this.Delete()
         else
