@@ -27,7 +27,7 @@ type Collider(parent : Agent option) =
     
     /// Note: empty rectangle means no value
     member val BoundingBox : Rectangle = Rectangle() with get, set
-    member this.Parent = parent
+    member val Parent = parent with get, set
     
     abstract member CalculateBoundingBox : unit -> Rectangle
     
@@ -69,23 +69,23 @@ type Agent() =
 
 
 [<AbstractClass>]
-type DelayAgent(initialAction : Environment -> Agent option) =
+type DelayAgent() =
     inherit Agent()
 
-    let mutable action = initialAction
+    member val Action : Environment -> Agent option = (fun _ -> None) with get, set
 
     override this.LiesWithinBounds(bounds) = true
 
     override this.Do(func) =
-        let oldAction = action
-        action <- fun env -> Option.map func (oldAction env)
+        let oldAction = this.Action
+        this.Action <- fun env -> Option.map func (oldAction env)
     
     override this.Step(canvas) =
         base.Step(canvas)
         if this.ReadyToRelease then
             match this.Environment with
             | Some(env) ->
-                action env |> ignore
+                this.Action env |> ignore
                 this.Delete()
             | None -> ()
     
@@ -106,7 +106,7 @@ type MovingAgent() =
             direction <- dir
             direction.Normalize()
     
-    abstract member Speed : float32 
+    abstract member Speed : float32 with get, set
     default this.Speed = 1.0f
 
     abstract member DistanceCovered : float32 
@@ -153,6 +153,8 @@ type Environment(bounds : Rectangle) =
     default this.RemoveAgent(agent) = agents.Remove(agent)
     
     abstract member Delay : (Environment -> Agent option) * int -> unit
+
+    member this.AgentsCount = agents.Count
     
     member this.HasAgents = agents.Count > 0
     

@@ -1,13 +1,16 @@
 ﻿module rec LibDworkin.Agents
 
 open System
+open System.Collections.Generic
 
+open Aether
 open Geometry
 open SpecializedCollections
 open SpatialIndex
 open AgentAbstractions
+open DelayAgents
 open Colliders
-open System.Collections.Generic
+open PharoCompatibility
 
 
 type BranchMark(s : float32) =
@@ -35,7 +38,7 @@ type BranchMarkList() =
 [<AbstractClass>]
 [<AllowNullLiteral>]
 type Brush() =
-    abstract member Evaluate : DworkinAgent -> unit
+    abstract member Evaluate : DworkinAgent * ICanvas -> unit
 
 
 //
@@ -45,10 +48,339 @@ type DworkinEnvironmentConfig =
     end
 
 
-type DworkinAgentConfig = 
-    class
-        // TODO: complete
+[<AbstractClass>]
+type DworkinBranchingStrategy() = 
+    abstract Evaluate : DworkinAgent -> unit
+
+
+[<AbstractClass>]
+type DworkinBrushStrategy() = 
+    abstract GetBrushFor : DworkinAgent -> Brush
+
+    abstract IsFinal : bool 
+    default this.IsFinal = true
+
+
+[<AbstractClass>]
+type DworkinColliderOptions() = 
+    abstract Evaluate : DworkinAgent -> unit
+
+
+[<AbstractClass>]
+type DworkinAgentFormula() = 
+    abstract Evaluate : float32 * float32 -> float32
+    member this.Evaluate(agent : DworkinAgent) =
+        let s = agent.DistanceCovered
+        this.Evaluate(s * DworkinAgentFormula.Factor, min (s / agent.TotalDistance) 1.0f)
+
+    static member Factor = 100.0f
+
+[<AbstractClass>]
+type DworkinThicknessFormula() = 
+    inherit DworkinAgentFormula()
+
+[<AbstractClass>]
+type DworkinCurvatureFormula() = 
+    inherit DworkinAgentFormula()
+
+
+[<AbstractClass>]
+type DworkinSpeed() = 
+    abstract Evaluate : DworkinAgent -> float32
+
+
+[<AbstractClass>]
+type DworkinTerminationStrategy() = 
+    abstract Evaluate : DworkinAgent -> unit
+
+
+type DetectorSize =
+    | Relative
+    | Absolute
+
+
+type CollisionDetectorConfig = 
+    {
+        Angle : float32
+        Distance : float32
+    }
+    with
+        static member Default = { Angle=90.0f; Distance=1.0f }
+
+        static member Angle_ = 
+            (fun x -> x.Angle), (fun value x -> { x with Angle = value })
+
+        static member Distance_ = 
+            (fun x -> x.Distance), (fun value x -> { x with Distance = value })
+
+        member this.GetCollider() =
+            let temp = CircleSectorCollider(None, Point(), 0.0f, 0.0f, deg2rad this.Angle)
+            temp
+    
+
+type CollisionHandler = 
+    interface
+        abstract Evaluate : (DworkinAgent * Collision) -> bool
     end
+
+
+
+type TerminationConditions = 
+    {
+        Distance : TerminationConditionDistance option
+        Curvature : TerminationConditionCurvature option
+        Collision : TerminationConditionCollision option
+    }
+    with
+        member this.AnySatisfy(agent : DworkinAgent) =
+            this.Distance  |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
+            this.Curvature |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
+            this.Collision |> Option.exists (fun cond -> cond.Evaluate(agent))
+
+type TerminationConditionDistance() = 
+    member this.Evaluate(agent : DworkinAgent) =
+        let delta = agent.Config.TotalDistance - agent.DistanceCovered
+        if delta < (1.0e-8f) then
+            true
+        else
+            if delta < agent.Speed then
+                agent.Speed <- delta
+            false
+
+type TerminationConditionCurvature() = 
+    member val MaxCurvature = 0.78f with get, set
+    member this.Clone() = this.MemberwiseClone() :?> TerminationConditionCurvature
+    static member MaxCurvature_ = 
+        (fun (x : TerminationConditionCurvature) -> x.MaxCurvature), 
+        (fun value (x : TerminationConditionCurvature) -> let y = x.Clone() in y.MaxCurvature <- value; y)
+
+    member this.Evaluate(agent : DworkinAgent) =
+        abs agent.Curvature > this.MaxCurvature
+
+type TerminationConditionCollision() = 
+    let mutable secondaryDetector : CollisionDetectorConfig option = None
+
+    member val DetectorSize = DetectorSize.Relative with get, set
+    member val Handler : CollisionHandler option = None with get, set
+    member val IgnoreParent = false with get, set
+    member val Layers = LayersList() with get, set
+    member val MinDistance = 0.0f with get, set
+    member val PrimaryDetector = CollisionDetectorConfig.Default with get, set
+    member val SelfIntersection = true with get, set
+
+    member this.SecondaryDetector 
+        with get() = secondaryDetector
+        and set(anObject : CollisionDetectorConfig option) =
+            secondaryDetector <- 
+                match anObject with
+                | Some(detector) when Option.isNone secondaryDetector ->
+                    Some({ detector with Distance=3.0f; Angle=30.0f })
+                | _ -> anObject
+
+    member this.Clone() = this.MemberwiseClone() :?> TerminationConditionCollision
+
+    static member DetectorSize_ : Lens<TerminationConditionCollision, DetectorSize> = 
+        (fun x -> x.DetectorSize),(fun value x -> let y = x.Clone() in y.DetectorSize <- value; y)
+
+    static member Handler_ : Prism<TerminationConditionCollision, CollisionHandler> = 
+        (fun x -> x.Handler),(fun value x -> let y = x.Clone() in y.Handler <- Some(value); y)
+
+    static member IgnoreParent_ : Lens<TerminationConditionCollision, bool> = 
+        (fun x -> x.IgnoreParent),(fun value x -> let y = x.Clone() in y.IgnoreParent <- value; y)
+
+    static member Layers_ : Lens<TerminationConditionCollision, LayersList<CollisionLayer>> = 
+        (fun x -> x.Layers),(fun value x -> let y = x.Clone() in y.Layers <- value; y)
+
+    static member MinDistance_ : Lens<TerminationConditionCollision, float32> = 
+        (fun x -> x.MinDistance),(fun value x -> let y = x.Clone() in y.MinDistance <- value; y)
+
+    static member PrimaryDetector_ : Lens<TerminationConditionCollision, CollisionDetectorConfig> = 
+        (fun x -> x.PrimaryDetector),(fun value x -> let y = x.Clone() in y.PrimaryDetector <- value; y)
+
+    static member SecondaryDetector_ : Prism<TerminationConditionCollision, CollisionDetectorConfig> = 
+        (fun x -> x.SecondaryDetector),(fun value x -> let y = x.Clone() in y.SecondaryDetector <- Some(value); y)
+
+    static member SelfIntersection_ : Lens<TerminationConditionCollision, bool> = 
+        (fun x -> x.SelfIntersection),(fun value x -> let y = x.Clone() in y.SelfIntersection <- value; y)    
+    
+
+    member this.Evaluate(agent : DworkinAgent) =
+        if agent.DistanceCovered < this.MinDistance then
+            false
+        else
+            let detectorConfigs : CollisionDetectorConfig[] = 
+                match this.SecondaryDetector with 
+                | Some(sp) -> [| this.PrimaryDetector; sp; |] 
+                | None -> [| this.PrimaryDetector; |]
+            
+            let detectors : CircleSectorCollider[] = 
+                let detectorsAccessor : AttributeAccessor<CircleSectorCollider[]> = agent.Attributes.Detectors
+                match detectorsAccessor.Get() with
+                | Some(value) -> value
+                | None ->
+                    detectorConfigs |> Array.map (fun each -> 
+                        let collider = each.GetCollider()
+                        collider.Parent <- Some(agent :> Agent)
+                        collider)
+            
+            let sizeFactor = 
+                if this.DetectorSize = DetectorSize.Relative then
+                    max agent.Thickness agent.Speed
+                else
+                    agent.LengthFactor
+            
+            let predicate detector layer collider = 
+                (collide detector collider) &&
+                (if not <| this.IgnoresCollisionOfAgentWith(agent, collider) then
+                    let collision = { Subject=detector; Obstacle=collider; Layer=layer }
+                    let handlerNotAborted =
+                        match this.Handler with
+                        | None -> true
+                        | Some(handler) -> handler.Evaluate(agent, collision)
+                    if handlerNotAborted then
+                        agent.Collision <- Some(collision)
+                        true (*return*)
+                    else false
+                 else false)
+            Seq.exists2 (
+                fun (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) -> 
+                    detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
+                    (agent.Environment.Value :?> DworkinEnvironment).QueryColliders(
+                        (detector :> IHasBounds).Bounds, 
+                        this.Layers, 
+                        predicate detector) )
+                detectors 
+                detectorConfigs
+    
+
+    member this.IgnoresCollisionOfAgentWith(agent : DworkinAgent, collider : Collider) =
+        let colliderAccessor : AttributeAccessor<Collider> = agent.Attributes.LastCollider
+        (match colliderAccessor.Get() with
+         | Some(lastCollider) -> collider = lastCollider
+         | None -> false) ||
+        ((not this.SelfIntersection) && 
+         match collider.Parent with
+         | Some(parent) -> agent = (parent :?> DworkinAgent)
+         | None -> false) ||
+        (this.IgnoreParent && 
+         match collider.Parent, agent.Parent with
+         | Some(cp), Some(ap) -> (cp :?> DworkinAgent) = ap
+         | _ -> false)
+
+
+
+type DworkinAgentConfig = 
+    {
+        Branching : DworkinBranchingStrategy
+        Brush : DworkinBrushStrategy
+        ColliderOptions : DworkinColliderOptions
+        Curvature : DworkinCurvatureFormula
+        Speed : DworkinSpeed
+        Termination : DworkinTerminationStrategy
+        TerminationConditions : TerminationConditions
+        Thickness : DworkinThicknessFormula
+        TotalDistance : float32
+    }
+    with
+        (*static member Default = { 
+            Branching=DworkinBranchingStrategy.Default; Brush=DworkinBrushStrategy.Default; 
+            ColliderOptions=DworkinColliderOptions.Default; Curvature=DworkinCurvatureFormula.Default; 
+            Speed=DworkinSpeed.Default; Termination=DworkinTerminationStrategy.Default; 
+            TerminationConditions=TerminationConditions.Default; 
+            Thickness=DworkinThicknessFormula.Default; TotalDistance=100.0f }*)
+        
+        static member Branching_ = 
+            (fun x -> x.Branching), (fun value x -> { x with Branching = value })
+
+        static member Brush_ = 
+            (fun x -> x.Brush), (fun value x -> { x with Brush = value })
+
+        static member ColliderOptions_ = 
+            (fun x -> x.ColliderOptions), (fun value x -> { x with ColliderOptions = value })
+
+        static member Curvature_ : Lens<DworkinAgentConfig, DworkinCurvatureFormula> = 
+            (fun x -> x.Curvature), (fun value x -> { x with Curvature = value })
+
+        static member Speed_ = 
+            (fun x -> x.Speed), (fun value x -> { x with Speed = value })
+
+        static member Termination_ = 
+            (fun x -> x.Termination), (fun value x -> { x with Termination = value })
+
+        static member TerminationConditions_ = 
+            (fun x -> x.TerminationConditions), (fun value x -> { x with TerminationConditions = value })
+
+        static member Thickness_ = 
+            (fun x -> x.Thickness), (fun value x -> { x with Thickness = value })
+
+        static member TotalDistance_ = 
+            (fun x -> x.TotalDistance), (fun value x -> { x with TotalDistance = value })
+
+
+type SpawnOptions() =
+    let position : Nullable<Point> = Nullable()
+    let direction : Nullable<Point> = Nullable()
+    member val OffsetSideways = 0.0f with get, set
+    member val Offset = 0.0f with get, set
+    member val Angle = 0.0f with get, set
+    member val Parent : DworkinAgent option = None with get, set
+    member val Delay : DelayAgent option = None with get, set
+
+    member this.AngleDeg
+        with set(aNumber) = 
+            this.Angle <- deg2rad aNumber
+
+    member this.Direction =
+        if direction.HasValue then 
+            direction.Value
+        else
+            match this.Parent with 
+            | Some(parent) -> parent.Direction.Rotate(this.Angle * parent.FlipFactor, Point(0.0f, 0.0f)) 
+            | None -> Point(0.0f, -1.0f).Rotate(this.Angle, Point(0.0f, 0.0f))
+
+    member this.OffsetToEdge =
+        match this.Parent with 
+        | Some(parent) -> this.OffsetSideways <- parent.Thickness * 0.5f 
+        | None -> ()
+
+    member this.Position =
+        if position.HasValue then
+            position.Value
+        else
+            match this.Parent with
+            | Some(parent) -> 
+                let mutable pos = parent.Position
+                if this.Offset <> 0.0f then
+                    pos <- pos + (this.Direction * this.Offset)
+                if this.OffsetSideways <> 0.0f then
+                    let perp = 
+                        if between 0.0f Single.Pi (this.Angle % Single.TwoPi) then
+                            parent.Direction.LeftRotated
+                        else
+                            -parent.Direction.LeftRotated
+                    pos <- pos + ((perp * this.OffsetSideways) * parent.FlipFactor)
+                pos
+            | None -> Point(0.0f, 0.0f)
+
+    member this.DelayBy(numberOfSteps) =
+        if numberOfSteps = 0 then
+            this.Delay <- None
+        else
+            this.Delay <- Some(FixedDelayAgent(numberOfSteps) :> DelayAgent)
+
+    member this.DelayUntilActivityStopped() =
+        this.Delay <- Some(ActivityDelayAgent() :> DelayAgent)
+
+  
+type AgentSpawnOptions() =
+    inherit SpawnOptions()
+    member val Config : DworkinAgentConfig option = None with get, set
+    member val Seed : int option = None with get, set
+
+
+type BranchOptions() =
+    inherit AgentSpawnOptions()
+    member val Tag = 0 with get, set
 
 
 // agent attributes
@@ -73,12 +405,16 @@ type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
 
 
 type AttributesStore() =
-    member val BranchMarks = Dictionary<int, BranchMarkList>()
+    member val BranchMarks = Dictionary<int, IDictionary<int, BranchMarkList>>()
+    member val Detectors = Dictionary<int, CircleSectorCollider[]>()
+    member val LastCollider = Dictionary<int, Collider>()
 
 
 [<AllowNullLiteral>]
 type Attributes(store: AttributesStore, id : int) =
     member this.BranchMarks = AttributeAccessor(store.BranchMarks, id)
+    member this.Detectors = AttributeAccessor(store.Detectors, id)
+    member this.LastCollider = AttributeAccessor(store.LastCollider, id)
 
 
 type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
@@ -90,19 +426,62 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     let mutable flipFactor = 1.0f
     // readonly (initailized once, then only read):
     let mutable brush : Brush = null
+    let mutable attributes : Attributes = null
+
+    let mutable random = Random(randomSeed)
 
     member val private Id = 0 with get, set
-    member val Random = Random(randomSeed)
     member val ThicknessFactor = 1.0f with get, set
-    member val LengthFactor = 1.0f with get, set
+    member val LengthFactor : float32 = 1.0f with get, set
     member val Generation = 1 with get, set
     member val GenerationLimit = 50 with get, set
     member val Collision : Collision option = None with get, set
+    member val Parent : DworkinAgent option = None with get, set
+    
+    member this.Random = random
+    member this.Attributes : Attributes = attributes
+    member this.FlipFactor = flipFactor
+    member this.Config = config
+
+    member this.Curvature = 
+        if not curvature.HasValue then
+           curvature <- Nullable(config.Curvature.Evaluate(this))
+        curvature.Value
+    
+    member this.Thickness = 
+        if not thickness.HasValue then
+           thickness <- Nullable(config.Thickness.Evaluate(this))
+        thickness.Value
+    
+    override this.Speed
+        with get() : float32 = 
+            if not speed.HasValue then
+               speed <- Nullable(config.Speed.Evaluate(this))
+            speed.Value
+        and set(aNumber : float32) =
+            speed <- Nullable(aNumber * this.LengthFactor)
     
     member this.Brush =
         if isNull brush then
-            ()//brush <- config.Brush.GetBrushFor(this)
+            brush <- config.Brush.GetBrushFor(this)
         brush
+
+    member inline this.TotalDistance =
+        config.TotalDistance
+    
+    member this.IsFlipped =
+        flipFactor < 0.0f
+
+    member this.BranchMarks =
+        this.Attributes.BranchMarks.GetOrSetIfAbsent(fun () -> SmallDictionary.Create())
+    
+    override this.InitializeIn(env) =
+        base.InitializeIn(env)
+        this.Id <- env.NextId
+        match env with
+        | :? DworkinEnvironment as dworkinEnv -> 
+            attributes <- Attributes(dworkinEnv.AttributesStore, this.Id)
+        | _ -> ()
     
     interface IEquatable<Agent> with
         override this.Equals(other) =
@@ -115,23 +494,193 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         | :? DworkinAgent as otherAgent -> this.Id = otherAgent.Id
         | _ -> false
     override this.GetHashCode() = hash this.Id
+
+    member this.AddBranchMarkFor(aMark, tag) =
+        this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList()).Add(aMark)
+
+    member this.Branch(anAgentConfig, options) =
+        this.Branch(anAgentConfig, options, id)
+
+    member this.Branch(anAgentConfig, options : BranchOptions, agentBlock) =
+        if this.Generation >= this.GenerationLimit then
+            None
+        else
+            options.Parent <- Some(this.Copy())
+            options.Config <- anAgentConfig
+            let resultingAgent = this.SpawnUsingOptions(options)
+            match resultingAgent with 
+            | Some(agent) -> agent.Do(agentBlock) 
+            | None -> ()
+            this.AddBranchMarkFor(BranchMark(this.DistanceCovered), options.Tag)
+            resultingAgent
+
+    member this.Flip() =
+        flipFactor <- -flipFactor
+
+    member this.LastBranchMarkFor(tag) =
+        (this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList())).Last
+
+    member this.NumBranchesFor(tag) =
+        this.BranchMarks.GetTransformed(tag, fun marks -> marks.Length, fun () -> 0)
+
+    member this.Copy() : DworkinAgent =
+        let copy = this.MemberwiseClone() :?> DworkinAgent
+        copy.PostCopy()
+        copy
+    
+    member this.PostCopy() =
+        //random <- random.MemberwiseClone() :?> Random
+        // cannot copy random. Is it an issue?
+        brush <- null
+
+    member this.ResetCache() =
+        speed <- Nullable()
+        curvature <- Nullable()
+        thickness <- Nullable()
+        this.Collision <- None
+
+    member this.ScaleBy(s : Point) =
+        this.ThicknessFactor <- this.ThicknessFactor * s.X
+        this.LengthFactor <- this.LengthFactor * s.Y
+    
+    member this.ScaleBy(num : float32) =
+        this.ScaleBy(Point(num))
+
+    member this.SetScale(factor) =
+        this.ThicknessFactor <- factor
+        this.LengthFactor <- factor
+
+    member this.Spawn(anAgentConfig, options) =
+        this.Spawn(anAgentConfig, options, id)
+
+    member this.Spawn(anAgentConfig, options : AgentSpawnOptions, agentBlock) =
+        if this.Generation < this.GenerationLimit then
+            options.Parent <- Some(this.Copy())
+            options.Config <- anAgentConfig
+            match this.SpawnUsingOptions(options) with
+            | Some(agent) -> agent.Do(agentBlock) 
+            | None -> ()
+    (*
+    member this.DrawGeometry(anAthensShape, optionsBlock) =
+        let options = GeometrySpawnOptions()
+        options.Parent <- this.Copy()
+        options.Geometry <- anAthensShape
+        optionsBlock options
+        let g = options.TransformedGeometry
+        if options.NeedsPaintOverride() then
+            g.Shape(g.Shape().ShallowCopy())
+            g.Shape().Paint(options.Parent.Paint())
+        this.Environment().AddGeometry(g)
+    *)
+
+    member this.SpawnUsingOptions(options : AgentSpawnOptions) : Agent option =
+        if this.Generation >= this.GenerationLimit then
+            None
+        else
+            match options.Seed with 
+            | Some(_) -> () 
+            | None -> options.Seed <- Some(this.Random.Next())
+            (this.Environment.Value :?> DworkinEnvironment).SpawnUsingOptions(options)
+
+    override this.Step(canvas) =
+        if this.Age = 0 && (config.TerminationConditions.Collision |> Option.exists (fun x -> x.Evaluate(this))) then
+            this.Delete()
+        else
+            this.Brush.Evaluate(this, canvas)
+            config.ColliderOptions.Evaluate(this)
+            if config.TerminationConditions.AnySatisfy(this) then
+                this.Terminate()
+            else
+                let rotation = this.Curvature * this.Speed
+                base.Step(canvas)
+                this.Direction <- this.Direction.Rotate(rotation, Point(0.0f, 0.0f))
+
+                config.Branching.Evaluate(this)
+                this.ResetCache()
+
+    member this.Terminate() =
+        config.Termination.Evaluate(this)
+        this.Delete()
     
         
 
 type DworkinEnvironment(bounds, randomSeed : int) =
     inherit Environment(bounds)
-    (* #numDelayAgents *)
-    let initalQuadTreeBounds = Rectangle.FromTLRB(bounds.Top - 10.0f, bounds.Left - 10.0f, bounds.Right + 15.0f, bounds.Bottom + 15.0f)
+    let mutable numDelayAgents = 0
+    let initialQuadTreeBounds = Rectangle.FromTLRB(bounds.Top - 10.0f, bounds.Left - 10.0f, bounds.Right + 15.0f, bounds.Bottom + 15.0f)
     let mutable currId = 0
     let colliders : Collections.Generic.IDictionary<CollisionLayer, QuadTree<Collider>> = SmallDictionary.Create()
     let mutable random = Random(randomSeed)
     do 
         random.Next() |> ignore
     
+    member val AttributesStore = AttributesStore()
+    
     override this.Random = random
 
     override this.Delay(action , numSteps) =
-        failwith "notimplemented"
+        this.AddAgent(FixedDelayAgent(numSteps, Action=action))
+    
+    override this.HasActiveAgents =
+        this.AgentsCount - numDelayAgents > 0
     
     override this.Paint = OpenTK.Graphics.Color4.White // ?? is it needed?
+
+    override this.AddAgent(agent) =
+        base.AddAgent(agent) 
+        if agent :? DelayAgent then
+            numDelayAgents <- numDelayAgents + 1
+    
+    override this.RemoveAgent(agent) =
+        let oldCount = this.AgentsCount
+        let result = base.RemoveAgent(agent)
+        if agent :? DelayAgent then
+            numDelayAgents <- numDelayAgents - (oldCount - this.AgentsCount)
+        result
+
+    member this.AddCollider(aCollider) =
+        this.AddColliderToLayer(aCollider, CollisionLayer.Default)
+
+    member this.AddColliderToLayer(aCollider, layer) =
+        colliders.GetOrSetIfAbsent(layer, fun () -> QuadTree(initialQuadTreeBounds)).Insert(aCollider)
+    
+    /// Apply predicate to all colliders within given rect on given layers.
+    /// Stop when predicate returns false or all colliders are processed.
+    member this.QueryColliders(rect : Rectangle, layers: LayersList<CollisionLayer>, predicate : CollisionLayer -> Collider -> bool) =
+        let mutable result = true
+        let enumerator = colliders.GetEnumerator()
+        while result && enumerator.MoveNext() do
+            let layer = enumerator.Current.Key
+            let tree = enumerator.Current.Value
+            if layers.Contains layer then
+                result <- tree.Query(rect, predicate layer)
+        result
+    
+    /// Return true if given collider collides with any colliders in given layers
+    member this.TestForCollision(layers: LayersList<CollisionLayer>, collider : Collider) : bool =
+        this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> collide collider c)
+    
+    // spawning
+    member this.SpawnUsingOptions(options : AgentSpawnOptions) =
+        let seed = match options.Seed with | Some(value) -> value | None -> this.Random.Next()
+        let agent = DworkinAgent(options.Config.Value, seed, Position=options.Position, Direction=options.Direction)
+        match options.Parent with
+        | Some(parent) -> 
+            agent.Parent <- options.Parent
+            agent.ThicknessFactor <- parent.ThicknessFactor
+            agent.LengthFactor <- parent.LengthFactor
+            agent.GenerationLimit <- parent.GenerationLimit
+            if parent.IsFlipped then
+                agent.Flip()
+        | None -> ()
+        agent.Environment <- Some(this :> Environment)
+        let addedAgent : Agent = 
+            match options.Delay with
+            | Some(delayAgent) -> 
+                delayAgent.Action <- fun env -> env.AddAgent(agent); Some(agent :> Agent)
+                delayAgent :> Agent
+            | None -> agent :> Agent
+        this.AddAgent(addedAgent)
+        Some(addedAgent)
+
 
