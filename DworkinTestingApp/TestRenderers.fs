@@ -59,6 +59,8 @@ type CollidingAgent() =
     inherit MovingAgent()
 
     let mutable lastStop = 0.0f
+
+    override this.Speed with set(_) = ()
     
     override this.Step(canvas) =
         let prevPos = this.Position

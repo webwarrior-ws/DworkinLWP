@@ -80,6 +80,12 @@ type OpenTK.Vector2 with
     
     member inline this.LeftRotated =
         Point(this.Y, -this.X)
+    
+    member this.Rotate(angle, center) =
+        let p = this - center
+        let r = p.R
+        let theta = angle - p.Theta
+        Point(center.X + (r * (cos theta)), center.Y - (r * (sin theta)))
  
 
 
