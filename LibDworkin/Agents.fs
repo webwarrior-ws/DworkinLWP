@@ -111,7 +111,7 @@ type CollisionDetectorConfig =
             (fun x -> x.Angle), (fun value x -> { x with Angle = value })
 
         static member Distance_ = 
-            (fun x -> x.Distance), (fun value x -> { x with Distance = value })
+            (fun x -> x.Distance), (fun value x -> { x with CollisionDetectorConfig.Distance = value })
 
         member this.GetCollider() =
             let temp = CircleSectorCollider(None, Point(), 0.0f, 0.0f, deg2rad this.Angle)
@@ -224,10 +224,9 @@ type TerminationConditionCollision() =
                         collider)
             
             let sizeFactor = 
-                if this.DetectorSize = DetectorSize.Relative then
-                    max agent.Thickness agent.Speed
-                else
-                    agent.LengthFactor
+                match this.DetectorSize with
+                | Relative -> max agent.Thickness agent.Speed
+                | Absolute -> agent.LengthFactor
             
             let predicate detector layer collider = 
                 (collide detector collider) &&
@@ -439,9 +438,12 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member val Parent : DworkinAgent option = None with get, set
     
     member this.Random = random
-    member this.Attributes : Attributes = attributes
     member this.FlipFactor = flipFactor
     member this.Config = config
+    member this.Attributes : Attributes = 
+        if isNull attributes then
+            attributes <- Attributes((this.Environment.Value :?> DworkinEnvironment).AttributesStore, this.Id)
+        attributes
 
     member this.Curvature = 
         if not curvature.HasValue then
@@ -466,7 +468,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             brush <- config.Brush.GetBrushFor(this)
         brush
 
-    member inline this.TotalDistance =
+    member this.TotalDistance =
         config.TotalDistance
     
     member this.IsFlipped =
@@ -478,10 +480,6 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     override this.InitializeIn(env) =
         base.InitializeIn(env)
         this.Id <- env.NextId
-        match env with
-        | :? DworkinEnvironment as dworkinEnv -> 
-            attributes <- Attributes(dworkinEnv.AttributesStore, this.Id)
-        | _ -> ()
     
     interface IEquatable<Agent> with
         override this.Equals(other) =
@@ -677,7 +675,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         let addedAgent : Agent = 
             match options.Delay with
             | Some(delayAgent) -> 
-                delayAgent.Action <- fun env -> env.AddAgent(agent); Some(agent :> Agent)
+                delayAgent.Action <- (fun env -> env.AddAgent(agent); Some(agent :> Agent))
                 delayAgent :> Agent
             | None -> agent :> Agent
         this.AddAgent(addedAgent)

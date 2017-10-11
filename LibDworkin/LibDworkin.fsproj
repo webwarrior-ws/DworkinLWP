@@ -65,6 +65,7 @@
     <Compile Include="SimplexNoise.fs" />
     <Compile Include="SpatialIndex.fs" />
     <Compile Include="AgentAbstractions.fs" />
+    <Compile Include="DelayAgents.fs" />
     <Compile Include="Colliders.fs" />
     <Compile Include="Agents.fs" />
     <Compile Include="Renderer.fs" />
