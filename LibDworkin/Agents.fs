@@ -244,7 +244,7 @@ type TerminationConditionCollision() =
             Seq.exists2 (
                 fun (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) -> 
                     detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
-                    (agent.Environment.Value :?> DworkinEnvironment).QueryColliders(
+                    agent.DworkinEnvironment.QueryColliders(
                         (detector :> IHasBounds).Bounds, 
                         this.Layers, 
                         predicate detector) )
@@ -442,7 +442,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member this.Config = config
     member this.Attributes : Attributes = 
         if isNull attributes then
-            attributes <- Attributes((this.Environment.Value :?> DworkinEnvironment).AttributesStore, this.Id)
+            attributes <- Attributes(this.DworkinEnvironment.AttributesStore, this.Id)
         attributes
 
     member this.Curvature = 
@@ -476,6 +476,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
 
     member this.BranchMarks =
         this.Attributes.BranchMarks.GetOrSetIfAbsent(fun () -> SmallDictionary.Create())
+    
+    member this.DworkinEnvironment : DworkinEnvironment =
+        this.Environment.Value :?> DworkinEnvironment
     
     override this.InitializeIn(env) =
         base.InitializeIn(env)
@@ -578,7 +581,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             match options.Seed with 
             | Some(_) -> () 
             | None -> options.Seed <- Some(this.Random.Next())
-            (this.Environment.Value :?> DworkinEnvironment).SpawnUsingOptions(options)
+            this.DworkinEnvironment.SpawnUsingOptions(options)
 
     override this.Step(canvas) =
         if this.Age = 0 && (config.TerminationConditions.Collision |> Option.exists (fun x -> x.Evaluate(this))) then
