@@ -107,7 +107,9 @@ type MovingAgent() =
             direction.Normalize()
     
     abstract member Speed : float32 with get, set
-    default this.Speed = 1.0f
+    default this.Speed 
+        with get() = 1.0f
+        and set(_) = ()
 
     abstract member DistanceCovered : float32 
     default this.DistanceCovered = distanceCovered
