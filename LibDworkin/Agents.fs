@@ -130,8 +130,8 @@ type TerminationConditions =
         Collision : TerminationConditionCollision option
     }
     with
-        static member Distance_ : Prism<TerminationConditions, TerminationConditionDistance> =
-            (fun x -> x.Distance), (fun value x -> { x with Distance = Some(value) })
+        static member Distance_ : Lens<TerminationConditions, TerminationConditionDistance> =
+            (fun x -> x.Distance.Value), (fun value x -> { x with Distance = Some(value) })
 
         member this.AnySatisfy(agent : DworkinAgent) =
             this.Distance  |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
@@ -183,8 +183,8 @@ type TerminationConditionCollision() =
     static member DetectorSize_ : Lens<TerminationConditionCollision, DetectorSize> = 
         (fun x -> x.DetectorSize),(fun value x -> let y = x.Clone() in y.DetectorSize <- value; y)
 
-    static member Handler_ : Prism<TerminationConditionCollision, CollisionHandler> = 
-        (fun x -> x.Handler),(fun value x -> let y = x.Clone() in y.Handler <- Some(value); y)
+    static member Handler_ : Lens<TerminationConditionCollision, CollisionHandler> = 
+        (fun x -> x.Handler.Value),(fun value x -> let y = x.Clone() in y.Handler <- Some(value); y)
 
     static member IgnoreParent_ : Lens<TerminationConditionCollision, bool> = 
         (fun x -> x.IgnoreParent),(fun value x -> let y = x.Clone() in y.IgnoreParent <- value; y)
@@ -198,8 +198,8 @@ type TerminationConditionCollision() =
     static member PrimaryDetector_ : Lens<TerminationConditionCollision, CollisionDetectorConfig> = 
         (fun x -> x.PrimaryDetector),(fun value x -> let y = x.Clone() in y.PrimaryDetector <- value; y)
 
-    static member SecondaryDetector_ : Prism<TerminationConditionCollision, CollisionDetectorConfig> = 
-        (fun x -> x.SecondaryDetector),(fun value x -> let y = x.Clone() in y.SecondaryDetector <- Some(value); y)
+    static member SecondaryDetector_ : Lens<TerminationConditionCollision, CollisionDetectorConfig> = 
+        (fun x -> x.SecondaryDetector.Value),(fun value x -> let y = x.Clone() in y.SecondaryDetector <- Some(value); y)
 
     static member SelfIntersection_ : Lens<TerminationConditionCollision, bool> = 
         (fun x -> x.SelfIntersection),(fun value x -> let y = x.Clone() in y.SelfIntersection <- value; y)    
