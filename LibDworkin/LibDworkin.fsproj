@@ -68,6 +68,8 @@
     <Compile Include="DelayAgents.fs" />
     <Compile Include="Colliders.fs" />
     <Compile Include="Agents.fs" />
+    <Compile Include="Brushes.fs" />
+    <Compile Include="Configs.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
