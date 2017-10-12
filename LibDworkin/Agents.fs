@@ -118,11 +118,9 @@ type CollisionDetectorConfig =
             temp
     
 
+[<AbstractClass>]
 type CollisionHandler = 
-    interface
-        abstract Evaluate : (DworkinAgent * Collision) -> bool
-    end
-
+     abstract Evaluate : (DworkinAgent * Collision) -> bool
 
 
 type TerminationConditions = 
@@ -132,6 +130,9 @@ type TerminationConditions =
         Collision : TerminationConditionCollision option
     }
     with
+        static member Distance_ : Prism<TerminationConditions, TerminationConditionDistance> =
+            (fun x -> x.Distance), (fun value x -> { x with Distance = Some(value) })
+
         member this.AnySatisfy(agent : DworkinAgent) =
             this.Distance  |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
             this.Curvature |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
