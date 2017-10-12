@@ -86,6 +86,17 @@ type OpenTK.Vector2 with
         let r = p.R
         let theta = angle - p.Theta
         Point(center.X + (r * (cos theta)), center.Y - (r * (sin theta)))
+    
+    member this.Angle =
+        atan2 this.Y this.X
+    
+    member this.AngleWith(aPoint : Point) =
+        let ar = this.Angle
+        let ap = aPoint.Angle
+        if ap >= ar then
+            ap - ar
+        else
+            ((Single.TwoPi) - ar) + ap
  
 
 
