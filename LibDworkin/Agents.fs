@@ -49,12 +49,12 @@ type DworkinEnvironmentConfig =
 
 
 [<AbstractClass>]
-type DworkinBranchingStrategy() = 
+type BranchingStrategy() = 
     abstract Evaluate : DworkinAgent -> unit
 
 
 [<AbstractClass>]
-type DworkinBrushStrategy() = 
+type BrushStrategy() = 
     abstract GetBrushFor : DworkinAgent -> Brush
 
     abstract IsFinal : bool 
@@ -62,7 +62,7 @@ type DworkinBrushStrategy() =
 
 
 [<AbstractClass>]
-type DworkinColliderOptions() = 
+type ColliderOptions() = 
     abstract Evaluate : DworkinAgent -> unit
 
 
@@ -85,12 +85,12 @@ type DworkinCurvatureFormula() =
 
 
 [<AbstractClass>]
-type DworkinSpeed() = 
+type AgentSpeed() = 
     abstract Evaluate : DworkinAgent -> float32
 
 
 [<AbstractClass>]
-type DworkinTerminationStrategy() = 
+type TerminationStrategy() = 
     abstract Evaluate : DworkinAgent -> unit
 
 
@@ -271,12 +271,12 @@ type TerminationConditionCollision() =
 
 type DworkinAgentConfig = 
     {
-        Branching : DworkinBranchingStrategy
-        Brush : DworkinBrushStrategy
-        ColliderOptions : DworkinColliderOptions
+        Branching : BranchingStrategy
+        Brush : BrushStrategy
+        ColliderOptions : ColliderOptions
         Curvature : DworkinCurvatureFormula
-        Speed : DworkinSpeed
-        Termination : DworkinTerminationStrategy
+        Speed : AgentSpeed
+        Termination : TerminationStrategy
         TerminationConditions : TerminationConditions
         Thickness : DworkinThicknessFormula
         TotalDistance : float32
