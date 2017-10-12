@@ -76,11 +76,11 @@ type DworkinAgentFormula() =
     static member Factor = 100.0f
 
 [<AbstractClass>]
-type DworkinThicknessFormula() = 
+type ThicknessFormula() = 
     inherit DworkinAgentFormula()
 
 [<AbstractClass>]
-type DworkinCurvatureFormula() = 
+type CurvatureFormula() = 
     inherit DworkinAgentFormula()
 
 
@@ -274,11 +274,11 @@ type DworkinAgentConfig =
         Branching : BranchingStrategy
         Brush : BrushStrategy
         ColliderOptions : ColliderOptions
-        Curvature : DworkinCurvatureFormula
+        Curvature : CurvatureFormula
         Speed : AgentSpeed
         Termination : TerminationStrategy
         TerminationConditions : TerminationConditions
-        Thickness : DworkinThicknessFormula
+        Thickness : ThicknessFormula
         TotalDistance : float32
     }
     with
@@ -298,7 +298,7 @@ type DworkinAgentConfig =
         static member ColliderOptions_ = 
             (fun x -> x.ColliderOptions), (fun value x -> { x with ColliderOptions = value })
 
-        static member Curvature_ : Lens<DworkinAgentConfig, DworkinCurvatureFormula> = 
+        static member Curvature_ : Lens<DworkinAgentConfig, CurvatureFormula> = 
             (fun x -> x.Curvature), (fun value x -> { x with Curvature = value })
 
         static member Speed_ = 
@@ -408,6 +408,7 @@ type AttributesStore() =
     member val BranchMarks = Dictionary<int, IDictionary<int, BranchMarkList>>()
     member val Detectors = Dictionary<int, CircleSectorCollider[]>()
     member val LastCollider = Dictionary<int, Collider>()
+    member val DrawJoint = Dictionary<int, bool>()
 
 
 [<AllowNullLiteral>]
@@ -415,6 +416,7 @@ type Attributes(store: AttributesStore, id : int) =
     member this.BranchMarks = AttributeAccessor(store.BranchMarks, id)
     member this.Detectors = AttributeAccessor(store.Detectors, id)
     member this.LastCollider = AttributeAccessor(store.LastCollider, id)
+    member this.DrawJoint = AttributeAccessor(store.DrawJoint, id)
 
 
 type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
