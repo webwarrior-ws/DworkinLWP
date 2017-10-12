@@ -60,3 +60,7 @@ let inline between a b x =
 
 /// Square of x
 let inline squared x = x*x 
+
+/// Answer the nearest number that is a multiple of quantum
+let inline roundTo quantum number =
+    round (number / quantum) * quantum
