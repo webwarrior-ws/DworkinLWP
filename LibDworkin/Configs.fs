@@ -188,4 +188,47 @@ type ColliderOptions with
     static member Default = ColliderOptionsNone()
 
 
+// speed strategies
+type AgentSpeedAdaptive() = 
+    inherit AgentSpeed()
+    override this.Evaluate(agent) =
+        sqrt (max 0.01f (1.0f - (abs ((agent.Curvature / Single.Pi) * 4.0f))))
+    
+
+type AgentSpeedConstant() = 
+    inherit AgentSpeed()
+    member val Magnitude = 1.0f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> AgentSpeedConstant
+
+    static member Magnitude_ : Lens<AgentSpeed, float32> = 
+        (fun x -> (x :?> AgentSpeedConstant).Magnitude), (fun value x -> let y = (x :?> AgentSpeedConstant).Clone() in y.Magnitude <- value; y :> AgentSpeed)
+
+    override this.Evaluate(agent) =
+        this.Magnitude
+    
+
+type AgentSpeedScaleAdaptive() = 
+    inherit AgentSpeedAdaptive()
+    override this.Evaluate(agent) =
+        base.Evaluate(agent) / agent.LengthFactor
+
+    
+type AgentSpeedThickness() = 
+    inherit AgentSpeed()
+    member val Factor = 1.0f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> AgentSpeedThickness
+
+    static member Factor_ : Lens<AgentSpeed, float32> = 
+        (fun x -> (x :?> AgentSpeedThickness).Factor), (fun value x -> let y = (x :?> AgentSpeedThickness).Clone() in y.Factor <- value; y :> AgentSpeed)
+
+    override this.Evaluate(agent) =
+        max (agent.RelativeThickness * this.Factor) 0.001f
+    
+
+type AgentSpeed with
+    static member Default = AgentSpeedAdaptive()
+
+
 // 
