@@ -391,6 +391,11 @@ type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
             | (true, v) -> Some(v)
             | (false, _) -> None
         
+        member this.Get(value : unit -> 'T) : 'T = 
+            match dictionary.TryGetValue(id) with
+            | (true, v) -> v
+            | (false, _) -> value()
+        
         member this.Set(value : 'T) : unit =
             dictionary.[id] <- value
         
