@@ -139,6 +139,7 @@ type TerminationConditions =
             this.Collision |> Option.exists (fun cond -> cond.Evaluate(agent))
 
 type TerminationConditionDistance() = 
+    static member val Instance = TerminationConditionDistance()
     member this.Evaluate(agent : DworkinAgent) =
         let delta = agent.Config.TotalDistance - agent.DistanceCovered
         if delta < (1.0e-8f) then
@@ -281,14 +282,7 @@ type DworkinAgentConfig =
         Thickness : ThicknessFormula
         TotalDistance : float32
     }
-    with
-        (*static member Default = { 
-            Branching=DworkinBranchingStrategy.Default; Brush=DworkinBrushStrategy.Default; 
-            ColliderOptions=DworkinColliderOptions.Default; Curvature=DworkinCurvatureFormula.Default; 
-            Speed=DworkinSpeed.Default; Termination=DworkinTerminationStrategy.Default; 
-            TerminationConditions=TerminationConditions.Default; 
-            Thickness=DworkinThicknessFormula.Default; TotalDistance=100.0f }*)
-        
+    with        
         static member Branching_ = 
             (fun x -> x.Branching), (fun value x -> { x with Branching = value })
 

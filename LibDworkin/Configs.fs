@@ -172,6 +172,7 @@ type ColliderStrategy with
 // collider options
 type ColliderOptionsNone() =
     inherit ColliderOptions()
+    static member val Instance = ColliderOptionsNone()
     override this.Evaluate(agent) = ()
 
 
@@ -186,12 +187,13 @@ type ColliderOptionsGeneral() =
 
 
 type ColliderOptions with
-    static member Default = ColliderOptionsNone()
+    static member Default = ColliderOptionsNone.Instance
 
 
 // speed strategies
 type AgentSpeedAdaptive() = 
     inherit AgentSpeed()
+    static member val Instance = AgentSpeedAdaptive()
     override this.Evaluate(agent) =
         sqrt (max 0.01f (1.0f - (abs ((agent.Curvature / Single.Pi) * 4.0f))))
     
@@ -211,6 +213,7 @@ type AgentSpeedConstant() =
 
 type AgentSpeedScaleAdaptive() = 
     inherit AgentSpeedAdaptive()
+    static member val Instance = AgentSpeedScaleAdaptive()
     override this.Evaluate(agent) =
         base.Evaluate(agent) / agent.LengthFactor
 
@@ -229,7 +232,7 @@ type AgentSpeedThickness() =
     
 
 type AgentSpeed with
-    static member Default = AgentSpeedAdaptive()
+    static member Default = AgentSpeedAdaptive.Instance
 
 
 // spawning
@@ -243,23 +246,29 @@ type SpawnConfig() =
 
 type SpawnConfig_Default() =
     inherit SpawnConfig()
+    static member val Instance = SpawnConfig_Default()
     override this.Evaluate(agent, pos) = ()
 
 
 type SpawnConfig with
-    static member Default = SpawnConfig_Default() :> SpawnConfig
+    static member Default = SpawnConfig_Default.Instance :> SpawnConfig
 
 
 
 // branching 
-type DworkinBranchingNone() = 
+type BranchingNone() = 
     inherit BranchingStrategy()
+    static member val Instance = BranchingNone()
     override this.Evaluate(agent) = ()
     
 
 [<AbstractClass>]
 type BranchingCustom() = 
     inherit BranchingStrategy()
+
+
+type BranchingStrategy with
+    static member Default = BranchingNone.Instance
 
 
 // branching criterions
@@ -361,13 +370,10 @@ type BranchingCriterionBased() =
     
 
 // termination
-[<AbstractClass>]
-type TerminationStrategy() = 
-    abstract member Evaluate : DworkinAgent -> unit
-    
-
 type TerminationNoop() = 
     inherit TerminationStrategy()
+    static member val Instance = TerminationNoop()
+
     override this.Evaluate(agent) = ()
     
 
@@ -381,3 +387,43 @@ type TerminationCustom() =
 
 
 // TerminationSpawn...
+
+
+
+// default values of various config classes
+type TerminationStrategy with
+    static member Default = TerminationNoop.Instance :> TerminationStrategy
+
+type TerminationConditions with
+    static member Default = { Distance=Some(TerminationConditionDistance.Instance); Collision=None; Curvature=None }
+
+type private CurvatureFormula_Default() =
+    inherit CurvatureFormula()
+    static member val Instance = CurvatureFormula_Default()
+    override this.Evaluate(s, t) = 0.0f
+
+type private ThicknessFormula_Default() =
+    inherit ThicknessFormula()
+    static member val Instance = ThicknessFormula_Default()
+    override this.Evaluate(s, t) = 1.0f
+
+type CurvatureFormula with
+    static member Default = CurvatureFormula_Default.Instance :> CurvatureFormula
+
+type ThicknessFormula with
+    static member Default = ThicknessFormula_Default.Instance :> ThicknessFormula
+
+
+// default for DworkinAgentConfig
+type DworkinAgentConfig with
+    static member Default = { 
+        Curvature=CurvatureFormula.Default; 
+        Thickness=ThicknessFormula.Default; 
+        Speed=AgentSpeed.Default;
+        TotalDistance=100.0f;
+        Brush=BrushStrategy.Default; 
+        Branching=BranchingStrategy.Default; 
+        ColliderOptions=ColliderOptions.Default; 
+        Termination=TerminationStrategy.Default; 
+        TerminationConditions=TerminationConditions.Default; 
+    }
