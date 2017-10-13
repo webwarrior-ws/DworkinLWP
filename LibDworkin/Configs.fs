@@ -10,6 +10,7 @@ open AgentAbstractions
 open Colliders
 open Agents
 open Brushes
+open System
 
 
 // Brush strategies
@@ -231,4 +232,152 @@ type AgentSpeed with
     static member Default = AgentSpeedAdaptive()
 
 
-// 
+// spawning
+[<AbstractClass>]
+type SpawnConfig() = 
+    member this.Evaluate(anAgent) =
+        this.Evaluate(anAgent, anAgent.Position)
+    
+    abstract member Evaluate: DworkinAgent * Point -> unit
+
+
+type SpawnConfig_Default() =
+    inherit SpawnConfig()
+    override this.Evaluate(agent, pos) = ()
+
+
+type SpawnConfig with
+    static member Default = SpawnConfig_Default() :> SpawnConfig
+
+
+
+// branching 
+type DworkinBranchingNone() = 
+    inherit BranchingStrategy()
+    override this.Evaluate(agent) = ()
+    
+
+[<AbstractClass>]
+type BranchingCustom() = 
+    inherit BranchingStrategy()
+
+
+// branching criterions
+[<AbstractClass>]
+type BranchingCriterion() = 
+    abstract member Tag : int
+    default this.Tag = this.GetHashCode()
+    
+    abstract member Evaluate : DworkinAgent -> bool
+    
+
+[<AbstractClass>]
+type BranchingCriterionCustom() = 
+    inherit BranchingCriterion()
+    override this.Evaluate(anAgent) =
+        this.Evaluate(anAgent, anAgent.LastBranchMarkFor(this.Tag))
+    
+    abstract member Evaluate: DworkinAgent * BranchMark -> bool
+
+
+[<AbstractClass>]
+type BranchingCriterionFormula() = 
+    inherit BranchingCriterion()
+    abstract member FallbackValue : float32
+    
+    member this.FuncValueFor(anAgent : DworkinAgent) =
+        try
+            this.Evaluate(anAgent.S, anAgent.T)
+        with
+        | _ -> this.FallbackValue
+    
+    abstract member Evaluate: float32 * float32 -> float32
+
+
+[<AbstractClass>]
+type BranchingCriterionDensity() = 
+    inherit BranchingCriterionFormula()
+    override this.Evaluate(anAgent) =
+        let f = this.FuncValueFor(anAgent)
+        let mark = anAgent.LastBranchMarkFor(this.Tag)
+        mark.IncrementCumulativeDensityBy((f * anAgent.Speed) / anAgent.LengthFactor)
+        mark.CumulativeDensity >= 1.0f
+    
+    override this.FallbackValue = 0.0f
+    
+
+[<AbstractClass>]
+type BranchingCriterionInterval() = 
+    inherit BranchingCriterionFormula()
+    override this.Evaluate(anAgent) =
+        (anAgent.S - anAgent.LastBranchMarkFor(this.Tag).S) >= this.FuncValueFor(anAgent)
+    
+    override this.FallbackValue =  10000.0f
+  
+
+type BranchingCriterionInterval_Default() =
+    inherit BranchingCriterionInterval()
+    override this.Evaluate(s, t) = 10.0f
+
+
+[<AbstractClass>]
+type BranchingCriterionIntervalRandomized() = 
+    inherit BranchingCriterion()
+    override this.Evaluate(anAgent) =
+        let mark = anAgent.LastBranchMarkFor(this.Tag)
+        let d = 
+            if mark.NextInterval.HasValue then
+                mark.NextInterval.Value
+            else
+                let value = max (this.Evaluate(anAgent.S, anAgent.T, anAgent.Random)) 0.0f
+                mark.NextInterval <- Nullable(value)
+                value
+        (anAgent.S - mark.S) >= d
+    
+    abstract member Evaluate: float32 * float32 * Random -> float32
+
+
+type BranchingCriterion with
+    static member Default = BranchingCriterionInterval_Default() :> BranchingCriterion
+    
+
+type BranchingCriterionBased() = 
+    inherit BranchingStrategy()
+    member val Criterion : BranchingCriterion = BranchingCriterion.Default with get, set
+    member val SpawnConfig : SpawnConfig = SpawnConfig.Default with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> BranchingCriterionBased
+
+    static member Criterion_ : Lens<BranchingStrategy, BranchingCriterion> = 
+        (fun x -> (x :?> BranchingCriterionBased).Criterion), (fun value x -> let y = (x :?> BranchingCriterionBased).Clone() in y.Criterion <- value; y :> BranchingStrategy)
+
+    static member SpawnConfig_ : Lens<BranchingStrategy, SpawnConfig> = 
+        (fun x -> (x :?> BranchingCriterionBased).SpawnConfig), (fun value x -> let y = (x :?> BranchingCriterionBased).Clone() in y.SpawnConfig <- value; y :> BranchingStrategy)
+
+    override this.Evaluate(agent) =
+        if this.Criterion.Evaluate(agent) then
+            this.SpawnConfig.Evaluate(agent)
+            agent.AddBranchMarkFor(BranchMark(agent.DistanceCovered), this.Criterion.Tag)
+    
+
+// termination
+[<AbstractClass>]
+type TerminationStrategy() = 
+    abstract member Evaluate : DworkinAgent -> unit
+    
+
+type TerminationNoop() = 
+    inherit TerminationStrategy()
+    override this.Evaluate(agent) = ()
+    
+
+[<AbstractClass>]
+type TerminationCustom() = 
+    inherit TerminationStrategy()
+    override this.Evaluate(agent) =
+        this.Evaluate(agent, agent.Collision)
+    
+    abstract member Evaluate: DworkinAgent * Collision option -> unit
+
+
+// TerminationSpawn...
