@@ -386,7 +386,19 @@ type TerminationCustom() =
     abstract member Evaluate: DworkinAgent * Collision option -> unit
 
 
-// TerminationSpawn...
+// Since it is single-function config but at the same time it must use SpawnConfig instance, 
+// Pharo -> F# transplier must handle cases involving TerminationSpawn separately (introduce SpawnConfig_ lens into chain)
+type TerminationSpawn() = 
+    inherit TerminationStrategy()
+    member val SpawnConfig = SpawnConfig.Default with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> TerminationSpawn
+
+    static member SpawnConfig_ : Lens<TerminationStrategy, SpawnConfig> = 
+        (fun x -> (x :?> TerminationSpawn).SpawnConfig), (fun value x -> let y = (x :?> TerminationSpawn).Clone() in y.SpawnConfig <- value; y :> TerminationStrategy)
+
+    override this.Evaluate(agent) =
+        this.SpawnConfig.Evaluate(agent)
 
 
 
