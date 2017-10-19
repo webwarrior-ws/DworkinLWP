@@ -70,6 +70,7 @@
     <AndroidAsset Include="Assets\AboutAssets.txt" />
     <Content Include="packages.config" />
     <Compile Include="TestRenderers.fs" />
+    <Compile Include="TestConfigs.fs" />
     <Compile Include="MainActivity.fs" />
   </ItemGroup>
   <ItemGroup>
