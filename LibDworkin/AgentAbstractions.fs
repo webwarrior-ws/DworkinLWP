@@ -54,9 +54,6 @@ type Agent() =
         match environment with
         | Some(env) -> env.RemoveAgent(this) |> ignore
         | None -> ()
-
-    abstract member Do : (Agent -> Agent) -> unit
-    default this.Do(action) = action this |> ignore
     
     abstract member InitializeIn : Environment -> unit
     default this.InitializeIn(env) = ()
@@ -75,10 +72,6 @@ type DelayAgent() =
     member val Action : Environment -> Agent option = (fun _ -> None) with get, set
 
     override this.LiesWithinBounds(bounds) = true
-
-    override this.Do(func) =
-        let oldAction = this.Action
-        this.Action <- fun env -> Option.map func (oldAction env)
     
     override this.Step(canvas) =
         base.Step(canvas)

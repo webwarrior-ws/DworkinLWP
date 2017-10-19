@@ -47,10 +47,7 @@ let brushesAndSpeedsTest : DworkinEnvironmentConfig =
             let topY = size.Y * 0.33f
             let bottomY = size.Y * 0.67f
 
-            match env.Spawn(agent_Solid_Adaptive, AgentSpawnOptions(Position=Point(0.1f * size.X, topY))) with
-            | Some(:? DworkinAgent as agent) -> agent.ScaleBy(5.0f)
-            | _ -> ()
-
-
+            env.Spawn(agent_Solid_Adaptive, AgentSpawnOptions(Position=Point(0.1f * size.X, topY)), fun a -> a.ScaleBy(5.0f))
+                |> ignore
 
             env }
