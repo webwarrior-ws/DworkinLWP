@@ -44,7 +44,8 @@ type Brush() =
 //
 type DworkinEnvironmentConfig = 
     interface
-        abstract member GetEnvironment : unit -> DworkinEnvironment
+        // argument is wallpaper size in pixels as Point
+        abstract member GetEnvironment : Point -> DworkinEnvironment
     end
 
 
@@ -312,8 +313,8 @@ type DworkinAgentConfig =
 
 
 type SpawnOptions() =
-    let position : Nullable<Point> = Nullable()
-    let direction : Nullable<Point> = Nullable()
+    let mutable position : Nullable<Point> = Nullable()
+    let mutable direction : Nullable<Point> = Nullable()
     member val OffsetSideways = 0.0f with get, set
     member val Offset = 0.0f with get, set
     member val Angle = 0.0f with get, set
@@ -324,37 +325,43 @@ type SpawnOptions() =
         with set(aNumber) = 
             this.Angle <- deg2rad aNumber
 
-    member this.Direction =
-        if direction.HasValue then 
-            direction.Value
-        else
-            match this.Parent with 
-            | Some(parent) -> parent.Direction.Rotate(this.Angle * parent.FlipFactor, Point(0.0f, 0.0f)) 
-            | None -> Point(0.0f, -1.0f).Rotate(this.Angle, Point(0.0f, 0.0f))
+    member this.Direction 
+        with get() =
+            if direction.HasValue then 
+                direction.Value
+            else
+                match this.Parent with 
+                | Some(parent) -> parent.Direction.Rotate(this.Angle * parent.FlipFactor, Point(0.0f, 0.0f)) 
+                | None -> Point(0.0f, -1.0f).Rotate(this.Angle, Point(0.0f, 0.0f))
+        and set(point: Point) =
+            direction <- Nullable(point)
 
     member this.OffsetToEdge =
         match this.Parent with 
         | Some(parent) -> this.OffsetSideways <- parent.Thickness * 0.5f 
         | None -> ()
 
-    member this.Position =
-        if position.HasValue then
-            position.Value
-        else
-            match this.Parent with
-            | Some(parent) -> 
-                let mutable pos = parent.Position
-                if this.Offset <> 0.0f then
-                    pos <- pos + (this.Direction * this.Offset)
-                if this.OffsetSideways <> 0.0f then
-                    let perp = 
-                        if between 0.0f Single.Pi (this.Angle % Single.TwoPi) then
-                            parent.Direction.LeftRotated
-                        else
-                            -parent.Direction.LeftRotated
-                    pos <- pos + ((perp * this.OffsetSideways) * parent.FlipFactor)
-                pos
-            | None -> Point(0.0f, 0.0f)
+    member this.Position 
+        with get() =
+            if position.HasValue then
+                position.Value
+            else
+                match this.Parent with
+                | Some(parent) -> 
+                    let mutable pos = parent.Position
+                    if this.Offset <> 0.0f then
+                        pos <- pos + (this.Direction * this.Offset)
+                    if this.OffsetSideways <> 0.0f then
+                        let perp = 
+                            if between 0.0f Single.Pi (this.Angle % Single.TwoPi) then
+                                parent.Direction.LeftRotated
+                            else
+                                -parent.Direction.LeftRotated
+                        pos <- pos + ((perp * this.OffsetSideways) * parent.FlipFactor)
+                    pos
+                | None -> Point(0.0f, 0.0f)
+        and set(point: Point) =
+            position <- Nullable(point)
 
     member this.DelayBy(numberOfSteps) =
         if numberOfSteps = 0 then
@@ -561,13 +568,13 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.ThicknessFactor <- factor
         this.LengthFactor <- factor
 
-    member this.Spawn(anAgentConfig, options) =
+    member this.Spawn(anAgentConfig : DworkinAgentConfig, options) =
         this.Spawn(anAgentConfig, options, id)
 
     member this.Spawn(anAgentConfig, options : AgentSpawnOptions, agentBlock) =
         if this.Generation < this.GenerationLimit then
             options.Parent <- Some(this.Copy())
-            options.Config <- anAgentConfig
+            options.Config <- Some(anAgentConfig)
             match this.SpawnUsingOptions(options) with
             | Some(agent) -> agent.Do(agentBlock) 
             | None -> ()
@@ -672,6 +679,17 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> collide collider c)
     
     // spawning
+    member this.Spawn(agentConfig, options) =
+        this.Spawn(agentConfig, options, id)
+
+    member this.Spawn(agentConfig, options : AgentSpawnOptions, agentBlock) =
+        options.Config <- Some(agentConfig)
+        match this.SpawnUsingOptions(options) with
+        | Some(agent) -> 
+            agent.Do(agentBlock)
+            Some(agent)
+        | None -> None
+
     member this.SpawnUsingOptions(options : AgentSpawnOptions) =
         let seed = match options.Seed with | Some(value) -> value | None -> this.Random.Next()
         let agent = DworkinAgent(options.Config.Value, seed, Position=options.Position, Direction=options.Direction)
