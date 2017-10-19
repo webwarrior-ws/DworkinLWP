@@ -1,4 +1,4 @@
-﻿module Aether
+﻿module LibDworkin.Aether
 // from https://github.com/xyncro/aether
 
 open System
