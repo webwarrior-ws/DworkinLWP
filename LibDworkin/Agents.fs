@@ -471,18 +471,18 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
 
     member this.Curvature = 
         if not curvature.HasValue then
-           curvature <- Nullable(config.Curvature.Evaluate(this))
+           curvature <- Nullable(config.Curvature.Evaluate(this) * this.FlipFactor / this.LengthFactor)
         curvature.Value
     
     member this.Thickness = 
         if not thickness.HasValue then
-           thickness <- Nullable(config.Thickness.Evaluate(this))
+           thickness <- Nullable(config.Thickness.Evaluate(this) * this.ThicknessFactor)
         thickness.Value
     
     override this.Speed
         with get() : float32 = 
             if not speed.HasValue then
-               speed <- Nullable(config.Speed.Evaluate(this))
+               speed <- Nullable(config.Speed.Evaluate(this) * this.LengthFactor)
             speed.Value
         and set(aNumber : float32) =
             speed <- Nullable(aNumber * this.LengthFactor)
