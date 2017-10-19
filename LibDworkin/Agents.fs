@@ -425,6 +425,21 @@ type Attributes(store: AttributesStore, id : int) =
     member this.DrawJoint = AttributeAccessor(store.DrawJoint, id)
 
 
+let performAction (action : DworkinAgent -> unit) (agent : Agent) : unit =
+    match agent with
+    | :? DworkinAgent as dworkinAgent -> action dworkinAgent |> ignore
+    | :? DelayAgent as delayAgent -> 
+        let oldAction = delayAgent.Action
+        delayAgent.Action <- 
+            fun env -> 
+                match oldAction env with
+                | Some(:? DworkinAgent as a) -> 
+                    action a
+                    Some(a :> Agent)
+                | _ -> None
+    | _ -> failwith "Unsupported agent type"
+
+
 type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     inherit MovingAgent()
     (* #paint *)
@@ -517,7 +532,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList()).Add(aMark)
 
     member this.Branch(anAgentConfig, options) =
-        this.Branch(anAgentConfig, options, id)
+        this.Branch(anAgentConfig, options, ignore)
 
     member this.Branch(anAgentConfig, options : BranchOptions, agentBlock) =
         if this.Generation >= this.GenerationLimit then
@@ -527,7 +542,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             options.Config <- anAgentConfig
             let resultingAgent = this.SpawnUsingOptions(options)
             match resultingAgent with 
-            | Some(agent) -> agent.Do(agentBlock) 
+            | Some(agent) -> agent |> performAction agentBlock 
             | None -> ()
             this.AddBranchMarkFor(BranchMark(this.DistanceCovered), options.Tag)
             resultingAgent
@@ -569,14 +584,14 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.LengthFactor <- factor
 
     member this.Spawn(anAgentConfig : DworkinAgentConfig, options) =
-        this.Spawn(anAgentConfig, options, id)
+        this.Spawn(anAgentConfig, options, ignore)
 
     member this.Spawn(anAgentConfig, options : AgentSpawnOptions, agentBlock) =
         if this.Generation < this.GenerationLimit then
             options.Parent <- Some(this.Copy())
             options.Config <- Some(anAgentConfig)
             match this.SpawnUsingOptions(options) with
-            | Some(agent) -> agent.Do(agentBlock) 
+            | Some(agent) -> agent |> performAction agentBlock 
             | None -> ()
     (*
     member this.DrawGeometry(anAthensShape, optionsBlock) =
@@ -680,13 +695,13 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     
     // spawning
     member this.Spawn(agentConfig, options) =
-        this.Spawn(agentConfig, options, id)
+        this.Spawn(agentConfig, options, ignore)
 
     member this.Spawn(agentConfig, options : AgentSpawnOptions, agentBlock) =
         options.Config <- Some(agentConfig)
         match this.SpawnUsingOptions(options) with
         | Some(agent) -> 
-            agent.Do(agentBlock)
+            agent |> performAction agentBlock
             Some(agent)
         | None -> None
 
