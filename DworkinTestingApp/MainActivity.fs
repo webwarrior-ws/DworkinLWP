@@ -31,8 +31,8 @@ type MainActivity () =
             || Build.Model.Contains("google_sdk") 
             || Build.Model.Contains("Emulator") 
             || Build.Model.Contains("Android SDK built for x86")))
-
-        let renderer = new TestRenderers.ShapesTestRenderer(this) //new TestRenderers.CollidingAgentsTestRenderer(this);
+        
+        let renderer = new LibDworkin.Renderer.DworkinRenderer(this, TestConfigs.brushesAndSpeedsTest) //new TestRenderers.ShapesTestRenderer(this) //new TestRenderers.CollidingAgentsTestRenderer(this);
         if supportsEs2 then
             view.SetEGLContextClientVersion(2)
             view.PreserveEGLContextOnPause <- true

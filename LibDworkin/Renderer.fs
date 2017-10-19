@@ -246,23 +246,21 @@ type BaseRenderer(context : Android.Content.Context) =
         GL.Uniform2(GL.GetUniformLocation(shapesDrawingShader.Value.Program, "scale"), xs, ys)
 
 
-type DworkinRenderer(context, environment : Environment) =
+type DworkinRenderer(context, environmentConfig : Agents.DworkinEnvironmentConfig) =
     inherit BaseRenderer(context)
 
-    let mutable environment = environment
-
-    member this.Environment 
-        with get() : Environment = environment
-        and set(e : Environment) = 
-            environment <- e
-            // setup scale and offset
+    let mutable environment : Agents.DworkinEnvironment option = None
     
     override this.OnSurfaceChanged(gl, w, h) =
         base.OnSurfaceChanged(gl, w, h)
         // setup scale and offset
+        environment <- Some(environmentConfig.GetEnvironment(Point(float32 w, float32 h)))
+        this.SetScale(1.0f / float32 w, 1.0f / float32 h)
     
     override this.OnDrawFrame(gl : Opengles.IGL10) =
-        environment.Step(this)
+        match environment with
+        | Some(env) -> env.Step(this)
+        | None -> ()
         this.RenderShapes()
         this.DrawMaskedImage()
     
