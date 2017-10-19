@@ -39,7 +39,9 @@ type BrushStrategyDefault() =
     override this.IsFinal = false
 
     member this.FallbackBrush =
-        BrushSolid(Cap=BrushCap.NoCap, AlignWithParent=false)    
+        BrushSolid(Cap=BrushCap.NoCap, AlignWithParent=false)
+       
+    static member val Instance = BrushStrategyDefault()
 
     override this.GetBrushFor(anAgent) : Brush =
         let mutable curr = anAgent.Parent
@@ -89,7 +91,7 @@ type BrushStrategySolidJoint() =
  
 
  type BrushStrategy with
-    static member Default = BrushStrategyDefault()
+    static member Default = BrushStrategyDefault.Instance
  
 
 // collider strategies
@@ -324,7 +326,7 @@ type BranchingCriterionInterval() =
     override this.FallbackValue =  10000.0f
   
 
-type BranchingCriterionInterval_Default() =
+type private BranchingCriterionInterval_Default() =
     inherit BranchingCriterionInterval()
     override this.Evaluate(s, t) = 10.0f
 
