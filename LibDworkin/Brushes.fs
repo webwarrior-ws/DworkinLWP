@@ -117,7 +117,7 @@ type BrushSolidJoint() =
                         canvas.DrawTriangle(a, b, p)
                     | Quad ->
                         let angle = agentPerp.AngleWith(parentPerp)
-                        let c = p + (a + b) * (0.5f / abs (tan ((angle + Single.Pi) * 0.5f)) + 0.5f)
+                        let c = p + (parentPerp + agentPerp) * (0.5f / abs (tan ((angle + Single.Pi) * 0.5f)) + 0.5f)
                         canvas.DrawQuad(a, c, b, p)
                     
             jointDrawn <- true
