@@ -230,7 +230,7 @@ type AgentSpeedThickness() =
         (fun x -> (x :?> AgentSpeedThickness).Factor), (fun value x -> let y = (x :?> AgentSpeedThickness).Clone() in y.Factor <- value; y :> AgentSpeed)
 
     override this.Evaluate(agent) =
-        max (agent.RelativeThickness * this.Factor) 0.001f
+        max (agent.Thickness * this.Factor / agent.LengthFactor) 0.001f
     
 
 type AgentSpeed with

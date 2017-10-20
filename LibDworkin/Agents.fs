@@ -503,9 +503,6 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member this.T =
         min (this.DistanceCovered / this.TotalDistance) 1.0f
     
-    member this.RelativeThickness =
-        this.Thickness / this.ThicknessFactor
-    
     member this.IsFlipped =
         flipFactor < 0.0f
 
