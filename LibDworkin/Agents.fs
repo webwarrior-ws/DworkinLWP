@@ -487,6 +487,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         and set(aNumber : float32) =
             speed <- Nullable(aNumber * this.LengthFactor)
     
+    override this.DistanceCovered =
+        base.DistanceCovered / this.LengthFactor
+    
     member this.Brush =
         if isNull brush then
             brush <- config.Brush.GetBrushFor(this)
