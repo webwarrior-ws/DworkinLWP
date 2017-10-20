@@ -2,5 +2,9 @@
 uniform vec2 scale;
 
 void main() { 
-	gl_Position = vec4((pos * scale - 0.5) * 2.0, 0.0, 1.0); 
+	// map coordinates to [(-1, -1); (1, 1)] screen space
+	vec2 newPos = (pos * scale - 0.5) * 2.0;
+	// invert y axis
+	newPos = vec2(newPos.x, -newPos.y);
+	gl_Position = vec4(newPos, 0.0, 1.0); 
 }
