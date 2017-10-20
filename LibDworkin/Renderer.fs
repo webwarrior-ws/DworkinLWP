@@ -153,26 +153,28 @@ type BaseRenderer(context : Android.Content.Context) =
         wallpaperWidth <- width
         wallpaperHeight <- height
 
-        if maskTexture = 0 then 
-            maskTexture <- gen1 GL.GenTextures
-            GL.BindTexture(TextureTarget.Texture2D, maskTexture)
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
-                          PixelFormat.Rgb, PixelType.UnsignedShort565, nativeint 0)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
-                
-            maskFrameBuffer <- gen1 GL.GenFramebuffers
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                    TextureTarget.Texture2D, maskTexture, 0)
+        if maskTexture <> 0 then
+            GL.DeleteTexture maskTexture
             
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-            GL.Clear(ClearBufferMask.ColorBufferBit)
+        maskTexture <- gen1 GL.GenTextures
+        GL.BindTexture(TextureTarget.Texture2D, maskTexture)
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
+                        PixelFormat.Rgb, PixelType.UnsignedShort565, nativeint 0)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+                
+        maskFrameBuffer <- gen1 GL.GenFramebuffers
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                TextureTarget.Texture2D, maskTexture, 0)
+            
+        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+        GL.Clear(ClearBufferMask.ColorBufferBit)
 
-            GL.BindTexture(TextureTarget.Texture2D, 0)
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+        GL.BindTexture(TextureTarget.Texture2D, 0)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
     
     abstract member OnSurfaceCreated : Opengles.IGL10 * Egl.EGLConfig -> unit
     default this.OnSurfaceCreated(gl: Opengles.IGL10, config: Egl.EGLConfig) = 
@@ -199,6 +201,11 @@ type BaseRenderer(context : Android.Content.Context) =
         // Clear the rendering surface. 
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
+    member this.ClearMask() =
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+        GL.Clear(ClearBufferMask.ColorBufferBit)
+
     member this.DrawMaskedImage() =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
         GL.UseProgram(maskedImageShader.Value.Program)
@@ -251,11 +258,12 @@ type DworkinRenderer(context, environmentConfig : Agents.DworkinEnvironmentConfi
 
     let mutable environment : Agents.DworkinEnvironment option = None
     
-    override this.OnSurfaceChanged(gl, w, h) =
-        base.OnSurfaceChanged(gl, w, h)
+    override this.OnSurfaceChanged(gl, width, height) =
+        base.OnSurfaceChanged(gl, width, height)
         // setup scale and offset
-        environment <- Some(environmentConfig.GetEnvironment(Point(float32 w, float32 h)))
-        this.SetScale(1.0f / float32 w, 1.0f / float32 h)
+        environment <- Some(environmentConfig.GetEnvironment(Point(float32 width, float32 height)))
+        this.SetScale(1.0f / float32 width, 1.0f / float32 height)
+        this.ClearMask()
     
     override this.OnDrawFrame(gl : Opengles.IGL10) =
         match environment with
@@ -263,6 +271,3 @@ type DworkinRenderer(context, environmentConfig : Agents.DworkinEnvironmentConfi
         | None -> ()
         this.RenderShapes()
         this.DrawMaskedImage()
-    
-
-    
