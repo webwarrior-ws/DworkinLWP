@@ -146,7 +146,7 @@ type TerminationConditionDistance() =
         if delta < (1.0e-8f) then
             true
         else
-            if delta < agent.Speed then
+            if delta < agent.Speed / agent.LengthFactor then
                 agent.Speed <- delta
             false
 
