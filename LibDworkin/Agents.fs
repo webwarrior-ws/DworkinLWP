@@ -143,7 +143,7 @@ type TerminationConditionDistance() =
     static member val Instance = TerminationConditionDistance()
     member this.Evaluate(agent : DworkinAgent) =
         let delta = agent.Config.TotalDistance - agent.DistanceCovered
-        if delta < (1.0e-8f) then
+        if delta < 1.0e-3f then // because we're using single precision floats, tolerances should be larger
             true
         else
             if delta < agent.Speed / agent.LengthFactor then
@@ -450,6 +450,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     // readonly (initailized once, then only read):
     let mutable brush : Brush = null
     let mutable attributes : Attributes = null
+    let mutable parent : DworkinAgent option = None
 
     let mutable random = Random(randomSeed)
 
@@ -459,7 +460,6 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member val Generation = 1 with get, set
     member val GenerationLimit = 50 with get, set
     member val Collision : Collision option = None with get, set
-    member val Parent : DworkinAgent option = None with get, set
     
     member this.Random = random
     member this.FlipFactor = flipFactor
@@ -486,7 +486,15 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             speed.Value
         and set(aNumber : float32) =
             speed <- Nullable(aNumber * this.LengthFactor)
-    
+        
+    member this.Parent 
+        with get() = parent
+        and set(value : DworkinAgent option) = 
+            parent <- value
+            match parent with
+            | Some(p) -> this.Generation <- p.Generation + 1
+            | None -> ()
+
     override this.DistanceCovered =
         base.DistanceCovered / this.LengthFactor
     
@@ -535,17 +543,12 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.Branch(anAgentConfig, options, ignore)
 
     member this.Branch(anAgentConfig, options : BranchOptions, agentBlock) =
-        if this.Generation >= this.GenerationLimit then
-            None
-        else
+        if this.Generation < this.GenerationLimit then
             options.Parent <- Some(this.Copy())
             options.Config <- anAgentConfig
-            let resultingAgent = this.SpawnUsingOptions(options)
-            match resultingAgent with 
-            | Some(agent) -> agent |> performAction agentBlock 
-            | None -> ()
+            let agent = this.SpawnUsingOptions(options) 
+            agent |> performAction agentBlock 
             this.AddBranchMarkFor(BranchMark(this.DistanceCovered), options.Tag)
-            resultingAgent
 
     member this.Flip() =
         flipFactor <- -flipFactor
@@ -590,9 +593,8 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         if this.Generation < this.GenerationLimit then
             options.Parent <- Some(this.Copy())
             options.Config <- Some(anAgentConfig)
-            match this.SpawnUsingOptions(options) with
-            | Some(agent) -> agent |> performAction agentBlock 
-            | None -> ()
+            let agent = this.SpawnUsingOptions(options)
+            agent |> performAction agentBlock
     (*
     member this.DrawGeometry(anAthensShape, optionsBlock) =
         let options = GeometrySpawnOptions()
@@ -606,14 +608,11 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.Environment().AddGeometry(g)
     *)
 
-    member this.SpawnUsingOptions(options : AgentSpawnOptions) : Agent option =
-        if this.Generation >= this.GenerationLimit then
-            None
-        else
-            match options.Seed with 
-            | Some(_) -> () 
-            | None -> options.Seed <- Some(this.Random.Next())
-            this.DworkinEnvironment.SpawnUsingOptions(options)
+    member this.SpawnUsingOptions(options : AgentSpawnOptions) : Agent =
+        match options.Seed with 
+        | Some(_) -> () 
+        | None -> options.Seed <- Some(this.Random.Next())
+        this.DworkinEnvironment.SpawnUsingOptions(options)
 
     override this.Step(canvas) =
         if this.Age = 0 && (config.TerminationConditions.Collision |> Option.exists (fun x -> x.Evaluate(this))) then
@@ -675,7 +674,12 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         this.AddColliderToLayer(aCollider, CollisionLayer.Default)
 
     member this.AddColliderToLayer(aCollider, layer) =
-        colliders.GetOrSetIfAbsent(layer, fun () -> QuadTree(initialQuadTreeBounds)).Insert(aCollider)
+        try
+            colliders.GetOrSetIfAbsent(layer, fun () -> QuadTree(initialQuadTreeBounds)).Insert(aCollider)
+        with
+        | :? OutOfBounds as ex -> 
+            Android.Util.Log.Error("Dworkin", sprintf "collider (%A) out of bounds (%A)" ex.objBounds ex.treeBounds)
+            |> ignore
     
     /// Apply predicate to all colliders within given rect on given layers.
     /// Stop when predicate returns false or all colliders are processed.
@@ -699,13 +703,11 @@ type DworkinEnvironment(bounds, randomSeed : int) =
 
     member this.Spawn(agentConfig, options : AgentSpawnOptions, agentBlock) =
         options.Config <- Some(agentConfig)
-        match this.SpawnUsingOptions(options) with
-        | Some(agent) -> 
-            agent |> performAction agentBlock
-            Some(agent)
-        | None -> None
+        let agent = this.SpawnUsingOptions(options)
+        agent |> performAction agentBlock
+        agent
 
-    member this.SpawnUsingOptions(options : AgentSpawnOptions) =
+    member this.SpawnUsingOptions(options : AgentSpawnOptions) : Agent =
         let seed = match options.Seed with | Some(value) -> value | None -> this.Random.Next()
         let agent = DworkinAgent(options.Config.Value, seed, Position=options.Position, Direction=options.Direction)
         match options.Parent with
@@ -725,6 +727,6 @@ type DworkinEnvironment(bounds, randomSeed : int) =
                 delayAgent :> Agent
             | None -> agent :> Agent
         this.AddAgent(addedAgent)
-        Some(addedAgent)
+        addedAgent
 
 
