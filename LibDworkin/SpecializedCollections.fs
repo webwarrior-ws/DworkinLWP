@@ -86,7 +86,7 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
             and set (key: 'K) (v: 'V): unit = 
                 match this.list.FindIndex(fun x -> x.Key = key) with
                 | i when i >= 0 -> this.list.[i] <- KeyValuePair(key, v)
-                | _ -> raise (KeyNotFoundException(key.ToString()))
+                | _ -> this.list.Add(KeyValuePair(key, v))
         
         member this.Keys: ICollection<'K> = 
             this.list.ConvertAll(fun item -> item.Key) :> ICollection<'K>
