@@ -45,11 +45,11 @@ type BrushStrategyDefault() =
 
     override this.GetBrushFor(anAgent) : Brush =
         let mutable curr = anAgent.Parent
-        while curr |> Option.exists (fun a -> a.Config.Brush.IsFinal) do
+        while (match curr with | Some(a) -> not a.Config.Brush.IsFinal | None -> false) do
             curr <- curr.Value.Parent
         match curr with 
-        | Some(a) -> a.Config.Brush.GetBrushFor(anAgent) 
-        | None -> this.FallbackBrush :> Brush
+        | Some(a) when a.Config.Brush.IsFinal -> a.Config.Brush.GetBrushFor(anAgent) 
+        | _ -> this.FallbackBrush :> Brush
 
 
 type BrushStrategyNone() = 
@@ -157,9 +157,7 @@ type ColliderStrategySegments() =
         match agent.Attributes.LastCollider.Get() with
         | Some(collider) -> 
             let mutable lastCollider = collider :?> SegmentCollider
-            if lastCollider.End.SquaredDistanceTo(pos) < (squared (this.MinLength * agent.LengthFactor)) then
-                ()
-            else
+            if lastCollider.End.SquaredDistanceTo(pos) >= (squared (this.MinLength * agent.LengthFactor)) then
                 lastCollider <- SegmentCollider(Some(agent :> Agent), lastCollider.End, pos)
                 agent.DworkinEnvironment.AddColliderToLayer(lastCollider, layer)
                 agent.Attributes.LastCollider.Set(lastCollider)
