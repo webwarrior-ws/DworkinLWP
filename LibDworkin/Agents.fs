@@ -74,7 +74,7 @@ type DworkinAgentFormula() =
         let s = agent.DistanceCovered
         this.Evaluate(s * DworkinAgentFormula.Factor, min (s / agent.TotalDistance) 1.0f)
 
-    static member Factor = 100.0f
+    static member Factor = 0.01f
 
 [<AbstractClass>]
 type ThicknessFormula() = 
@@ -166,7 +166,7 @@ type TerminationConditionCollision() =
     member val DetectorSize = DetectorSize.Relative with get, set
     member val Handler : CollisionHandler option = None with get, set
     member val IgnoreParent = false with get, set
-    member val Layers = LayersList() with get, set
+    member val Layers = LayersList([||], true) with get, set
     member val MinDistance = 0.0f with get, set
     member val PrimaryDetector = CollisionDetectorConfig.Default with get, set
     member val SelfIntersection = true with get, set
