@@ -115,3 +115,45 @@ type CollidingAgentsTestRenderer(context) =
         environment |> Option.iter (fun env -> env.Step(this))
         this.RenderShapes()
         this.DrawMaskedImage()
+
+
+/// renderer that shows all colliders in environment
+type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.DworkinEnvironmentConfig) =
+    inherit BaseRenderer(context)
+
+    let mutable environment : LibDworkin.Agents.DworkinEnvironment option = None
+    let drawnColliders = System.Collections.Generic.HashSet<Collider>(
+        { new System.Collections.Generic.IEqualityComparer<Collider> with
+            member this.Equals(a, b) = 
+                match a, b with
+                | :? SegmentCollider as s1, (:? SegmentCollider as s2) -> s1.End = s2.End && s1.Start = s2.Start
+                | :? CircleCollider as s1, (:? CircleCollider as s2) -> s1.Center = s2.Center && s1.Radius = s2.Radius
+                | _ -> false
+            member this.GetHashCode(a) = LanguagePrimitives.PhysicalHash a })
+
+    override this.OnSurfaceChanged(gl, width, height) =
+        base.OnSurfaceChanged(gl, width, height)
+        environment <- Some(environmentConfig.GetEnvironment(Point(float32 width, float32 height)))        
+        this.SetScale(1.0f / float32 width, 1.0f / float32 height)
+
+    member this.DrawCollider(collider : Collider) =
+        if drawnColliders.Add collider then
+            match collider with
+            | :? CircleCollider as circle -> (this :> ICanvas).DrawCircle(circle.Center, circle.Radius)
+            | :? SegmentCollider as segment -> 
+                let mutable perp = (segment.End - segment.Start).PerpendicularLeft
+                perp.Normalize()
+                perp <- perp * 0.5f
+                (this :> ICanvas).DrawQuad(segment.Start + perp, segment.Start - perp, segment.End - perp, segment.End + perp)
+            | _ -> ()
+
+    override this.OnDrawFrame(gl : Opengles.IGL10) =
+        match environment with
+        | Some(env) -> 
+            env.Step(this)
+            env.QueryColliders(env.Bounds, SpecializedCollections.LayersList([||], true), fun _ collider -> this.DrawCollider(collider); true) 
+                |> ignore
+        | None -> ()
+        
+        this.RenderShapes()
+        this.DrawMaskedImage()
