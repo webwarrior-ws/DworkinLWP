@@ -222,11 +222,11 @@ type BaseRenderer(context : Android.Content.Context) =
         
         GL.DisableVertexAttribArray(aTexCoords)
         GL.BindTexture(TextureTarget.Texture2D, 0)
-         
-        GL.UseProgram(0)
     
     member this.RenderShapes() =
         if shapesVertexIndices.Size > 0 then
+            assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
+
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
             GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
             GL.UseProgram(shapesDrawingShader.Value.Program)
@@ -242,10 +242,9 @@ type BaseRenderer(context : Android.Content.Context) =
             GL.DrawElements(BeginMode.Triangles, shapesVertexIndices.Size, DrawElementsType.UnsignedInt, shapesVertexIndices.Array)
 
             GL.DisableVertexAttribArray(aPos)
-            GL.UseProgram(0)
             
-            shapesVertices.Clear()
-            shapesVertexIndices.Clear()
+            shapesVertices.Reset()
+            shapesVertexIndices.Reset()
     
     member this.SetScale(xs : float32, ys : float32) =
         scale <- Point(xs, ys)
