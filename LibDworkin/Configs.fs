@@ -168,7 +168,7 @@ type ColliderStrategySegments() =
     
 
 type ColliderStrategy with
-    static member Default = ColliderStrategyCircles()
+    static member Default = ColliderStrategyCircles() :> ColliderStrategy
 
 
 // collider options
@@ -182,14 +182,22 @@ type ColliderOptionsGeneral() =
     inherit ColliderOptions()
 
     member val Layer = CollisionLayer.Default with get, set
-    member val Strategy = ColliderStrategy.Default with get, set
+    member val Strategy : ColliderStrategy = ColliderStrategy.Default with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> ColliderOptionsGeneral
+
+    static member Layer_ : Lens<ColliderOptions, CollisionLayer> = 
+        (fun x -> (x :?> ColliderOptionsGeneral).Layer), (fun value x -> let y = (x :?> ColliderOptionsGeneral).Clone() in y.Layer <- value; y :> ColliderOptions)
+
+    static member Strategy_ : Lens<ColliderOptions, ColliderStrategy> = 
+        (fun x -> (x :?> ColliderOptionsGeneral).Strategy), (fun value x -> let y = (x :?> ColliderOptionsGeneral).Clone() in y.Strategy <- value; y :> ColliderOptions)
 
     override this.Evaluate(agent) =
         this.Strategy.Evaluate(agent, this.Layer)
 
 
 type ColliderOptions with
-    static member Default = ColliderOptionsNone.Instance
+    static member Default = ColliderOptionsNone.Instance :> ColliderOptions
 
 
 // speed strategies
