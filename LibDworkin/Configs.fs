@@ -119,8 +119,6 @@ type ColliderStrategyCircles() =
         collider
 
     override this.Evaluate(agent, layer) =
-        let mutable lastCollider = null
-        let mutable pos = null
         if agent.DistanceCovered >= this.Offset then
             let mutable pos = agent.Position
             let r = agent.Thickness * 0.5f
@@ -152,7 +150,6 @@ type ColliderStrategySegments() =
         (fun x -> (x :?> ColliderStrategySegments).MinLength), (fun value x -> let y = (x :?> ColliderStrategySegments).Clone() in y.MinLength <- value; y :> ColliderStrategy)
 
     override this.Evaluate(agent, layer) =
-        let mutable lastCollider = null
         let pos = agent.Position
         match agent.Attributes.LastCollider.Get() with
         | Some(collider) -> 
