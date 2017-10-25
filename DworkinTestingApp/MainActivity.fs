@@ -32,7 +32,8 @@ type MainActivity () =
             || Build.Model.Contains("Emulator") 
             || Build.Model.Contains("Android SDK built for x86")))
         
-        let renderer = new TestRenderers.CollidersTestRenderer(this, TestConfigs.colliderStrategyTest)
+        let renderer = new LibDworkin.Renderer.DworkinRenderer(this, TestConfigs.iGeoExample40) 
+        //new TestRenderers.CollidersTestRenderer(this, TestConfigs.colliderStrategyTest)
         //new LibDworkin.Renderer.DworkinRenderer(this, TestConfigs.brushesAndSpeedsTest) 
         //new TestRenderers.ShapesTestRenderer(this) 
         //new TestRenderers.CollidingAgentsTestRenderer(this);

@@ -9,6 +9,8 @@ open LibDworkin.Configs
 open LibDworkin.Brushes
 open LibDworkin.Aether
 open LibDworkin.Aether.Operators
+open LibDworkin.SimplexNoise
+open LibDworkin.PharoCompatibility
 
 
 type Termination_Spiral() =
@@ -117,3 +119,51 @@ let colliderStrategyTest : DworkinEnvironmentConfig =
             env.Spawn(segmentColliders tree, AgentSpawnOptions(Position=Point(0.8f * size.X, 0.5f * size.Y)), scale) |> ignore
 
             env }
+
+
+type Density_Ex40() =
+    inherit BranchingCriterionDensity()
+    override this.Evaluate(s, t) =
+        if t >= 0.15f then (s.SNoise() + 1.0f) * 0.05f else 0.0f
+
+type Curvature_DiminishingSpiral() =
+    inherit CurvatureFormula()
+    member val Alpha = 3.0f with get, set
+    static member Alpha_ : Lens<CurvatureFormula, float32> =
+        (fun x -> (x :?> Curvature_DiminishingSpiral).Alpha), 
+        (fun value x -> let y = x.Clone() :?> Curvature_DiminishingSpiral in y.Alpha <- value; y :> CurvatureFormula)
+    
+    override this.Evaluate(s, t) =
+        this.Alpha / 100.0f / (max (1.0f - 0.125f * s) 0.005f)
+
+ type Spawn_Ex40() =
+    inherit SpawnConfig()
+    override this.Evaluate(agent, pos) =
+        let config = 
+            agent.Config 
+            |> Optic.map 
+                (DworkinAgentConfig.Curvature_ >-> Curvature_DiminishingSpiral.Alpha_) 
+                (fun x -> x * agent.Random.NextInRange(0.3f, 2.5f))
+        agent.Spawn(config, AgentSpawnOptions(AngleDeg= -30.0f), fun a -> a.Flip())
+
+
+let iGeoExample40  : DworkinEnvironmentConfig =
+    let branching = 
+        BranchingCriterionBased(Criterion=Density_Ex40(), SpawnConfig=Spawn_Ex40()) :> BranchingStrategy
+    let collisionConfig =
+        TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=60.0f}, MinDistance=2.0f)
+    let config = 
+        DworkinAgentConfig.Default
+        |> Optic.set DworkinAgentConfig.Curvature_ (Curvature_DiminishingSpiral() :> CurvatureFormula)
+        |> Optic.set DworkinAgentConfig.ColliderOptions_ (ColliderOptionsGeneral() :> ColliderOptions)
+        |> Optic.set DworkinAgentConfig.Speed_ (AgentSpeedConstant(Magnitude=2.0f) :> AgentSpeed)
+        |> Optic.set DworkinAgentConfig.TotalDistance_ 400.0f
+        |> Optic.set DworkinAgentConfig.Branching_ branching
+        |> Optic.set (DworkinAgentConfig.TerminationConditions_ >-> TerminationConditions.Collision_) collisionConfig
+    
+    { new DworkinEnvironmentConfig with
+        member this.GetEnvironment(size) = 
+            let env = DworkinEnvironment(Rectangle(Point(), size), 42)
+            env.Spawn(config, AgentSpawnOptions(Position=size*0.5f), fun a -> a.ScaleBy(Point(2.0f, 1.0f))) |> ignore
+            env }
+
