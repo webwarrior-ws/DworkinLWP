@@ -79,10 +79,12 @@ type DworkinAgentFormula() =
 [<AbstractClass>]
 type ThicknessFormula() = 
     inherit DworkinAgentFormula()
+    member this.Clone() = this.MemberwiseClone() :?> ThicknessFormula
 
 [<AbstractClass>]
 type CurvatureFormula() = 
     inherit DworkinAgentFormula()
+    member this.Clone() = this.MemberwiseClone() :?> CurvatureFormula
 
 
 [<AbstractClass>]
@@ -115,8 +117,7 @@ type CollisionDetectorConfig =
             (fun x -> x.Distance), (fun value x -> { x with CollisionDetectorConfig.Distance = value })
 
         member this.GetCollider() =
-            let temp = CircleSectorCollider(None, Point(), 0.0f, 0.0f, deg2rad this.Angle)
-            temp
+            CircleSectorCollider(None, Point(), 0.0f, 0.0f, deg2rad this.Angle)
     
 
 [<AbstractClass>]
@@ -133,6 +134,9 @@ type TerminationConditions =
     with
         static member Distance_ : Lens<TerminationConditions, TerminationConditionDistance> =
             (fun x -> x.Distance.Value), (fun value x -> { x with Distance = Some(value) })
+        
+        static member Collision_ : Lens<TerminationConditions, TerminationConditionCollision> =
+            (fun x -> x.Collision.Value), (fun value x -> { x with Collision = Some(value) })
 
         member this.AnySatisfy(agent : DworkinAgent) =
             this.Distance  |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
@@ -218,13 +222,11 @@ type TerminationConditionCollision() =
             
             let detectors : CircleSectorCollider[] = 
                 let detectorsAccessor : AttributeAccessor<CircleSectorCollider[]> = agent.Attributes.Detectors
-                match detectorsAccessor.Get() with
-                | Some(value) -> value
-                | None ->
+                detectorsAccessor.GetOrSetIfAbsent(fun () -> 
                     detectorConfigs |> Array.map (fun each -> 
                         let collider = each.GetCollider()
                         collider.Parent <- Some(agent :> Agent)
-                        collider)
+                        collider))
             
             let sizeFactor = 
                 match this.DetectorSize with
@@ -232,7 +234,7 @@ type TerminationConditionCollision() =
                 | Absolute -> agent.LengthFactor
             
             let predicate detector layer collider = 
-                (collide detector collider) &&
+                ((collide detector collider) &&
                 (if not <| this.IgnoresCollisionOfAgentWith(agent, collider) then
                     let collision = { Subject=detector; Obstacle=collider; Layer=layer }
                     let handlerNotAborted =
@@ -243,14 +245,16 @@ type TerminationConditionCollision() =
                         agent.Collision <- Some(collision)
                         true (*return*)
                     else false
-                 else false)
+                 else false)) 
+                |> not
+            
             Seq.exists2 (
                 fun (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) -> 
                     detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
                     agent.DworkinEnvironment.QueryColliders(
                         (detector :> IHasBounds).Bounds, 
                         this.Layers, 
-                        predicate detector) )
+                        predicate detector) |> not )
                 detectors 
                 detectorConfigs
     
