@@ -146,12 +146,17 @@ type Curvature_DiminishingSpiral() =
                 (fun x -> x * agent.Random.NextInRange(0.3f, 2.5f))
         agent.Spawn(config, AgentSpawnOptions(AngleDeg= -30.0f), fun a -> a.Flip())
 
+type Handler_Noop() =
+    inherit CollisionHandler()
+    override this.Evaluate(agent, collision) =
+        true
+
 
 let iGeoExample40  : DworkinEnvironmentConfig =
     let branching = 
         BranchingCriterionBased(Criterion=Density_Ex40(), SpawnConfig=Spawn_Ex40()) :> BranchingStrategy
     let collisionConfig =
-        TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=60.0f}, MinDistance=2.0f)
+        TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=60.0f}, MinDistance=2.0f, Handler=Some(Handler_Noop() :> CollisionHandler))
     let config = 
         DworkinAgentConfig.Default
         |> Optic.set DworkinAgentConfig.Curvature_ (Curvature_DiminishingSpiral() :> CurvatureFormula)

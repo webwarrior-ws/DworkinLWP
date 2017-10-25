@@ -121,8 +121,8 @@ type CollisionDetectorConfig =
     
 
 [<AbstractClass>]
-type CollisionHandler = 
-     abstract Evaluate : (DworkinAgent * Collision) -> bool
+type CollisionHandler() = 
+     abstract Evaluate : DworkinAgent * Collision -> bool
 
 
 type TerminationConditions = 
