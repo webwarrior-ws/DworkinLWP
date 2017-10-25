@@ -61,7 +61,7 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
         | Some(p) -> p
         | None ->
             let theta = bearing - centralAngle
-            let p = center + Point(radius * cos theta, radius * sin theta)
+            let p = this.Center + Point(this.Radius * cos theta, this.Radius * sin theta)
             r1 <- Some(p)
             p
     
@@ -70,7 +70,7 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
         | Some(p) -> p
         | None ->
             let theta = bearing + centralAngle
-            let p = center + Point(radius * cos theta, radius * sin theta)
+            let p = this.Center + Point(this.Radius * cos theta, this.Radius * sin theta)
             r2 <- Some(p)
             p
 
@@ -96,8 +96,8 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
     override this.CalculateBoundingBox() =
         let points = ResizeArray<Point>(5)
         let intersections =  [| 
-            Point(center.X + radius, center.Y); Point(center.X, center.Y + radius);
-            Point(center.X - radius, center.Y); Point(center.X, center.Y - radius) |]
+            Point(this.Center.X + this.Radius, this.Center.Y); Point(this.Center.X, this.Center.Y + this.Radius);
+            Point(this.Center.X - this.Radius, this.Center.Y); Point(this.Center.X, this.Center.Y - this.Radius) |]
         
         rightAngles |> (Array.iteri (fun i angle -> 
             let mutable alpha = angle - bearing + (centralAngle * 0.5f)
@@ -108,7 +108,7 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
             if alpha >= 0.0f && alpha <= centralAngle then
                 points.Add intersections.[i]))
         
-        if points.Count <= 1 then points.Add center
+        if points.Count <= 1 then points.Add this.Center
         if points.Count < 4 then 
             points.Add this.R1
             points.Add this.R2
