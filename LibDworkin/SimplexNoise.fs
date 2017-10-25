@@ -97,6 +97,6 @@ type OpenTK.Vector2 with
     member inline this.SNoise() : float32 = noise2d this.X this.Y
 
 
-// generic function to rule them all
-let inline sNoise (arg : ^U) =
-    (^U : (member SNoise : unit -> float32) arg)
+// generic function to rule them all (DOES NOT WORK)
+//let inline sNoise (arg : ^U) =
+//    (^U : (member SNoise : unit -> float32) arg)
