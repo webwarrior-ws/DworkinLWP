@@ -1,7 +1,8 @@
 ﻿/// Extensions and functions that mimic behaviour of some Pharo methods
-module PharoCompatibility
+module LibDworkin.PharoCompatibility
 
 open System.Collections.Generic
+open Geometry
 
 
 // extensions to match some Smalltalk dictionary methods
@@ -52,6 +53,14 @@ let (|Empty|NotEmpty|) (sequence : #seq<'T>) =
 // uniform access to size of collections
 type ICollection<'T> with
     member inline this.Length = this.Count
+
+
+type System.Random with
+    member inline this.NextFloat() =
+        this.NextDouble() |> float32
+
+    member this.NextInRange(a : float32, b : float32) =
+        lerp a b (this.NextFloat())
 
 
 /// tests if x lies between a and b
