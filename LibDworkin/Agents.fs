@@ -555,7 +555,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member this.Branch(anAgentConfig, options : BranchOptions, agentBlock) =
         if this.Generation < this.GenerationLimit then
             options.Parent <- Some(this.Copy())
-            options.Config <- anAgentConfig
+            options.Config <- Some(anAgentConfig)
             let agent = this.SpawnUsingOptions(options) 
             agent |> performAction agentBlock 
             this.AddBranchMarkFor(BranchMark(this.DistanceCovered), options.Tag)
