@@ -73,3 +73,7 @@ let inline squared x = x*x
 /// Answer the nearest number that is a multiple of quantum
 let inline roundTo quantum number =
     round (number / quantum) * quantum
+
+/// Equivalent to Smalltalk's #withIndexDo:
+let withIndexDo func sequence =
+    Seq.iteri (fun i x -> func x i) sequence
