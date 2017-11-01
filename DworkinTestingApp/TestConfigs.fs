@@ -148,8 +148,18 @@ type Curvature_DiminishingSpiral() =
 
 type Handler_Noop() =
     inherit CollisionHandler()
+    static member Curvature_ : Lens<CollisionHandler, int> =
+        (fun o -> 0), (fun v o -> o)
     override this.Evaluate(agent, collision) =
         true
+
+
+/// utility function for defining generic lenses using static type constraints
+let inline makeLens lensGetter =
+    (fun object -> (lensGetter object) |> fst <| object), (fun value object -> (lensGetter object) |> snd <| value <| object)
+
+let inline curvature_< ^U , ^V when ^U : (static member Curvature_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeLens (fun (_ : ^U) -> (^U : (static member Curvature_ : Lens< ^U, ^V>) ()))
 
 
 let iGeoExample40  : DworkinEnvironmentConfig =
@@ -159,12 +169,13 @@ let iGeoExample40  : DworkinEnvironmentConfig =
         TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=60.0f}, MinDistance=2.0f, Handler=Some(Handler_Noop() :> CollisionHandler))
     let config = 
         DworkinAgentConfig.Default
-        |> Optic.set DworkinAgentConfig.Curvature_ (Curvature_DiminishingSpiral() :> CurvatureFormula)
+        |> Optic.set curvature_ (Curvature_DiminishingSpiral() :> CurvatureFormula)
         |> Optic.set DworkinAgentConfig.ColliderOptions_ (ColliderOptionsGeneral() :> ColliderOptions)
         |> Optic.set DworkinAgentConfig.Speed_ (AgentSpeedConstant(Magnitude=2.0f) :> AgentSpeed)
         |> Optic.set DworkinAgentConfig.TotalDistance_ 400.0f
         |> Optic.set DworkinAgentConfig.Branching_ branching
         |> Optic.set (DworkinAgentConfig.TerminationConditions_ >-> TerminationConditions.Collision_) collisionConfig
+        //|> Optic.set (DworkinAgentConfig.TerminationConditions_ >-> TerminationConditions.Collision_ >-> TerminationConditionCollision.Handler_ >-> curvature_) 0
     
     { new DworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
@@ -172,3 +183,4 @@ let iGeoExample40  : DworkinEnvironmentConfig =
             env.Spawn(config, AgentSpawnOptions(Position=size*0.5f), fun a -> a.ScaleBy(Point(2.0f, 1.0f))) |> ignore
             env }
 
+   
