@@ -148,11 +148,16 @@ type Curvature_DiminishingSpiral() =
 
 type Handler_Noop() =
     inherit CollisionHandler()
-    static member Curvature_ : Lens<CollisionHandler, int> =
+    static member Curvature_ : Lens<Handler_Noop, int> =
         (fun o -> 0), (fun v o -> o)
     override this.Evaluate(agent, collision) =
         true
 
+
+//let inline (>?) (lens : Lens<'a ,'b>) (typ : unit -> 'c when 'c :> 'a) : Lens<'c, 'b> =
+//    (fun object -> Optic.get lens (object :?> 'c)), (fun value object -> Optic.set value lens (object :?> 'c))
+let cast<'a, 'b> : Isomorphism<'a, 'b> =
+    ((fun object -> box object :?> 'b), (fun object -> box object :?> 'a))
 
 /// utility function for defining generic lenses using static type constraints
 let inline makeLens lensGetter =
@@ -160,6 +165,10 @@ let inline makeLens lensGetter =
 
 let inline curvature_< ^U , ^V when ^U : (static member Curvature_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeLens (fun (_ : ^U) -> (^U : (static member Curvature_ : Lens< ^U, ^V>) ()))
+
+let colliderOptions_<'a when 'a :> ColliderOptions> : Lens<DworkinAgentConfig, 'a> = 
+    let isomorphism : Isomorphism<ColliderOptions, 'a> = (fun object -> object :?> 'a), (fun object -> object :> ColliderOptions)
+    DworkinAgentConfig.ColliderOptions_ >-> isomorphism
 
 
 let iGeoExample40  : DworkinEnvironmentConfig =
@@ -170,12 +179,12 @@ let iGeoExample40  : DworkinEnvironmentConfig =
     let config = 
         DworkinAgentConfig.Default
         |> Optic.set curvature_ (Curvature_DiminishingSpiral() :> CurvatureFormula)
-        |> Optic.set DworkinAgentConfig.ColliderOptions_ (ColliderOptionsGeneral() :> ColliderOptions)
+        |> Optic.set colliderOptions_ (ColliderOptionsGeneral())
         |> Optic.set DworkinAgentConfig.Speed_ (AgentSpeedConstant(Magnitude=2.0f) :> AgentSpeed)
         |> Optic.set DworkinAgentConfig.TotalDistance_ 400.0f
         |> Optic.set DworkinAgentConfig.Branching_ branching
         |> Optic.set (DworkinAgentConfig.TerminationConditions_ >-> TerminationConditions.Collision_) collisionConfig
-        //|> Optic.set (DworkinAgentConfig.TerminationConditions_ >-> TerminationConditions.Collision_ >-> TerminationConditionCollision.Handler_ >-> curvature_) 0
+        |> Optic.set (DworkinAgentConfig.TerminationConditions_ >-> TerminationConditions.Collision_ >-> TerminationConditionCollision.Handler_ >-> cast<_,Handler_Noop> >-> curvature_) 0
     
     { new DworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
