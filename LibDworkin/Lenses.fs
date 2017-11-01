@@ -77,7 +77,33 @@ let maxCurvature_ = TerminationConditionCurvature.MaxCurvature_
 // distance_ - generic
 let collision_ = TerminationConditions.Collision_
 
-// 
+// BrushStrategySolid
+let cap_ = BrushStrategySolid.Cap_
+let alignWithParent_ = BrushStrategySolid.AlignWithParent_ 
+
+// BrushStrategySolidJoint
+let jointType_ = BrushStrategySolidJoint.JointType_
+
+// ColliderStrategyCircles
+// offset - generic
+let density_ = ColliderStrategyCircles.Density_
+
+// ColliderStrategySegments
+let minLength = ColliderStrategySegments.MinLength_
+
+// ColliderOptionsGeneral
+let strategy_<'a when 'a :> ColliderStrategy> : Lens<ColliderOptionsGeneral, 'a> = 
+    ColliderOptionsGeneral.Strategy_ >-> cast
+
+let layer_ = ColliderOptionsGeneral.Layer_
+
+// AgentSpeedConstant
+let magnitude_ = AgentSpeedConstant.Magnitude_
+
+// BranchingCriterionBased
+// spawnConfig_ is generic
+let criterion_<'a when 'a :> BranchingCriterion> : Lens<BranchingCriterionBased, 'a> = 
+    BranchingCriterionBased.Criterion_ >-> cast
 
 
 // generic lenses
@@ -86,3 +112,12 @@ let inline distance_< ^U , ^V when ^U : (static member Distance_ : Lens< ^U, ^V>
 
 let inline angle_< ^U , ^V when ^U : (static member Angle_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Angle_ : Lens< ^U, ^V>) ()))
+
+let inline offset_< ^U , ^V when ^U : (static member Offset_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Offset_ : Lens< ^U, ^V>) ()))
+
+let inline factor_< ^U , ^V when ^U : (static member Factor_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Factor_ : Lens< ^U, ^V>) ()))
+
+let inline spawnConfig_< ^U , ^V when ^U : (static member SpawnConfig_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member SpawnConfig_ : Lens< ^U, ^V>) ()))

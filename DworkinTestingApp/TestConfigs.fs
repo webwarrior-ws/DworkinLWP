@@ -76,7 +76,7 @@ let brushesAndSpeedsTest : DworkinEnvironmentConfig =
             // flipFactor=1, turn right, angle = 60 degrees
             let turnRight (config : DworkinAgentConfig) =
                 config  
-                |> Optic.set DworkinAgentConfig.Termination_ (Termination_Spiral(Angle= -60.0f) :> TerminationStrategy)
+                |> Optic.set termination_ (Termination_Spiral(Angle= -60.0f))
             env.Spawn(turnRight agent_SolidWithJoint_Triangle, AgentSpawnOptions(Position=Point(0.55f * size.X, bottomY)), setDrawJointAndScale) |> ignore
             env.Spawn(turnRight agent_SolidWithJoint_Quad, AgentSpawnOptions(Position=Point(0.75f * size.X, bottomY)), setDrawJointAndScale) |> ignore
 
@@ -108,7 +108,7 @@ let colliderStrategyTest : DworkinEnvironmentConfig =
         |> Optic.set speed_ (AgentSpeedConstant(Magnitude=5.0f))
     
     let segmentColliders config =
-        config |> Optic.set (colliderOptions_ >-> ColliderOptionsGeneral.Strategy_) (ColliderStrategySegments() :> ColliderStrategy)
+        config |> Optic.set (colliderOptions_ >-> strategy_) (ColliderStrategySegments())
 
     { new DworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
@@ -130,9 +130,8 @@ type Density_Ex40() =
 type Curvature_DiminishingSpiral() =
     inherit CurvatureFormula()
     member val Alpha = 3.0f with get, set
-    static member Alpha_ : Lens<CurvatureFormula, float32> =
-        (fun x -> (x :?> Curvature_DiminishingSpiral).Alpha), 
-        (fun value x -> let y = x.Clone() :?> Curvature_DiminishingSpiral in y.Alpha <- value; y :> CurvatureFormula)
+    static member Alpha_ : Lens<Curvature_DiminishingSpiral, float32> =
+        (fun x -> x.Alpha), (fun value x -> let y = x.Clone() :?> Curvature_DiminishingSpiral in y.Alpha <- value; y)
     
     override this.Evaluate(s, t) =
         this.Alpha / 100.0f / (max (1.0f - 0.125f * s) 0.005f)
@@ -143,7 +142,7 @@ type Curvature_DiminishingSpiral() =
         let config = 
             agent.Config 
             |> Optic.map 
-                (DworkinAgentConfig.Curvature_ >-> Curvature_DiminishingSpiral.Alpha_) 
+                (curvature_ >-> Curvature_DiminishingSpiral.Alpha_) 
                 (fun x -> x * agent.Random.NextInRange(0.3f, 2.5f))
         agent.Spawn(config, AgentSpawnOptions(AngleDeg= -30.0f), fun a -> a.Flip())
 
@@ -165,9 +164,8 @@ let iGeoExample40  : DworkinEnvironmentConfig =
         |> Optic.set speed_ (AgentSpeedConstant(Magnitude=2.0f))
         |> Optic.set totalDistance_ 400.0f
         |> Optic.set branching_ branching
-        |> Optic.set (terminationConditions_ >-> TerminationConditions.Collision_) collisionConfig
-        //|> Optic.set (DworkinAgentConfig.TerminationConditions_ >-> TerminationConditions.Collision_ >-> TerminationConditionCollision.Handler_ >-> cast<_,Handler_Noop> >-> curvature_) 0
-    
+        |> Optic.set (terminationConditions_ >-> collision_) collisionConfig
+        
     { new DworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
             let env = DworkinEnvironment(Rectangle(Point(), size), 42)

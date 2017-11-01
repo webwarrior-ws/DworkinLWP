@@ -67,11 +67,11 @@ type BrushStrategySolid() =
 
     member this.Clone() = this.MemberwiseClone() :?> BrushStrategySolid
 
-    static member AlignWithParent_ : Lens<BrushStrategy, bool> = 
-        (fun x -> (x :?> BrushStrategySolid).AlignWithParent), (fun value x -> let y = (x :?> BrushStrategySolid).Clone() in y.AlignWithParent <- value; y :> BrushStrategy)
+    static member AlignWithParent_ : Lens<BrushStrategySolid, bool> = 
+        (fun x -> x.AlignWithParent), (fun value x -> let y = x.Clone() in y.AlignWithParent <- value; y)
 
-    static member Cap_ : Lens<BrushStrategy, BrushCap> = 
-        (fun x -> (x :?> BrushStrategySolid).Cap), (fun value x -> let y = (x :?> BrushStrategySolid).Clone() in y.Cap <- value; y :> BrushStrategy)
+    static member Cap_ : Lens<BrushStrategySolid, BrushCap> = 
+        (fun x -> x.Cap), (fun value x -> let y = x.Clone() in y.Cap <- value; y)
 
     override this.GetBrushFor(anAgent) =
         BrushSolid(Cap=this.Cap, AlignWithParent=this.AlignWithParent) :> Brush
@@ -83,8 +83,8 @@ type BrushStrategySolidJoint() =
 
     member this.Clone() = this.MemberwiseClone() :?> BrushStrategySolidJoint
 
-    static member JointType_ : Lens<BrushStrategy, BrushJoint> = 
-        (fun x -> (x :?> BrushStrategySolidJoint).JointType), (fun value x -> let y = (x :?> BrushStrategySolidJoint).Clone() in y.JointType <- value; y :> BrushStrategy)
+    static member JointType_ : Lens<BrushStrategySolidJoint, BrushJoint> = 
+        (fun x -> x.JointType), (fun value x -> let y = x.Clone() in y.JointType <- value; y)
 
     override this.GetBrushFor(anAgent) =
         BrushSolidJoint(JointType=this.JointType) :> Brush
@@ -107,11 +107,11 @@ type ColliderStrategyCircles() =
 
     member this.Clone() = this.MemberwiseClone() :?> ColliderStrategyCircles
 
-    static member Density_ : Lens<ColliderStrategy, float32> = 
-        (fun x -> (x :?> ColliderStrategyCircles).Density), (fun value x -> let y = (x :?> ColliderStrategyCircles).Clone() in y.Density <- value; y :> ColliderStrategy)
+    static member Density_ : Lens<ColliderStrategyCircles, float32> = 
+        (fun x -> x.Density), (fun value x -> let y = x.Clone() in y.Density <- value; y)
 
-    static member Offset_ : Lens<ColliderStrategy, float32> = 
-        (fun x -> (x :?> ColliderStrategyCircles).Offset), (fun value x -> let y = (x :?> ColliderStrategyCircles).Clone() in y.Offset <- value; y :> ColliderStrategy)
+    static member Offset_ : Lens<ColliderStrategyCircles, float32> = 
+        (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
 
     member this.AddCollider(agent : DworkinAgent, pos, r, layer) =
         let collider = CircleCollider(Some(agent.Copy() :> Agent), pos, r)
@@ -146,8 +146,8 @@ type ColliderStrategySegments() =
 
     member this.Clone() = this.MemberwiseClone() :?> ColliderStrategySegments
 
-    static member MinLength_ : Lens<ColliderStrategy, float32> = 
-        (fun x -> (x :?> ColliderStrategySegments).MinLength), (fun value x -> let y = (x :?> ColliderStrategySegments).Clone() in y.MinLength <- value; y :> ColliderStrategy)
+    static member MinLength_ : Lens<ColliderStrategySegments, float32> = 
+        (fun x -> x.MinLength), (fun value x -> let y = x.Clone() in y.MinLength <- value; y)
 
     override this.Evaluate(agent, layer) =
         let pos = agent.Position
@@ -181,11 +181,11 @@ type ColliderOptionsGeneral() =
 
     member this.Clone() = this.MemberwiseClone() :?> ColliderOptionsGeneral
 
-    static member Layer_ : Lens<ColliderOptions, CollisionLayer> = 
-        (fun x -> (x :?> ColliderOptionsGeneral).Layer), (fun value x -> let y = (x :?> ColliderOptionsGeneral).Clone() in y.Layer <- value; y :> ColliderOptions)
+    static member Layer_ : Lens<ColliderOptionsGeneral, CollisionLayer> = 
+        (fun x -> x.Layer), (fun value x -> let y = x.Clone() in y.Layer <- value; y)
 
-    static member Strategy_ : Lens<ColliderOptions, ColliderStrategy> = 
-        (fun x -> (x :?> ColliderOptionsGeneral).Strategy), (fun value x -> let y = (x :?> ColliderOptionsGeneral).Clone() in y.Strategy <- value; y :> ColliderOptions)
+    static member Strategy_ : Lens<ColliderOptionsGeneral, ColliderStrategy> = 
+        (fun x -> x.Strategy), (fun value x -> let y = x.Clone() in y.Strategy <- value; y)
 
     override this.Evaluate(agent) =
         this.Strategy.Evaluate(agent, this.Layer)
@@ -209,8 +209,8 @@ type AgentSpeedConstant() =
 
     member this.Clone() = this.MemberwiseClone() :?> AgentSpeedConstant
 
-    static member Magnitude_ : Lens<AgentSpeed, float32> = 
-        (fun x -> (x :?> AgentSpeedConstant).Magnitude), (fun value x -> let y = (x :?> AgentSpeedConstant).Clone() in y.Magnitude <- value; y :> AgentSpeed)
+    static member Magnitude_ : Lens<AgentSpeedConstant, float32> = 
+        (fun x -> x.Magnitude), (fun value x -> let y = x.Clone() in y.Magnitude <- value; y)
 
     override this.Evaluate(agent) =
         this.Magnitude
@@ -229,8 +229,8 @@ type AgentSpeedThickness() =
 
     member this.Clone() = this.MemberwiseClone() :?> AgentSpeedThickness
 
-    static member Factor_ : Lens<AgentSpeed, float32> = 
-        (fun x -> (x :?> AgentSpeedThickness).Factor), (fun value x -> let y = (x :?> AgentSpeedThickness).Clone() in y.Factor <- value; y :> AgentSpeed)
+    static member Factor_ : Lens<AgentSpeedThickness, float32> = 
+        (fun x -> x.Factor), (fun value x -> let y = x.Clone() in y.Factor <- value; y)
 
     override this.Evaluate(agent) =
         max (agent.Thickness * this.Factor / agent.LengthFactor) 0.001f
@@ -362,11 +362,11 @@ type BranchingCriterionBased() =
 
     member this.Clone() = this.MemberwiseClone() :?> BranchingCriterionBased
 
-    static member Criterion_ : Lens<BranchingStrategy, BranchingCriterion> = 
-        (fun x -> (x :?> BranchingCriterionBased).Criterion), (fun value x -> let y = (x :?> BranchingCriterionBased).Clone() in y.Criterion <- value; y :> BranchingStrategy)
+    static member Criterion_ : Lens<BranchingCriterionBased, BranchingCriterion> = 
+        (fun x -> x.Criterion), (fun value x -> let y = x.Clone() in y.Criterion <- value; y)
 
-    static member SpawnConfig_ : Lens<BranchingStrategy, SpawnConfig> = 
-        (fun x -> (x :?> BranchingCriterionBased).SpawnConfig), (fun value x -> let y = (x :?> BranchingCriterionBased).Clone() in y.SpawnConfig <- value; y :> BranchingStrategy)
+    static member SpawnConfig_ : Lens<BranchingCriterionBased, SpawnConfig> = 
+        (fun x -> x.SpawnConfig), (fun value x -> let y = x.Clone() in y.SpawnConfig <- value; y)
 
     override this.Evaluate(agent) =
         if this.Criterion.Evaluate(agent) then
@@ -399,8 +399,8 @@ type TerminationSpawn() =
 
     member this.Clone() = this.MemberwiseClone() :?> TerminationSpawn
 
-    static member SpawnConfig_ : Lens<TerminationStrategy, SpawnConfig> = 
-        (fun x -> (x :?> TerminationSpawn).SpawnConfig), (fun value x -> let y = (x :?> TerminationSpawn).Clone() in y.SpawnConfig <- value; y :> TerminationStrategy)
+    static member SpawnConfig_ : Lens<TerminationSpawn, SpawnConfig> = 
+        (fun x -> x.SpawnConfig), (fun value x -> let y = x.Clone() in y.SpawnConfig <- value; y)
 
     override this.Evaluate(agent) =
         this.SpawnConfig.Evaluate(agent)
