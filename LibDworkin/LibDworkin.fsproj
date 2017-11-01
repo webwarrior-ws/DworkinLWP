@@ -70,6 +70,7 @@
     <Compile Include="Agents.fs" />
     <Compile Include="Brushes.fs" />
     <Compile Include="Configs.fs" />
+    <Compile Include="Lenses.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
