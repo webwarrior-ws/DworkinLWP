@@ -517,9 +517,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     
     member this.IsFlipped =
         flipFactor < 0.0f
-
-    member this.BranchMarks =
-        this.Attributes.BranchMarks.GetOrSetIfAbsent(fun () -> SmallDictionary.Create())
+    
+    member this.Flip() =
+        flipFactor <- -flipFactor
     
     member this.DworkinEnvironment : DworkinEnvironment =
         this.Environment.Value :?> DworkinEnvironment
@@ -539,6 +539,12 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         | :? DworkinAgent as otherAgent -> this.Id = otherAgent.Id
         | _ -> false
     override this.GetHashCode() = hash this.Id
+    
+    member this.BranchMarks =
+        this.Attributes.BranchMarks.GetOrSetIfAbsent(fun () -> SmallDictionary.Create())
+    
+    member this.TotalNumBranches =
+        this.BranchMarks.Values |> Seq.sumBy (fun x -> x.Length)
 
     member this.AddBranchMarkFor(aMark, tag) =
         this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList()).Add(aMark)
@@ -553,9 +559,15 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             let agent = this.SpawnUsingOptions(options) 
             agent |> performAction agentBlock 
             this.AddBranchMarkFor(BranchMark(this.DistanceCovered), options.Tag)
-
-    member this.Flip() =
-        flipFactor <- -flipFactor
+    
+    member this.LastBranchMark =
+        let marks = this.BranchMarks
+        if marks.Length = 0 then
+            let lst = BranchMarkList()
+            marks.[0] <- lst
+            lst.Last
+        else
+            Seq.maxBy (fun mark -> mark.S) (marks.Values |> Seq.map (fun s -> s.Last))
 
     member this.LastBranchMarkFor(tag) =
         (this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList())).Last
