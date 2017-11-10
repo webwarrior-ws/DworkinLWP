@@ -14,19 +14,67 @@ open LibDworkin.SimplexNoise
 open LibDworkin.PharoCompatibility
 
 
-type Termination_Spiral() =
-    inherit TerminationCustom()
-    member val Gap = 10.0f with get, set
-    member val Angle = 90.0f with get, set
+// config presets
+[<AutoOpen>]
+module Presets =
+    module TerminationCustom =
+        type Spiral() =
+            inherit TerminationCustom()
+            member val Gap = 10.0f with get, set
+            member val Angle = 90.0f with get, set
 
-    override this.Evaluate(agent, collision) =
-        match collision with
-        | None -> 
-            agent.Spawn(
-                agent.Config |> Optic.map totalDistance_ (fun x -> x - this.Gap), 
-                AgentSpawnOptions(AngleDeg=this.Angle), 
-                fun a -> a.Attributes.DrawJoint.Set(true))
-        | Some(_) -> ()
+            override this.Evaluate(agent, collision) =
+                match collision with
+                | None -> 
+                    agent.Spawn(
+                        agent.Config |> Optic.map totalDistance_ (fun x -> x - this.Gap), 
+                        AgentSpawnOptions(AngleDeg=this.Angle), 
+                        fun a -> a.Attributes.DrawJoint.Set(true))
+                | Some(_) -> ()
+    
+
+        type Tree() =
+            inherit TerminationCustom()
+            override this.Evaluate(agent, collision) =
+                let scale (a : DworkinAgent) = a.ScaleBy(Point(0.67f))
+                agent.GenerationLimit <- 5
+                agent.Spawn(agent.Config, AgentSpawnOptions(OffsetSideways=(agent.Thickness * 0.34f * 0.5f)), scale)
+                agent.Spawn(agent.Config, AgentSpawnOptions(OffsetSideways=(agent.Thickness * 0.34f * -0.5f)), fun a -> scale a; a.Flip())
+
+
+    module CurvatureFormula =
+        type DirectionPreservingTurn() =
+            inherit CurvatureFormula()
+            member val A = 0.0247f with get, set
+            override this.Evaluate(s, t) = this.A * sin(s * Single.Pi)
+    
+        type DiminishingSpiral() =
+            inherit CurvatureFormula()
+            member val Alpha = 3.0f with get, set
+            static member Alpha_ : Lens<DiminishingSpiral, float32> =
+                (fun x -> x.Alpha), (fun value x -> let y = x.Clone() :?> DiminishingSpiral in y.Alpha <- value; y)
+    
+            override this.Evaluate(s, t) =
+                this.Alpha / 100.0f / (max (1.0f - 0.125f * s) 0.005f)
+
+
+    module BranchingCriterionDensity =
+        type Ex40() =
+            inherit BranchingCriterionDensity()
+            override this.Evaluate(s, t) =
+                if t >= 0.15f then (s.SNoise() + 1.0f) * 0.05f else 0.0f
+
+
+     module SpawnConfig =
+         type Ex40() =
+            inherit SpawnConfig()
+            override this.Evaluate(agent, pos) =
+                let config = 
+                    agent.Config 
+                    |> Optic.map 
+                        (curvature_ >-> CurvatureFormula.DiminishingSpiral.Alpha_) 
+                        (fun x -> x * agent.Random.NextInRange(0.3f, 2.5f))
+                agent.Spawn(config, AgentSpawnOptions(AngleDeg= -30.0f), fun a -> a.Flip())
 
 
 let brushesAndSpeedsTest : DworkinEnvironmentConfig =
@@ -36,7 +84,7 @@ let brushesAndSpeedsTest : DworkinEnvironmentConfig =
         |> Optic.set speed_ (AgentSpeedScaleAdaptive())
     let agent_SolidWithJoint =
         DworkinAgentConfig.Default
-        |> Optic.set termination_ (Termination_Spiral())
+        |> Optic.set termination_ (TerminationCustom.Spiral())
     let agent_SolidWithJoint_Triangle =
         agent_SolidWithJoint 
         |> Optic.set brush_ (BrushStrategySolidJoint())
@@ -76,34 +124,19 @@ let brushesAndSpeedsTest : DworkinEnvironmentConfig =
             // flipFactor=1, turn right, angle = 60 degrees
             let turnRight (config : DworkinAgentConfig) =
                 config  
-                |> Optic.set termination_ (Termination_Spiral(Angle= -60.0f))
+                |> Optic.set termination_ (TerminationCustom.Spiral(Angle= -60.0f))
             env.Spawn(turnRight agent_SolidWithJoint_Triangle, AgentSpawnOptions(Position=Point(0.55f * size.X, bottomY)), setDrawJointAndScale) |> ignore
             env.Spawn(turnRight agent_SolidWithJoint_Quad, AgentSpawnOptions(Position=Point(0.75f * size.X, bottomY)), setDrawJointAndScale) |> ignore
 
             env }
-
-
-type Curvature_DirectionPreservingTurn() =
-    inherit CurvatureFormula()
-    member val A = 0.0247f with get, set
-    override this.Evaluate(s, t) = this.A * sin(s * Single.Pi)
-
-
-type Termination_Tree() =
-    inherit TerminationCustom()
-    override this.Evaluate(agent, collision) =
-        let scale (a : DworkinAgent) = a.ScaleBy(Point(0.67f))
-        agent.GenerationLimit <- 5
-        agent.Spawn(agent.Config, AgentSpawnOptions(OffsetSideways=(agent.Thickness * 0.34f * 0.5f)), scale)
-        agent.Spawn(agent.Config, AgentSpawnOptions(OffsetSideways=(agent.Thickness * 0.34f * -0.5f)), fun a -> scale a; a.Flip())
-
-
+            
+            
 let colliderStrategyTest : DworkinEnvironmentConfig =
     let tree =
         DworkinAgentConfig.Default
         |> Optic.set brush_ (BrushStrategyNone())
-        |> Optic.set curvature_ (Curvature_DirectionPreservingTurn())
-        |> Optic.set termination_ (Termination_Tree())
+        |> Optic.set curvature_ (CurvatureFormula.DirectionPreservingTurn())
+        |> Optic.set termination_ (TerminationCustom.Tree())
         |> Optic.set colliderOptions_ (ColliderOptionsGeneral())
         |> Optic.set speed_ (AgentSpeedConstant(Magnitude=5.0f))
     
@@ -122,44 +155,14 @@ let colliderStrategyTest : DworkinEnvironmentConfig =
             env }
 
 
-type Density_Ex40() =
-    inherit BranchingCriterionDensity()
-    override this.Evaluate(s, t) =
-        if t >= 0.15f then (s.SNoise() + 1.0f) * 0.05f else 0.0f
-
-type Curvature_DiminishingSpiral() =
-    inherit CurvatureFormula()
-    member val Alpha = 3.0f with get, set
-    static member Alpha_ : Lens<Curvature_DiminishingSpiral, float32> =
-        (fun x -> x.Alpha), (fun value x -> let y = x.Clone() :?> Curvature_DiminishingSpiral in y.Alpha <- value; y)
-    
-    override this.Evaluate(s, t) =
-        this.Alpha / 100.0f / (max (1.0f - 0.125f * s) 0.005f)
-
- type Spawn_Ex40() =
-    inherit SpawnConfig()
-    override this.Evaluate(agent, pos) =
-        let config = 
-            agent.Config 
-            |> Optic.map 
-                (curvature_ >-> Curvature_DiminishingSpiral.Alpha_) 
-                (fun x -> x * agent.Random.NextInRange(0.3f, 2.5f))
-        agent.Spawn(config, AgentSpawnOptions(AngleDeg= -30.0f), fun a -> a.Flip())
-
-type Handler_Noop() =
-    inherit CollisionHandler()
-    override this.Evaluate(agent, collision) =
-        true
-
-
 let iGeoExample40  : DworkinEnvironmentConfig =
     let branching = 
-        BranchingCriterionBased(Criterion=Density_Ex40(), SpawnConfig=Spawn_Ex40()) :> BranchingStrategy
+        BranchingCriterionBased(Criterion=BranchingCriterionDensity.Ex40(), SpawnConfig=SpawnConfig.Ex40()) :> BranchingStrategy
     let collisionConfig =
-        TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=60.0f}, MinDistance=2.0f, Handler=Some(Handler_Noop() :> CollisionHandler))
+        TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=60.0f}, MinDistance=2.0f)
     let config = 
         DworkinAgentConfig.Default
-        |> Optic.set curvature_ (Curvature_DiminishingSpiral())
+        |> Optic.set curvature_ (CurvatureFormula.DiminishingSpiral())
         |> Optic.set colliderOptions_ (ColliderOptionsGeneral())
         |> Optic.set speed_ (AgentSpeedConstant(Magnitude=2.0f))
         |> Optic.set totalDistance_ 400.0f
