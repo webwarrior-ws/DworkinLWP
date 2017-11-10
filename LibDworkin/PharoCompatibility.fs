@@ -61,6 +61,9 @@ type System.Random with
 
     member this.NextInRange(a : float32, b : float32) =
         lerp a b (this.NextFloat())
+    
+    member this.NextInRange([| a : float32; b : float32 |]) =
+        this.NextInRange(a, b)
 
 
 /// tests if x lies between a and b
@@ -77,3 +80,8 @@ let inline roundTo quantum number =
 /// Equivalent to Smalltalk's #withIndexDo:
 let withIndexDo func sequence =
     Seq.iteri (fun i x -> func x i) sequence
+
+/// Power curve function from http://iquilezles.org/www/articles/functions/functions.htm
+let pcurve x a b =
+    let k = (a+b) ** (a+b) / (a**a * b**b)
+    k * x ** a  * (1.0f-x) ** b
