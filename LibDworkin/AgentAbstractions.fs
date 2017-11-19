@@ -133,7 +133,8 @@ type Environment(bounds : Rectangle) =
         currId <- currId + 1
         currId
     
-    member this.Step(canvas : ICanvas) : unit =
+    abstract member Step : ICanvas -> unit
+    default this.Step(canvas : ICanvas) : unit =
         for agent in agents.ToArray() do
             agent.Step(canvas)
         age <- age + 1
