@@ -132,9 +132,7 @@ type BaseRenderer(context : Android.Content.Context) =
             shapesVertexIndices.Add (currIndex + 3)
         
         member this.DrawCircle(center, radius) =
-            let size = radius * float32(min wallpaperWidth wallpaperHeight) / (min scale.X scale.Y)
-            // account for DPI?
-            let numSteps = max 6 ( min (int (size * 4.0f)) 120)
+            let numSteps = this.GetNumCircleSegments(radius)
             let firstIndex = shapesVertices.Size
             shapesVertices.Add center
             let angleStep = Single.TwoPi / (float32 numSteps)
@@ -144,7 +142,43 @@ type BaseRenderer(context : Android.Content.Context) =
                 shapesVertexIndices.Add firstIndex
                 shapesVertexIndices.Add (firstIndex + i)
                 shapesVertexIndices.Add (firstIndex + (i % numSteps + 1))
-                
+        
+        member this.DrawCircleContour(center, radius, width) =
+            let numSteps = this.GetNumCircleSegments(radius)
+            let angleStep = Single.TwoPi / (float32 numSteps)
+            let r1 = radius - width
+            let r2 = radius + width
+            let mutable p1 = Point(1.0f, 0.0f)
+            for i=1 to numSteps+1 do
+                let angle = angleStep * (float32 i)
+                let p2 = Point(cos angle, sin angle)
+                (this :> ICanvas).DrawQuad(center + p1*r1, center + p1*r2, center + p2*r2, center + p2*r1)
+                p1 <- p2
+        
+        member this.DrawPolygon(points) =
+            let currIndex = shapesVertices.Size
+            for p in points do shapesVertices.Add p
+            for i=currIndex+1 to currIndex+points.Length do
+                shapesVertexIndices.Add currIndex
+                shapesVertexIndices.Add i
+                shapesVertexIndices.Add (i + 1)
+        
+        member this.DrawPolygonContour(points, width) =
+            let mutable s1 = points.[points.Length-1] - points.[0]
+            for p1, p2 in points |> Seq.pairwise do
+                let s2 = p2 - p1
+                let mutable perp = s1 - s2
+                if abs perp.X < 1e-6f && abs perp.Y < 1e-6f then
+                    perp <- s2.PerpendicularLeft
+                perp.Normalize()
+                perp <- perp * width
+                (this :> ICanvas).DrawQuad(p1 + perp, p1 - perp, p2 + perp, p2 - perp)
+    
+    
+    member this.GetNumCircleSegments(radius: float32) =
+        let size = radius * float32(min wallpaperWidth wallpaperHeight) / (min scale.X scale.Y)
+        // account for DPI?
+        max 6 ( min (int (size * 4.0f)) 120)
 
     abstract member OnSurfaceChanged : Opengles.IGL10 * int * int -> unit
     default this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
