@@ -30,6 +30,18 @@ type ShapesTestRenderer(context) =
         
         this.RenderShapes()
         this.DrawMaskedImage()
+ 
+
+ type AdvancedShapesTestRenderer(context) =
+    inherit ShapesTestRenderer(context)                
+    override this.OnDrawFrame(gl : Opengles.IGL10) =
+        let canvas = this :> ICanvas
+        
+        canvas.DrawCircleContour(Point(1.0f, 1.0f), 0.5f, 0.01f)
+        canvas.DrawCircleContour(Point(0.5f, 0.5f), 0.25f, 0.02f)
+        
+        this.RenderShapes()
+        this.DrawMaskedImage()
 
 
 
