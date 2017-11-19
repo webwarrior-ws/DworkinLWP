@@ -38,7 +38,7 @@ type Shape =
     | Circle of center: Point * radius: float32
     | Triangle of Point * Point * Point
     | Quad of Point * Point * Point * Point
-    // TODO: polygon
+    | Polygon of Point[]
     with
         static member UnitCircle = Circle(Point(), 1.0f)
         static member UnitTriangle = Triangle(Point(0.0f, 0.5f), Point(-0.866f, -0.5f), Point(0.866f, -0.5f))
@@ -430,15 +430,15 @@ type ShapeSpawnOptions() =
         if translation = Point() && not hasRotation && scale = 1.0f then
             this.Shape
         else
-            let inline transfrom (p : Point) =
+            let inline transform (p : Point) =
                 let pScaled = p * scale
                 (if hasRotation then pScaled.Rotate(rotation, pScaled) else pScaled) + translation
         
             match this.Shape with
-            | Circle(center, radius) -> Circle(transfrom center, radius * scale)
-            | Triangle(a, b, c) -> Triangle(transfrom a, transfrom b, transfrom c)
-            | Quad(a, b, c, d) -> Quad(transfrom a, transfrom b, transfrom c, transfrom d)
-
+            | Circle(center, radius) -> Circle(transform center, radius * scale)
+            | Triangle(a, b, c) -> Triangle(transform a, transform b, transform c)
+            | Quad(a, b, c, d) -> Quad(transform a, transform b, transform c, transform d)
+            | Polygon(points) -> Polygon(points |> Array.map transform)
 
 // agent attributes
 type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
@@ -741,7 +741,16 @@ type DworkinEnvironment(bounds, randomSeed : int) =
             match shape with
             | Circle(center, radius) ->
                 if paint.Fill then canvas.DrawCircle(center, radius)
-                if paint.StrokeWidth > 0.0f then failwith "notimplemented"
+                if paint.StrokeWidth > 0.0f then canvas.DrawCircleContour(center, radius, paint.StrokeWidth)
+            | Triangle(a, b, c) ->
+                if paint.Fill then canvas.DrawTriangle(a, b, c)
+                if paint.StrokeWidth > 0.0f then canvas.DrawPolygonContour([| a; b; c |], paint.StrokeWidth)
+            | Quad(a, b, c, d) -> 
+                if paint.Fill then canvas.DrawQuad(a, b, c, d)
+                if paint.StrokeWidth > 0.0f then canvas.DrawPolygonContour([| a; b; c; d |], paint.StrokeWidth)
+            | Polygon(points) ->
+                if paint.Fill then canvas.DrawPolygon(points)
+                if paint.StrokeWidth > 0.0f then canvas.DrawPolygonContour(points, paint.StrokeWidth)
         shapes.Clear()
 
     member this.AddCollider(aCollider) =

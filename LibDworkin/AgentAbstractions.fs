@@ -14,6 +14,9 @@ type ICanvas =
         abstract member DrawTriangle : Point * Point * Point -> unit
         abstract member DrawQuad : Point * Point * Point * Point -> unit
         abstract member DrawCircle : Point * float32 -> unit
+        abstract member DrawCircleContour : Point * float32 * float32 -> unit
+        abstract member DrawPolygon : Point[] -> unit
+        abstract member DrawPolygonContour : Point[] * float32 -> unit
     end
 
 
