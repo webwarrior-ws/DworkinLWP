@@ -165,25 +165,26 @@ type BaseRenderer(context : Android.Content.Context) =
         
         member this.DrawPolygonContour(points, width) =
             let n = points.Length
-            let segments = Array.init points.Length (fun i ->
-               let mutable s = points.[i] - points.[(i+1) % points.Length]
-               s.Normalize()
-               s)
-            let offsets = Array.init points.Length (fun i ->
-                let s1 = segments.[(i+n-1)%n]
-                let s2 = segments.[i]
-                let offset = s1-s2
+
+            let inline segment p1 p2 = Point.Normalize(p1 - p2)
+            let offset (s1 : Point) (s2 : Point) =
+                let offset = s1 - s2
                 let factor = offset.NearestPointAlongLineFromTo(Point(), s1.PerpendicularLeft).Length
-                offset / factor * width * 0.5f )
-            for i=0 to points.Length-1 do
-                let p1 = points.[i]
+                offset / factor * width * 0.5f 
+
+            let mutable s1 = segment points.[0] points.[1]
+            let mutable offset1 = offset s1 (segment points.[1] points.[2])
+            for i=0 to points.Length do
+                let p1 = points.[i%n]
                 let p2 = points.[(i+1)%n]
-                let offset1 = offsets.[i]
-                let offset2 = offsets.[(i+1)%n]
+                let s2 = segment p2 (points.[(i+2)%n])
+                let offset2 = offset s1 s2
                 if offset1.Angle > offset2.Angle then
                     (this :> ICanvas).DrawQuad(p1 - offset1, p1 + offset1, p2 + offset2, p2 - offset2)
                 else
                     (this :> ICanvas).DrawQuad(p1 - offset1, p1 + offset1, p2 - offset2, p2 + offset2)
+                s1 <- s2
+                offset1 <- offset2
     
     
     member this.GetNumCircleSegments(radius: float32) =
