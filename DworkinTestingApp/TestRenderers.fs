@@ -18,7 +18,11 @@ type ShapesTestRenderer(context) =
     
     override this.OnSurfaceChanged(gl, w, h) =
         base.OnSurfaceChanged(gl, w, h)
-        this.SetScale(0.5f, 0.5f)
+        let ratio = float32 w / float32 h
+        if ratio < 1.0f then
+            this.SetScale(0.5f, 0.5f * ratio)
+        else
+            this.SetScale(0.5f / ratio, 0.5f)
         GL.ClearColor(0.5f, 0.0f, 0.5f, 1.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
@@ -37,8 +41,11 @@ type ShapesTestRenderer(context) =
     override this.OnDrawFrame(gl : Opengles.IGL10) =
         let canvas = this :> ICanvas
         
-        canvas.DrawCircleContour(Point(1.0f, 1.0f), 0.5f, 0.01f)
-        canvas.DrawCircleContour(Point(0.5f, 0.5f), 0.25f, 0.02f)
+        //canvas.DrawCircleContour(Point(1.0f, 1.0f), 0.95f, 0.1f)
+        //canvas.DrawCircleContour(Point(0.5f, 1.0f), 0.25f, 0.025f)
+        let points = [| Point(0.5f, 0.5f); Point(0.5f, 1.5f); Point(1.5f, 1.5f); Point(1.0f, 1.0f); Point(1.5f, 0.5f) |]
+        //canvas.DrawPolygon(points)
+        canvas.DrawPolygonContour(points, 0.1f)
         
         this.RenderShapes()
         this.DrawMaskedImage()

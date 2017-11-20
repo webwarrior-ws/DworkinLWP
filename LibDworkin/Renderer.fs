@@ -146,8 +146,8 @@ type BaseRenderer(context : Android.Content.Context) =
         member this.DrawCircleContour(center, radius, width) =
             let numSteps = this.GetNumCircleSegments(radius)
             let angleStep = Single.TwoPi / (float32 numSteps)
-            let r1 = radius - width
-            let r2 = radius + width
+            let r1 = radius - width*0.5f
+            let r2 = radius + width*0.5f
             let mutable p1 = Point(1.0f, 0.0f)
             for i=1 to numSteps+1 do
                 let angle = angleStep * (float32 i)
@@ -156,23 +156,34 @@ type BaseRenderer(context : Android.Content.Context) =
                 p1 <- p2
         
         member this.DrawPolygon(points) =
-            let currIndex = shapesVertices.Size
+            let fisrtVertexIndex = shapesVertices.Size
             for p in points do shapesVertices.Add p
-            for i=currIndex+1 to currIndex+points.Length do
-                shapesVertexIndices.Add currIndex
+            for i=fisrtVertexIndex+1 to fisrtVertexIndex+points.Length-2 do
+                shapesVertexIndices.Add fisrtVertexIndex
                 shapesVertexIndices.Add i
                 shapesVertexIndices.Add (i + 1)
         
         member this.DrawPolygonContour(points, width) =
-            let mutable s1 = points.[points.Length-1] - points.[0]
-            for p1, p2 in points |> Seq.pairwise do
-                let s2 = p2 - p1
-                let mutable perp = s1 - s2
-                if abs perp.X < 1e-6f && abs perp.Y < 1e-6f then
-                    perp <- s2.PerpendicularLeft
-                perp.Normalize()
-                perp <- perp * width
-                (this :> ICanvas).DrawQuad(p1 + perp, p1 - perp, p2 + perp, p2 - perp)
+            let n = points.Length
+            let segments = Array.init points.Length (fun i ->
+               let mutable s = points.[i] - points.[(i+1) % points.Length]
+               s.Normalize()
+               s)
+            let offsets = Array.init points.Length (fun i ->
+                let s1 = segments.[(i+n-1)%n]
+                let s2 = segments.[i]
+                let offset = s1-s2
+                let factor = offset.NearestPointAlongLineFromTo(Point(), s1.PerpendicularLeft).Length
+                offset / factor * width * 0.5f )
+            for i=0 to points.Length-1 do
+                let p1 = points.[i]
+                let p2 = points.[(i+1)%n]
+                let offset1 = offsets.[i]
+                let offset2 = offsets.[(i+1)%n]
+                if offset1.Angle > offset2.Angle then
+                    (this :> ICanvas).DrawQuad(p1 - offset1, p1 + offset1, p2 + offset2, p2 - offset2)
+                else
+                    (this :> ICanvas).DrawQuad(p1 - offset1, p1 + offset1, p2 - offset2, p2 + offset2)
     
     
     member this.GetNumCircleSegments(radius: float32) =
