@@ -63,7 +63,7 @@ type Brush() =
 
 
 //
-type DworkinEnvironmentConfig = 
+type IDworkinEnvironmentConfig = 
     interface
         // argument is wallpaper size in pixels as Point
         abstract member GetEnvironment : Point -> DworkinEnvironment

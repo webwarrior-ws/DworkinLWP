@@ -169,7 +169,7 @@ type BaseRenderer(context : Android.Content.Context) =
             let inline segment p1 p2 = Point.Normalize(p1 - p2)
             let offset (s1 : Point) (s2 : Point) =
                 let offset = s1 - s2
-                let factor = offset.NearestPointAlongLineFromTo(Point(), s1.PerpendicularLeft).Length
+                let factor = offset.NearestPointAlongLineFromTo(Point.Zero, s1.PerpendicularLeft).Length
                 offset / factor * width * 0.5f 
 
             let mutable s1 = segment points.[0] points.[1]
@@ -298,7 +298,7 @@ type BaseRenderer(context : Android.Content.Context) =
         GL.Uniform2(GL.GetUniformLocation(shapesDrawingShader.Value.Program, "scale"), xs, ys)
 
 
-type DworkinRenderer(context, environmentConfig : Agents.DworkinEnvironmentConfig) =
+type DworkinRenderer(context, environmentConfig : Agents.IDworkinEnvironmentConfig) =
     inherit BaseRenderer(context)
 
     let mutable environment : Agents.DworkinEnvironment option = None

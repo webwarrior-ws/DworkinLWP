@@ -135,6 +135,9 @@ type OpenTK.Box2 with
             result.Bottom <- max result.Bottom p.Y
             result.Right <- max result.Right p.X
         result
+    
+    static member FromExtentCenteredAtOrigin(extent : Point) =
+        Rectangle.FromTLRB(-extent.Y*0.5f, -extent.X*0.5f, extent.X*0.5f, extent.Y*0.5f)
 
 
 
