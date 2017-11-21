@@ -444,3 +444,50 @@ type DworkinAgentConfig with
         Termination=TerminationStrategy.Default; 
         TerminationConditions=TerminationConditions.Default; 
     }
+
+
+// Dworkin environment configs
+[<AbstractClass>]
+type DworkinEnvironmentConfig() =
+    member val RandomSeed = 42 with get, set
+
+    interface IDworkinEnvironmentConfig with
+        member this.GetEnvironment(size) =
+            let env = DworkinEnvironment(Rectangle.FromExtentCenteredAtOrigin(size), this.RandomSeed)
+            this.Evaluate(env)
+            env
+    
+    abstract member Evaluate : DworkinEnvironment -> unit
+
+
+[<AbstractClass>]
+type DworkinEnvironmentConfigCustom() =
+    inherit DworkinEnvironmentConfig()
+    
+
+[<AbstractClass>]
+type DworkinEnvironmentConfigSpawn() =
+    inherit DworkinEnvironmentConfig()
+
+    static let throwAwayAgentConfig = { DworkinAgentConfig.Default with Brush=BrushStrategyNone(); TotalDistance=0.0f }
+
+    member val SpawnConfig = SpawnConfig.Default with get, set
+
+    override this.Evaluate(environment) = 
+        let tempAgent = 
+            environment.Spawn(
+                throwAwayAgentConfig, 
+                AgentSpawnOptions(Position=Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f), Seed=Some(environment.Random.Next())))
+        this.SpawnConfig.Evaluate(tempAgent :?> DworkinAgent)
+        environment.RemoveAgent(tempAgent) |> ignore
+
+
+[<AbstractClass>]
+type DworkinEnvironmentConfigSingle() =
+    inherit DworkinEnvironmentConfig()
+
+    member val AgentConfig = DworkinAgentConfig.Default with get, set
+
+    override this.Evaluate(environment) =
+        environment.Spawn(this.AgentConfig, AgentSpawnOptions(Position=Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f)))
+            |> ignore

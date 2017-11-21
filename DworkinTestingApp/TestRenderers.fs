@@ -137,7 +137,7 @@ type CollidingAgentsTestRenderer(context) =
 
 
 /// renderer that shows all colliders in environment
-type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.DworkinEnvironmentConfig) =
+type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDworkinEnvironmentConfig) =
     inherit BaseRenderer(context)
 
     let mutable environment : LibDworkin.Agents.DworkinEnvironment option = None

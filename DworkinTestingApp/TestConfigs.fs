@@ -77,7 +77,7 @@ module Presets =
                 agent.Spawn(config, AgentSpawnOptions(AngleDeg= -30.0f), fun a -> a.Flip())
 
 
-let brushesAndSpeedsTest : DworkinEnvironmentConfig =
+let brushesAndSpeedsTest : IDworkinEnvironmentConfig =
     let agent_Solid_Adaptive =
         DworkinAgentConfig.Default
         |> Optic.set brush_ (BrushStrategySolid(Cap=BrushCap.Round))
@@ -96,7 +96,7 @@ let brushesAndSpeedsTest : DworkinEnvironmentConfig =
         |> Optic.set brush_ (BrushStrategyCircles())
         |> Optic.set speed_ (AgentSpeedThickness())
     
-    { new DworkinEnvironmentConfig with
+    { new IDworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
             let env = DworkinEnvironment(Rectangle(Point(), size), 42)
             let topY = size.Y * 0.33f
@@ -131,7 +131,7 @@ let brushesAndSpeedsTest : DworkinEnvironmentConfig =
             env }
             
             
-let colliderStrategyTest : DworkinEnvironmentConfig =
+let colliderStrategyTest : IDworkinEnvironmentConfig =
     let tree =
         DworkinAgentConfig.Default
         |> Optic.set brush_ (BrushStrategyNone())
@@ -143,7 +143,7 @@ let colliderStrategyTest : DworkinEnvironmentConfig =
     let segmentColliders config =
         config |> Optic.set (colliderOptions_ >-> strategy_) (ColliderStrategySegments())
 
-    { new DworkinEnvironmentConfig with
+    { new IDworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
             let env = DworkinEnvironment(Rectangle(Point(), size), 42)
 
@@ -155,7 +155,7 @@ let colliderStrategyTest : DworkinEnvironmentConfig =
             env }
 
 
-let iGeoExample40  : DworkinEnvironmentConfig =
+let iGeoExample40  : IDworkinEnvironmentConfig =
     let branching = 
         BranchingCriterionBased(Criterion=BranchingCriterionDensity.Ex40(), SpawnConfig=SpawnConfig.Ex40()) :> BranchingStrategy
     let collisionConfig =
@@ -169,10 +169,9 @@ let iGeoExample40  : DworkinEnvironmentConfig =
         |> Optic.set branching_ branching
         |> Optic.set (terminationConditions_ >-> collision_) collisionConfig
         
-    { new DworkinEnvironmentConfig with
+    { new IDworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
             let env = DworkinEnvironment(Rectangle(Point(), size), 42)
             env.Spawn(config, AgentSpawnOptions(Position=size*0.5f), fun a -> a.ScaleBy(Point(2.0f, 1.0f))) |> ignore
             env }
 
-   
