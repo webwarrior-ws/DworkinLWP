@@ -69,6 +69,19 @@ type System.Random with
     
     member this.NextInRange(range : SpecializedCollections.NumberRange) =
         this.NextInRange(range.Min, range.Max)
+    
+    member this.NextGaussian() =
+        let mutable w = 1.0f
+        let mutable x1 = 0.0f
+        while w >= 1.0f do
+            x1 <- (2.0f * this.NextFloat()) - 1.0f
+            let x2 = (2.0f * this.NextFloat()) - 1.0f
+            w <- (x1 * x1) + (x2 * x2)
+        w <- sqrt ((-2.0f * log w) / w)
+        x1 * w
+    
+    member this.NextGaussian(mu : float32, sigma : float32) =
+         this.NextGaussian() * sigma + mu
 
 
 /// tests if x lies between a and b
