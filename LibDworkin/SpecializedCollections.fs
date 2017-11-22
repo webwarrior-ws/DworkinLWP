@@ -122,7 +122,7 @@ end
 type NumberRange = struct
     val Min : float32
     val Max : float32
-
+    
     new(min : float32, max: float32) =
         assert (min < max)
         { Min=min; Max=max }
