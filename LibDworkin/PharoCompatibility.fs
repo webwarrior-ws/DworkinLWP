@@ -62,8 +62,13 @@ type System.Random with
     member this.NextInRange(a : float32, b : float32) =
         lerp a b (this.NextFloat())
     
-    member this.NextInRange([| a : float32; b : float32 |]) =
-        this.NextInRange(a, b)
+    member this.NextInRange(arr : float32[]) =
+        match arr with
+        | [| a; b |] -> this.NextInRange(a, b)
+        | _ -> this.NextInRange(Array.min arr, Array.max arr)
+    
+    member this.NextInRange(range : SpecializedCollections.NumberRange) =
+        this.NextInRange(range.Min, range.Max)
 
 
 /// tests if x lies between a and b
