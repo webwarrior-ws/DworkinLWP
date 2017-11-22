@@ -118,3 +118,17 @@ type LayersList<'T when 'T : equality>(items : 'T[], isComplement : bool) = stru
         (items |> Array.contains item) <> isComplement
 end
 
+
+type NumberRange = struct
+    val Min : float32
+    val Max : float32
+
+    new(min : float32, max: float32) =
+        assert (min < max)
+        { Min=min; Max=max }
+    
+    new(arr : float32[]) =
+        match arr with
+        | [| a; b |] -> NumberRange(a, b)
+        | _ -> NumberRange(Array.min arr, Array.max arr)
+end
