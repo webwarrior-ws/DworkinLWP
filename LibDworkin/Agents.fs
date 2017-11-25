@@ -667,7 +667,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             options.Config <- Some(anAgentConfig)
             let agent = this.SpawnUsingOptions(options)
             agent |> performAction agentBlock
-    
+
     member this.SpawnShape(shape : Shape, options : ShapeSpawnOptions) =
         options.Parent <- Some(this.Copy())
         options.Shape <- shape

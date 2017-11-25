@@ -491,3 +491,25 @@ type DworkinEnvironmentConfigSingle() =
     override this.Evaluate(environment) =
         environment.Spawn(this.AgentConfig, AgentSpawnOptions(Position=Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f)))
             |> ignore
+ 
+
+ // extensions to DworkinAgent and DworkinEnvironment that rely on SpawnConfig
+ type DworkinAgent with    
+    member this.Spawn(spawnConfig : SpawnConfig, options : AgentSpawnOptions, agentBlock : DworkinAgent -> unit) =
+        if this.Generation < this.GenerationLimit then
+            options.Parent <- Some(this)
+            options.Config <- Some({ DworkinAgentConfig.Default with TotalDistance=0.0f })
+            let spawnAgent = this.SpawnUsingOptions(options) :?> DworkinAgent
+            spawnAgent |> performAction agentBlock
+            spawnConfig.Evaluate(spawnAgent)
+    
+    member this.Spawn(spawnConfig : SpawnConfig, options : AgentSpawnOptions) =
+        this.Spawn(spawnConfig, options, ignore)
+
+
+type DworkinEnvironment with
+    member this.Spawn(spawnConfig : SpawnConfig, options : AgentSpawnOptions, agentBlock : DworkinAgent -> unit) =
+        options.Config <- Some({ DworkinAgentConfig.Default with TotalDistance=0.0f })
+        let spawnAgent = this.SpawnUsingOptions(options) :?> DworkinAgent
+        spawnAgent |> performAction agentBlock
+        spawnConfig.Evaluate(spawnAgent)
