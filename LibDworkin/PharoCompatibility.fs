@@ -77,6 +77,11 @@ type IList<'T> with
         this.[prng.Next(this.Count)]
 
 
+type 'T ``[]`` with
+    member this.AtRandom(prng : System.Random) =
+        this.[prng.Next(this.Length)]
+
+
 type System.Random with
     member inline this.NextFloat() =
         this.NextDouble() |> float32
