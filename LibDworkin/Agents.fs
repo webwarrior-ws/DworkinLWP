@@ -701,7 +701,6 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     inherit Environment(bounds)
     let mutable numDelayAgents = 0
     let initialQuadTreeBounds = Rectangle.FromTLRB(bounds.Top - 10.0f, bounds.Left - 10.0f, bounds.Right + 15.0f, bounds.Bottom + 15.0f)
-    let mutable currId = 0
     let colliders : Collections.Generic.IDictionary<CollisionLayer, QuadTree<Collider>> = SmallDictionary.Create()
     let mutable shapes = ResizeArray<struct (Shape * ShapePaint)>()
     let mutable random = Random(randomSeed)
@@ -732,7 +731,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     override this.RemoveAgent(agent) =
         let oldCount = this.AgentsCount
         let result = base.RemoveAgent(agent)
-        if agent :? DelayAgent then
+        if result && (agent :? DelayAgent) then
             numDelayAgents <- numDelayAgents - (oldCount - this.AgentsCount)
         result
         
