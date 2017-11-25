@@ -146,4 +146,7 @@ type NumberRange = struct
 
     member this.Average =
         (this.Min + this.Max) * 0.5f
+    
+    member this.Contains(aNumber : float32) =
+        aNumber >= this.Min && aNumber <= this.Max
 end
