@@ -123,8 +123,11 @@ type MovingAgent() =
 [<AbstractClass>]
 type Environment(bounds : Rectangle) = 
     let mutable age = 0
-    let agents = ResizeArray<Agent>()
     let mutable currId = 0
+    let agents = ResizeArray<Agent>()
+
+    let agentsToRemove = Collections.Generic.HashSet<Agent>()
+    let agentsToAdd = ResizeArray<Agent>()
 
     member this.Age = age
     member this.Bounds = bounds
@@ -138,18 +141,24 @@ type Environment(bounds : Rectangle) =
     
     abstract member Step : ICanvas -> unit
     default this.Step(canvas : ICanvas) : unit =
-        for agent in agents.ToArray() do
+        for agent in agents do
             agent.Step(canvas)
         age <- age + 1
-        agents.RemoveAll(fun agent -> agent.LiesWithinBounds(bounds) |> not) |> ignore
+
+        agents.RemoveAll(fun agent -> (agent.LiesWithinBounds(bounds) |> not) || agentsToRemove.Contains(agent)) 
+            |> ignore
+        agentsToRemove.Clear()
+
+        agents.AddRange(agentsToAdd)
+        agentsToAdd.Clear()
     
     abstract member AddAgent: Agent -> unit
     default this.AddAgent(agent : Agent) = 
         agent.Environment <- Some(this)
-        agents.Add(agent)
+        agentsToAdd.Add(agent)
     
     abstract member RemoveAgent: Agent -> bool
-    default this.RemoveAgent(agent) = agents.Remove(agent)
+    default this.RemoveAgent(agent) = agentsToRemove.Add(agent)
     
     abstract member Delay : (Environment -> Agent option) * int -> unit
 
