@@ -138,7 +138,7 @@ type CollisionDetectorConfig =
             (fun x -> x.Distance), (fun value x -> { x with CollisionDetectorConfig.Distance = value })
 
         member this.GetCollider() =
-            CircleSectorCollider(None, Point(), 0.0f, 0.0f, deg2rad this.Angle)
+            CircleSectorCollider(None, Point.Zero, 0.0f, 0.0f, deg2rad this.Angle)
     
 
 [<AbstractClass>]
@@ -160,9 +160,9 @@ type TerminationConditions =
             (fun x -> x.Collision.Value), (fun value x -> { x with Collision = Some(value) })
 
         member this.AnySatisfy(agent : DworkinAgent) =
-            this.Distance  |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
-            this.Curvature |> Option.exists (fun cond -> cond.Evaluate(agent)) ||
-            this.Collision |> Option.exists (fun cond -> cond.Evaluate(agent))
+            (match this.Distance with  | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
+            (match this.Curvature with | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
+            (match this.Collision with | Some(cond) -> cond.Evaluate(agent) | None -> false)
 
 type TerminationConditionDistance() = 
     static member val Instance = TerminationConditionDistance()
@@ -593,7 +593,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     override this.GetHashCode() = hash this.Id
     
     member this.BranchMarks =
-        this.Attributes.BranchMarks.GetOrSetIfAbsent(fun () -> SmallDictionary.Create())
+        this.Attributes.BranchMarks.GetOrSetIfAbsent(SmallDictionary.Create)
     
     member this.TotalNumBranches =
         this.BranchMarks.Values |> Seq.sumBy (fun x -> x.Length)
@@ -676,7 +676,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.DworkinEnvironment.SpawnUsingOptions(options)
 
     override this.Step(canvas) =
-        if this.Age = 0 && (config.TerminationConditions.Collision |> Option.exists (fun x -> x.Evaluate(this))) then
+        if this.Age = 0 && (match config.TerminationConditions.Collision with | Some(x) -> x.Evaluate(this) | None -> false) then
             this.Delete()
         else
             this.Brush.Evaluate(this, canvas)

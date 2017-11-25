@@ -128,7 +128,7 @@ type ColliderStrategyCircles() =
                 let minR = agent.ThicknessFactor * 0.01f
                 let mutable delta = 0.0f
                 let mutable dist = 0.0f
-                let criterion () = 
+                let inline criterion () = 
                     delta <- (r + lastCollider.Radius) / this.Density
                     dist <- agent.Position.DistanceTo(lastCollider.Center)
                     (r > minR) && ((dist - delta) > 0.0f)

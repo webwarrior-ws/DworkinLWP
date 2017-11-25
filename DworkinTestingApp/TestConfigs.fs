@@ -159,7 +159,7 @@ let iGeoExample40  : IDworkinEnvironmentConfig =
     let branching = 
         BranchingCriterionBased(Criterion=BranchingCriterionDensity.Ex40(), SpawnConfig=SpawnConfig.Ex40()) :> BranchingStrategy
     let collisionConfig =
-        TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=60.0f}, MinDistance=2.0f)
+        TerminationConditionCollision(PrimaryDetector={Distance=1.0f; Angle=90.0f}, MinDistance=2.0f)
     let config = 
         DworkinAgentConfig.Default
         |> Optic.set curvature_ (CurvatureFormula.DiminishingSpiral())
