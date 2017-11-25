@@ -72,6 +72,9 @@ type IList<'T> with
     // note: uses 1-based indices
     member this.AddBeforeIndex(object : 'T, index : int) =
         this.Insert(index-1, object)
+    
+    member this.AtRandom(prng : System.Random) =
+        this.[prng.Next(this.Count)]
 
 
 type System.Random with
@@ -126,3 +129,7 @@ let withIndexDo func sequence =
 let pcurve x a b =
     let k = (a+b) ** (a+b) / (a**a * b**b)
     k * x ** a  * (1.0f-x) ** b
+
+let inline isOdd n = n%2 = 1
+
+let inline isEven n = n%2 = 0
