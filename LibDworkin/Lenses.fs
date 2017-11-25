@@ -107,6 +107,27 @@ let criterion_<'a when 'a :> BranchingCriterion> : Lens<BranchingCriterionBased,
 
 
 // generic lenses
+let inline a_< ^U , ^V when ^U : (static member A_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member A_ : Lens< ^U, ^V>) ()))
+
+let inline b_< ^U , ^V when ^U : (static member B_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member B_ : Lens< ^U, ^V>) ()))
+
+let inline c_< ^U , ^V when ^U : (static member C_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member C_ : Lens< ^U, ^V>) ()))
+    
+let inline d_< ^U , ^V when ^U : (static member D_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member D_ : Lens< ^U, ^V>) ()))
+        
+let inline n_< ^U , ^V when ^U : (static member N_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member N_ : Lens< ^U, ^V>) ()))
+
+let inline nx_< ^U , ^V when ^U : (static member Nx_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Nx_ : Lens< ^U, ^V>) ()))
+    
+let inline ny_< ^U , ^V when ^U : (static member Ny_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Ny_ : Lens< ^U, ^V>) ()))
+
 let inline distance_< ^U , ^V when ^U : (static member Distance_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Distance_ : Lens< ^U, ^V>) ()))
 
@@ -119,5 +140,50 @@ let inline offset_< ^U , ^V when ^U : (static member Offset_ : Lens< ^U, ^V>)> :
 let inline factor_< ^U , ^V when ^U : (static member Factor_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Factor_ : Lens< ^U, ^V>) ()))
 
+let inline config_< ^U , ^V when ^U : (static member Config_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Config_ : Lens< ^U, ^V>) ()))
+
 let inline spawnConfig_< ^U , ^V when ^U : (static member SpawnConfig_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member SpawnConfig_ : Lens< ^U, ^V>) ()))
+
+let inline groupConfig_< ^U , ^V when ^U : (static member GroupConfig_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member GroupConfig_ : Lens< ^U, ^V>) ()))
+
+let inline terminalConfig_< ^U , ^V when ^U : (static member TerminalConfig_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member TerminalConfig_ : Lens< ^U, ^V>) ()))
+
+let inline gap_< ^U , ^V when ^U : (static member Gap_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Gap_ : Lens< ^U, ^V>) ()))
+
+let inline angles_< ^U , ^V when ^U : (static member Angles_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Angles_ : Lens< ^U, ^V>) ()))
+
+let inline branchProb_< ^U , ^V when ^U : (static member BranchProb_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member BranchProb_ : Lens< ^U, ^V>) ()))
+
+let inline colliderSize_< ^U , ^V when ^U : (static member ColliderSize_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member ColliderSize_ : Lens< ^U, ^V>) ()))
+
+let inline hollowPart_< ^U , ^V when ^U : (static member HollowPart_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member HollowPart_ : Lens< ^U, ^V>) ()))
+
+let inline octagonal_< ^U , ^V when ^U : (static member Octagonal_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Octagonal_ : Lens< ^U, ^V>) ()))
+
+let inline appearance_< ^U , ^V when ^U : (static member Appearance_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Appearance_ : Lens< ^U, ^V>) ()))
+    
+let inline width_< ^U , ^V when ^U : (static member Width_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Width_ : Lens< ^U, ^V>) ()))
+    
+let inline flip_< ^U , ^V when ^U : (static member Flip_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Flip_ : Lens< ^U, ^V>) ()))
+    
+let inline startWithVias_< ^U , ^V when ^U : (static member StartWithVias_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member StartWithVias_ : Lens< ^U, ^V>) ()))
+    
+let inline lengthLimit_< ^U , ^V when ^U : (static member LengthLimit_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member LengthLimit_ : Lens< ^U, ^V>) ()))
+    
+let inline spawnCollider_< ^U , ^V when ^U : (static member SpawnCollider_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member SpawnCollider_ : Lens< ^U, ^V>) ()))
