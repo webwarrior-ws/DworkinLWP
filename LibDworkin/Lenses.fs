@@ -187,3 +187,9 @@ let inline lengthLimit_< ^U , ^V when ^U : (static member LengthLimit_ : Lens< ^
     
 let inline spawnCollider_< ^U , ^V when ^U : (static member SpawnCollider_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member SpawnCollider_ : Lens< ^U, ^V>) ()))
+    
+let inline recursionLimit_< ^U , ^V when ^U : (static member RecursionLimit_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member RecursionLimit_ : Lens< ^U, ^V>) ()))
+    
+let inline radius_< ^U , ^V when ^U : (static member Radius_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Radius_ : Lens< ^U, ^V>) ()))
