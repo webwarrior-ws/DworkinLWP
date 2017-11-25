@@ -14,7 +14,7 @@ module Single =
     let HalfPi = float32 (System.Math.PI * 0.5)
     let TwoPi = float32 (System.Math.PI * 2.0)
 
-    let radiansInDegree = Pi / 180.0f
+    let radiansInDegree = float32(System.Math.PI / 180.0)
 
 
 type OpenTK.Vector2 with
@@ -37,6 +37,9 @@ type OpenTK.Vector2 with
 
     // Radius in polar coordiantes
     member this.R = sqrt(this.X * this.X + this.Y * this.Y)
+
+    member inline this.IsZero = 
+        this.X = 0.0f && this.Y = 0.0f
 
     /// Calculate cross product between this and other point
     member this.Cross(other : Point) =
@@ -85,7 +88,7 @@ type OpenTK.Vector2 with
         let p = this - center
         let r = p.R
         let theta = angle - p.Theta
-        Point(center.X + (r * (cos theta)), center.Y - (r * (sin theta)))
+        Point(center.X + (r * cos theta), center.Y - (r * sin theta))
     
     member this.Angle =
         atan2 this.Y this.X

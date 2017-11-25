@@ -37,8 +37,8 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
 
     let mutable bearing = bearing
     let mutable centralAngle = centralAngle
-    let mutable r1 : Point option = None
-    let mutable r2 : Point option = None
+    let mutable r1 = Point.Zero
+    let mutable r2 = Point.Zero
 
     new() = CircleSectorCollider(None, Point(), 0.0f, 0.0f, Single.TwoPi)
 
@@ -56,23 +56,18 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
             centralAngle <- num
             this.FlushCache()
     
+    member private this.CalculateR(theta : float32) =        
+        this.Center + Point(this.Radius * cos theta, this.Radius * sin theta)
+    
     member this.R1 = 
-        match r1 with
-        | Some(p) -> p
-        | None ->
-            let theta = bearing - centralAngle
-            let p = this.Center + Point(this.Radius * cos theta, this.Radius * sin theta)
-            r1 <- Some(p)
-            p
+        if r1.IsZero then
+            r1 <- this.CalculateR(bearing - centralAngle * 0.5f)
+        r1
     
     member this.R2 = 
-        match r2 with
-        | Some(p) -> p
-        | None ->
-            let theta = bearing + centralAngle
-            let p = this.Center + Point(this.Radius * cos theta, this.Radius * sin theta)
-            r2 <- Some(p)
-            p
+        if r2.IsZero then
+            r2 <- this.CalculateR(bearing + centralAngle * 0.5f)
+        r2
 
     member this.SetParameters(center: Point, radius: float32, bearing: float32) =
         if bearing = this.Bearing && radius = this.Radius then
@@ -80,8 +75,8 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
             this.Center <- center
             if not this.BoundingBox.IsEmpty then
                 this.BoundingBox <- this.BoundingBox.TranslateBy(shift)
-            r1 <- r1 |> Option.map ((+) shift)
-            r2 <- r2 |> Option.map ((+) shift)
+            if not r1.IsZero then r1 <- r1 + shift
+            if not r2.IsZero then r2 <- r2 + shift
         else
             this.Center <- center
             this.Radius <- radius
@@ -90,8 +85,8 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
      
     override this.FlushCache() =
         base.FlushCache();
-        r1 <- None
-        r2 <- None
+        r1 <- Point.Zero
+        r2 <- Point.Zero
          
     override this.CalculateBoundingBox() =
         let points = ResizeArray<Point>(5)
