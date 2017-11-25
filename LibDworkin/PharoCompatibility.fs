@@ -55,6 +55,25 @@ type ICollection<'T> with
     member inline this.Length = this.Count
 
 
+// extensions to match some Smalltalk's SequenceableCollection methods
+type IList<'T> with
+    member inline this.First = this.[0]
+    member inline this.Second = this.[1]
+    member inline this.Third = this.[2]
+    member inline this.Fourth = this.[3]
+    member inline this.Fifth = this.[4]
+
+    member inline this.Last = this.[this.Count-1]
+
+    // note: uses 1-based indices
+    member this.AddAfterIndex(object : 'T, index : int) =
+        this.Insert(index, object)
+        
+    // note: uses 1-based indices
+    member this.AddBeforeIndex(object : 'T, index : int) =
+        this.Insert(index-1, object)
+
+
 type System.Random with
     member inline this.NextFloat() =
         this.NextDouble() |> float32
@@ -82,6 +101,10 @@ type System.Random with
     
     member this.NextGaussian(mu : float32, sigma : float32) =
          this.NextGaussian() * sigma + mu
+        
+    member this.NextInRectangle(aRectangle : Rectangle) =
+        Point(lerp aRectangle.Left aRectangle.Right (this.NextFloat()), lerp aRectangle.Bottom aRectangle.Top (this.NextFloat()))
+
 
 
 /// tests if x lies between a and b
