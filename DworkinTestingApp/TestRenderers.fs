@@ -10,6 +10,7 @@ open LibDworkin.Renderer
 open LibDworkin.AgentAbstractions
 open LibDworkin.SpatialIndex
 open LibDworkin.Colliders
+open LibDworkin.SpecializedCollections
 
 
 
@@ -170,7 +171,7 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
         match environment with
         | Some(env) -> 
             env.Step(this)
-            env.QueryColliders(env.Bounds, SpecializedCollections.LayersList([||], true), fun _ collider -> this.DrawCollider(collider); true) 
+            env.QueryColliders(env.Bounds, LayersList([||], true), fun _ collider -> this.DrawCollider(collider); true) 
                 |> ignore
         | None -> ()
         
