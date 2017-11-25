@@ -471,6 +471,8 @@ type AttributesStore() =
     member val Detectors = Dictionary<int, CircleSectorCollider[]>()
     member val LastCollider = Dictionary<int, Collider>()
     member val DrawJoint = Dictionary<int, bool>()
+    member val CanBranch = Dictionary<int, bool>()
+    member val BranchInterval = Dictionary<int, NumberRange>()
 
 
 [<AllowNullLiteral>]
@@ -479,6 +481,8 @@ type Attributes(store: AttributesStore, id : int) =
     member this.Detectors = AttributeAccessor(store.Detectors, id)
     member this.LastCollider = AttributeAccessor(store.LastCollider, id)
     member this.DrawJoint = AttributeAccessor(store.DrawJoint, id)
+    member this.CanBranch = AttributeAccessor(store.CanBranch, id)
+    member this.BranchInterval = AttributeAccessor(store.BranchInterval, id)
 
 
 let performAction (action : DworkinAgent -> unit) (agent : Agent) : unit =
