@@ -48,6 +48,18 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
     
     static member Create<'K, 'V>() : IDictionary<'K, 'V> = SmallDictionary.Create(2)
 
+    member inline private this.IndexOf(key : 'K) : int =
+        let mutable i = 0
+        let mutable found = false
+        
+        while not found && i < this.list.Count do
+            if this.list.[i].Key = key then
+                found <- true
+            else
+                i <- i + 1
+        
+        if found then i else -1
+
     interface IDictionary<'K, 'V> with
         member this.Add(item: KeyValuePair<'K,'V>): unit = 
             this.list.Add item
@@ -60,7 +72,7 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
             this.list.Contains item
         
         member this.ContainsKey(key: 'K): bool = 
-            match this.list.FindIndex(fun x -> x.Key = key) with
+            match this.IndexOf(key) with
             | i when i >= 0 -> true
             | _ -> false
         
@@ -80,11 +92,11 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
         
         member this.Item
             with get (key: 'K): 'V = 
-                match this.list.FindIndex(fun x -> x.Key = key) with
+                match this.IndexOf(key) with
                 | i when i >= 0 -> this.list.[i].Value
                 | _ -> raise (KeyNotFoundException(key.ToString()))
             and set (key: 'K) (v: 'V): unit = 
-                match this.list.FindIndex(fun x -> x.Key = key) with
+                match this.IndexOf(key) with
                 | i when i >= 0 -> this.list.[i] <- KeyValuePair(key, v)
                 | _ -> this.list.Add(KeyValuePair(key, v))
         
@@ -92,7 +104,7 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
             this.list.ConvertAll(fun item -> item.Key) :> ICollection<'K>
         
         member this.Remove(key: 'K): bool = 
-            match this.list.FindIndex(fun x -> x.Key = key) with
+            match this.IndexOf(key) with
             | i when i >= 0 -> 
                 this.list.RemoveAt i
                 true
@@ -102,7 +114,7 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
             this.list.Remove item
         
         member this.TryGetValue(key: 'K, value: byref<'V>): bool = 
-            match this.list.FindIndex(fun x -> x.Key = key) with
+            match this.IndexOf(key) with
             | i when i >= 0 -> 
                 value <- this.list.[i].Value
                 true
