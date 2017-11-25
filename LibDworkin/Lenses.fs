@@ -193,3 +193,7 @@ let inline recursionLimit_< ^U , ^V when ^U : (static member RecursionLimit_ : L
     
 let inline radius_< ^U , ^V when ^U : (static member Radius_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Radius_ : Lens< ^U, ^V>) ()))
+
+
+// compound lenses
+let termination_spawnConfig_ = termination_ >-> cast<TerminationStrategy, TerminationSpawn> >-> spawnConfig_
