@@ -412,7 +412,7 @@ type ShapeSpawnOptions() =
     inherit SpawnOptions()
     member val Scale = 1.0f with get, set
     member val Shape : Shape = Circle(Point(), 0.0f) with get, set
-    member val Paint : ShapePaint = ShapePaint.Default
+    member val Paint : ShapePaint = ShapePaint.Default with get, set
 
     member this.TransformedShape =
         let pos = match this.Parent with | Some(parent) -> parent.Position | None -> Point(0.0f, 0.0f)
@@ -778,6 +778,9 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     /// Return true if given collider collides with any colliders in given layers
     member this.TestForCollision(layers: LayersList<CollisionLayer>, collider : Collider) : bool =
         this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> collide collider c)
+    
+    member this.RemoveColliderLayer(layer : CollisionLayer) =
+        colliders.Remove(layer) |> ignore
     
     // spawning
     member this.Spawn(agentConfig, options) =
