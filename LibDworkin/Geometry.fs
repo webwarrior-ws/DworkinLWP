@@ -100,6 +100,9 @@ type OpenTK.Vector2 with
             ap - ar
         else
             ((Single.TwoPi) - ar) + ap
+    
+    member this.Abs() = 
+        Point(abs this.X, abs this.Y)
  
 
 
@@ -129,6 +132,9 @@ type OpenTK.Box2 with
     member this.TranslateBy(p : Point) =
         Rectangle.FromTLRB(this.Top + p.Y, this.Left + p.X, this.Right + p.X, this.Bottom + p.Y)
     
+    member this.InsetBy(delta : float32) =
+        Rectangle.FromTLRB(this.Top + delta, this.Left + delta, this.Right - delta, this.Bottom - delta)
+    
     static member Encompassing(points: #IList<Point>) =
         let mutable result = Rectangle(points.[0], points.[0])
         for i=1 to points.Count-1 do
@@ -139,8 +145,15 @@ type OpenTK.Box2 with
             result.Right <- max result.Right p.X
         result
     
+    member this.Corners =
+        [| this.Origin; Point(this.Left, this.Bottom); Point(this.Right, this.Bottom); Point(this.Right, this.Top) |]
+
     static member FromExtentCenteredAtOrigin(extent : Point) =
         Rectangle.FromTLRB(-extent.Y*0.5f, -extent.X*0.5f, extent.X*0.5f, extent.Y*0.5f)
+    
+    static member FromOriginAndExtent(originPoint : Point, extentPoint : Point) =
+        Rectangle(originPoint, Point(originPoint.X + (max extentPoint.X 0.0f), originPoint.Y + (max extentPoint.Y 0.0f)))
+
 
 
 

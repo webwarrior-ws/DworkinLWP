@@ -1,4 +1,4 @@
-﻿module SpecializedCollections
+﻿module LibDworkin.SpecializedCollections
 
 open System.Collections.Generic
 
@@ -143,4 +143,7 @@ type NumberRange = struct
         match arr with
         | [| a; b |] -> NumberRange(a, b)
         | _ -> NumberRange(Array.min arr, Array.max arr)
+
+    member this.Average =
+        (this.Min + this.Max) * 0.5f
 end
