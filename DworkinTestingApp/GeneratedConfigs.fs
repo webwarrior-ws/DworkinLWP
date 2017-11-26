@@ -73,13 +73,12 @@ module DworkinAgentConfig =
             TerminationConditions=
                 { Collision=Some(TerminationConditionCollision()
                               |> Optic.set ignoreParent_ true
-                              |> Optic.set (primaryDetector_ >-> angle_) 45.0f
-                              |> Optic.set (primaryDetector_ >-> distance_) 5.0f
+                              |> Optic.set primaryDetector_{ CollisionDetectorConfig.Default with Angle=45.0f; Distance=5.0f }
                               |> Optic.set secondaryDetector_ { CollisionDetectorConfig.Default with Angle=180.0f; Distance=2.5f }
                               |> Optic.set selfIntersection_ false);
                 Curvature=None;
                 Distance=Some(TerminationConditionDistance()); };
-            Thickness=ThicknessFormula.Constant() |> Optic.set c_ 1.5f;
+            Thickness=ThicknessFormula.Constant(C=1.5f);
             TotalDistance=10.0f
          }
 
@@ -122,8 +121,7 @@ module SpawnConfig =
                     collider.BoundingBox, 
                     CollisionLayers.All, 
                     fun layer each -> 
-                        not ((each.Parent <> Some(agent :> Agent)) && (not <| agent.Parent.Equals(each.Parent)) && (collide each collider)) )
-                    |> not
+                        (each.Parent <> Some(agent :> Agent)) && (not <| agent.Parent.Equals(each.Parent)) && (collide each collider) )
             
             if not exit then
                 let offset = r * (this.Offset - 0.5f)
@@ -455,7 +453,12 @@ module SpawnConfig =
                 points.AddBeforeIndex(points.Last + (Point(this.Gap, this.Gap) * 0.5f), 6)
                 points.AddBeforeIndex(points.Fifth + (Point(this.Gap, -this.Gap) * 0.5f), 6)
             
-            //points.Add(points.First)
+            if Array.contains this.Appearance ([|"contour"; "filled"|]) then
+                let shape = Polygon(points.ToArray()) 
+                let paint = { Fill=this.Appearance = "filled"; StrokeWidth=this.GroupConfig.Config.Thickness.Evaluate(0.0f, 0.0f) * agent.ThicknessFactor }
+                agent.DworkinEnvironment.SpawnShape(shape, ShapeSpawnOptions(Position=agent.Position, Direction=agent.Direction, Paint=paint))
+
+            points.Add(points.First)
             points 
                 |> Seq.pairwise 
                 |> Seq.iter (
@@ -469,12 +472,7 @@ module SpawnConfig =
                                         ((b * 0.999f) + pos).Rotate(Single.HalfPi - agent.Direction.Theta, pos)))
                                 None),
                             1))
-            
-            if Array.contains this.Appearance ([|"contour"; "filled"|]) then
-                let shape = Polygon(points.ToArray()) 
-                let paint = { Fill=this.Appearance = "filled"; StrokeWidth=this.GroupConfig.Config.Thickness.Evaluate(0.0f, 0.0f) * agent.ThicknessFactor }
-                agent.DworkinEnvironment.SpawnShape(shape, ShapeSpawnOptions(Position=agent.Position, Direction=agent.Direction, Paint=paint))
-    
+
 
 
 type PCB_RandomPosChips() = 
@@ -551,7 +549,7 @@ type PCB_RandomPosChips() =
             let collider = CircleCollider(None, p, radius)
             if not <| env.TestForCollision(CollisionLayers([| spawn |], false), collider) then
                 env.AddColliderToLayer(collider, spawn)
-                spawnSites.Add([| collider.Center; Point(float32 nx, float32 ny); |])
+                spawnSites.Add(struct (collider.Center, Point(float32 nx, float32 ny)))
                 nx <- int(round <| env.Random.NextInRange(this.NxRange))
                 ny <- int(round <| env.Random.NextInRange(this.NyRange))
             i <- i + 1
@@ -579,11 +577,11 @@ type PCB_RandomPosChips() =
             |> Optic.set (groupConfig_ >-> config_ >-> speed_ >-> cast<AgentSpeed, AgentSpeedThickness> >-> factor_) this.Speed
         
         withIndexDo
-            (fun each k -> 
+            (fun struct (pos, size) k -> 
                 let mutable dist = (min width height) * 0.5f
-                for s in spawnSites do 
-                    if s <> each then
-                        let p = ((each.First - s.First).Abs()) - ((each.Second + s.Second) * gap)
+                for struct (sp, ss) in spawnSites do 
+                    if sp <> pos then
+                        let p = ((pos - sp).Abs()) - ((size + ss) * gap)
                         dist <- min dist (max p.X p.Y)
                 if this.Branch then
                     let transform d = d * ts.[k]
@@ -596,13 +594,13 @@ type PCB_RandomPosChips() =
                                 |> Optic.map (criterion_ >-> BranchingCriterionCustom.IntervalBoundedTRand.D_) transform
                                 |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.Offset_) transform
                                 |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.ColliderSize_) transform)
-                let opts = AgentSpawnOptions(Position=each.First, AngleDeg=this.Angle)
+                let opts = AgentSpawnOptions(Position=pos, AngleDeg=this.Angle)
                 if k > 1 then
                     opts.DelayBy(int ((env.Random.NextFloat() * dist) / this.Speed / this.Size))
                 env.Spawn(
                     configToSpawn
-                    |> Optic.set nx_ (int each.[1].X)
-                    |> Optic.set ny_ (int each.[1].Y)
+                    |> Optic.set nx_ (int size.X)
+                    |> Optic.set ny_ (int size.Y)
                     |> Optic.map gap_ (fun x -> x * ts.[k]), 
                     opts,
                     fun a -> a.ScaleBy(Point(ts.[k], 1.0f)))
