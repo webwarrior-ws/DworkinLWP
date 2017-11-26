@@ -255,7 +255,7 @@ type TerminationConditionCollision() =
                 | Absolute -> agent.LengthFactor
             
             let predicate detector layer collider = 
-                ((collide detector collider) &&
+                (collide detector collider) &&
                 (if not <| this.IgnoresCollisionOfAgentWith(agent, collider) then
                     let collision = { Subject=detector; Obstacle=collider; Layer=layer }
                     let handlerNotAborted =
@@ -266,16 +266,12 @@ type TerminationConditionCollision() =
                         agent.Collision <- Some(collision)
                         true (*return*)
                     else false
-                 else false)) 
-                |> not
+                 else false) 
             
             Seq.exists2 (
                 fun (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) -> 
                     detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
-                    agent.DworkinEnvironment.QueryColliders(
-                        (detector :> IHasBounds).Bounds, 
-                        this.Layers, 
-                        predicate detector) |> not )
+                    agent.DworkinEnvironment.QueryColliders((detector :> IHasBounds).Bounds, this.Layers, predicate detector) )
                 detectors 
                 detectorConfigs
     
@@ -768,20 +764,21 @@ type DworkinEnvironment(bounds, randomSeed : int) =
             |> ignore
     
     /// Apply predicate to all colliders within given rect on given layers.
-    /// Stop when predicate returns false or all colliders are processed.
+    /// Stop when predicate returns true or all colliders are processed.
+    /// If all colliders are processed but predicate never returned true, return false
     member this.QueryColliders(rect : Rectangle, layers: CollisionLayers, predicate : CollisionLayer -> Collider -> bool) =
-        let mutable result = true
+        let mutable fired = false
         let enumerator = colliders.GetEnumerator()
-        while result && enumerator.MoveNext() do
+        while not fired && enumerator.MoveNext() do
             let layer = enumerator.Current.Key
             let tree = enumerator.Current.Value
             if layers.Contains layer then
-                result <- tree.Query(rect, predicate layer)
-        result
+                fired <- tree.Query(rect, predicate layer)
+        fired
     
     /// Return true if given collider collides with any colliders in given layers
     member this.TestForCollision(layers: CollisionLayers, collider : Collider) : bool =
-        not <| this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> not (collide collider c))
+        this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> collide collider c)
     
     member this.RemoveColliderLayer(layer : CollisionLayer) =
         colliders.Remove(layer) |> ignore
