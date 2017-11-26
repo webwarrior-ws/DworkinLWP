@@ -191,7 +191,7 @@ type TerminationConditionCollision() =
     member val DetectorSize = DetectorSize.Relative with get, set
     member val Handler : CollisionHandler option = None with get, set
     member val IgnoreParent = false with get, set
-    member val Layers = LayersList([||], true) with get, set
+    member val Layers = LayersList.All with get, set
     member val MinDistance = 0.0f with get, set
     member val PrimaryDetector = CollisionDetectorConfig.Default with get, set
     member val SelfIntersection = true with get, set
@@ -781,7 +781,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     
     /// Return true if given collider collides with any colliders in given layers
     member this.TestForCollision(layers: LayersList<CollisionLayer>, collider : Collider) : bool =
-        this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> collide collider c)
+        not <| this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> not (collide collider c))
     
     member this.RemoveColliderLayer(layer : CollisionLayer) =
         colliders.Remove(layer) |> ignore

@@ -111,7 +111,7 @@ type System.Random with
          this.NextGaussian() * sigma + mu
         
     member this.NextInRectangle(aRectangle : Rectangle) =
-        Point(lerp aRectangle.Left aRectangle.Right (this.NextFloat()), lerp aRectangle.Bottom aRectangle.Top (this.NextFloat()))
+        Point(lerp aRectangle.Left aRectangle.Right (this.NextFloat()), lerp aRectangle.Top aRectangle.Bottom (this.NextFloat()))
 
 
 

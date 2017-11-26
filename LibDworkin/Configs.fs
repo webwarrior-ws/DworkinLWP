@@ -453,7 +453,7 @@ type DworkinEnvironmentConfig() =
 
     interface IDworkinEnvironmentConfig with
         member this.GetEnvironment(size) =
-            let env = DworkinEnvironment(Rectangle.FromExtentCenteredAtOrigin(size), this.RandomSeed)
+            let env = DworkinEnvironment(Rectangle(Point.Zero, size), this.RandomSeed)
             this.Evaluate(env)
             env
     
@@ -465,7 +465,6 @@ type DworkinEnvironmentConfigCustom() =
     inherit DworkinEnvironmentConfig()
     
 
-[<AbstractClass>]
 type DworkinEnvironmentConfigSpawn() =
     inherit DworkinEnvironmentConfig()
 
@@ -477,12 +476,11 @@ type DworkinEnvironmentConfigSpawn() =
         let tempAgent = 
             environment.Spawn(
                 throwAwayAgentConfig, 
-                AgentSpawnOptions(Position=Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f), Seed=Some(environment.Random.Next())))
+                AgentSpawnOptions(Position=environment.Bounds.Center+Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f), Seed=Some(environment.Random.Next())))
         this.SpawnConfig.Evaluate(tempAgent :?> DworkinAgent)
         environment.RemoveAgent(tempAgent) |> ignore
 
 
-[<AbstractClass>]
 type DworkinEnvironmentConfigSingle() =
     inherit DworkinEnvironmentConfig()
 
@@ -500,8 +498,7 @@ type DworkinEnvironmentConfigSingle() =
             options.Parent <- Some(this)
             options.Config <- Some({ DworkinAgentConfig.Default with TotalDistance=0.0f })
             let spawnAgent = this.SpawnUsingOptions(options) :?> DworkinAgent
-            spawnAgent |> performAction agentBlock
-            spawnConfig.Evaluate(spawnAgent)
+            spawnAgent |> performAction (fun agent -> agentBlock agent; spawnConfig.Evaluate(agent))
     
     member this.Spawn(spawnConfig : SpawnConfig, options : AgentSpawnOptions) =
         this.Spawn(spawnConfig, options, ignore)
@@ -510,6 +507,5 @@ type DworkinEnvironmentConfigSingle() =
 type DworkinEnvironment with
     member this.Spawn(spawnConfig : SpawnConfig, options : AgentSpawnOptions, agentBlock : DworkinAgent -> unit) =
         options.Config <- Some({ DworkinAgentConfig.Default with TotalDistance=0.0f })
-        let spawnAgent = this.SpawnUsingOptions(options) :?> DworkinAgent
-        spawnAgent |> performAction agentBlock
-        spawnConfig.Evaluate(spawnAgent)
+        let spawnAgent = this.SpawnUsingOptions(options)
+        spawnAgent |> performAction (fun agent -> agentBlock agent; spawnConfig.Evaluate(agent))

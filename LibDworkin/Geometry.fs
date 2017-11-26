@@ -160,6 +160,6 @@ type OpenTK.Box2 with
 let inline deg2rad degrees =
     degrees * Single.radiansInDegree
 
-/// linear interpolation between a and by at t [0, 1]
+/// linear interpolation between a and b at t [0, 1]
 let inline lerp a b t =
     a + ((b - a) * t)
