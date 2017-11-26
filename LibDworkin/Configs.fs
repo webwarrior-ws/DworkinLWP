@@ -473,10 +473,12 @@ type DworkinEnvironmentConfigSpawn() =
     member val SpawnConfig = SpawnConfig.Default with get, set
 
     override this.Evaluate(environment) = 
-        let tempAgent = 
-            environment.Spawn(
-                throwAwayAgentConfig, 
-                AgentSpawnOptions(Position=environment.Bounds.Center+Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f), Seed=Some(environment.Random.Next())))
+        let opts = 
+            AgentSpawnOptions(
+                Position=environment.Bounds.Center+Point(0.5f, 0.5f), 
+                Direction=Point(0.0f, -1.0f), 
+                Seed=Some(environment.Random.Next()))
+        let tempAgent = environment.Spawn(throwAwayAgentConfig, opts )
         this.SpawnConfig.Evaluate(tempAgent :?> DworkinAgent)
         environment.RemoveAgent(tempAgent) |> ignore
 
@@ -487,8 +489,8 @@ type DworkinEnvironmentConfigSingle() =
     member val AgentConfig = DworkinAgentConfig.Default with get, set
 
     override this.Evaluate(environment) =
-        environment.Spawn(this.AgentConfig, AgentSpawnOptions(Position=Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f)))
-            |> ignore
+        let opts = AgentSpawnOptions(Position=environment.Bounds.Center+Point(0.5f, 0.5f), Direction=Point(0.0f, -1.0f))
+        environment.Spawn(this.AgentConfig, opts) |> ignore
  
 
  // extensions to DworkinAgent and DworkinEnvironment that rely on SpawnConfig
