@@ -73,7 +73,7 @@ module DworkinAgentConfig =
             TerminationConditions=
                 { Collision=Some(TerminationConditionCollision()
                               |> Optic.set ignoreParent_ true
-                              |> Optic.set primaryDetector_{ CollisionDetectorConfig.Default with Angle=45.0f; Distance=5.0f }
+                              |> Optic.set primaryDetector_ { CollisionDetectorConfig.Default with Angle=45.0f; Distance=5.0f }
                               |> Optic.set secondaryDetector_ { CollisionDetectorConfig.Default with Angle=180.0f; Distance=2.5f }
                               |> Optic.set selfIntersection_ false);
                 Curvature=None;
@@ -126,9 +126,10 @@ module SpawnConfig =
             if not exit then
                 let offset = r * (this.Offset - 0.5f)
                 if this.HollowPart > 0.0f then
+                    let strokeWidth = (1.0f - this.HollowPart) * r
                     agent.SpawnShape(
                         Shape.UnitCircle, 
-                        ShapeSpawnOptions(Scale=r * (this.HollowPart + 1.0f) * 0.5f, Offset=offset, Paint={ Fill=false; StrokeWidth=this.HollowPart*0.5f }))
+                        ShapeSpawnOptions(Scale=r * (this.HollowPart + 1.0f) * 0.5f, Offset=offset, Paint={ Fill=false; StrokeWidth=strokeWidth }))
                 else
                     agent.SpawnShape(Shape.UnitCircle, ShapeSpawnOptions(Scale=r, Offset=offset))
 
