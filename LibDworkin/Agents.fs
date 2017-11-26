@@ -191,7 +191,7 @@ type TerminationConditionCollision() =
     member val DetectorSize = DetectorSize.Relative with get, set
     member val Handler : CollisionHandler option = None with get, set
     member val IgnoreParent = false with get, set
-    member val Layers = LayersList.All with get, set
+    member val Layers = CollisionLayers.All with get, set
     member val MinDistance = 0.0f with get, set
     member val PrimaryDetector = CollisionDetectorConfig.Default with get, set
     member val SelfIntersection = true with get, set
@@ -216,7 +216,7 @@ type TerminationConditionCollision() =
     static member IgnoreParent_ : Lens<TerminationConditionCollision, bool> = 
         (fun x -> x.IgnoreParent),(fun value x -> let y = x.Clone() in y.IgnoreParent <- value; y)
 
-    static member Layers_ : Lens<TerminationConditionCollision, LayersList<CollisionLayer>> = 
+    static member Layers_ : Lens<TerminationConditionCollision, CollisionLayers> = 
         (fun x -> x.Layers),(fun value x -> let y = x.Clone() in y.Layers <- value; y)
 
     static member MinDistance_ : Lens<TerminationConditionCollision, float32> = 
@@ -769,7 +769,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     
     /// Apply predicate to all colliders within given rect on given layers.
     /// Stop when predicate returns false or all colliders are processed.
-    member this.QueryColliders(rect : Rectangle, layers: LayersList<CollisionLayer>, predicate : CollisionLayer -> Collider -> bool) =
+    member this.QueryColliders(rect : Rectangle, layers: CollisionLayers, predicate : CollisionLayer -> Collider -> bool) =
         let mutable result = true
         let enumerator = colliders.GetEnumerator()
         while result && enumerator.MoveNext() do
@@ -780,7 +780,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         result
     
     /// Return true if given collider collides with any colliders in given layers
-    member this.TestForCollision(layers: LayersList<CollisionLayer>, collider : Collider) : bool =
+    member this.TestForCollision(layers: CollisionLayers, collider : Collider) : bool =
         not <| this.QueryColliders((collider :> IHasBounds).Bounds, layers, fun layer c -> not (collide collider c))
     
     member this.RemoveColliderLayer(layer : CollisionLayer) =
