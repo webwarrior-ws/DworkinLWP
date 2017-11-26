@@ -16,6 +16,18 @@ open LibDworkin.Colliders
 
 
 module ThicknessFormula =
+    type Constant() = 
+        inherit ThicknessFormula()
+        member val C = 1.0f with get, set
+
+        member this.Clone() = this.MemberwiseClone() :?> Constant
+
+        static member C_ : Lens<Constant, _> = 
+            (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+
+        override this.Evaluate(s, t) =
+            this.C
+
     type LeafParabolic() = 
         inherit ThicknessFormula()
         member val C = 5.0f with get, set
@@ -67,14 +79,13 @@ module DworkinAgentConfig =
                               |> Optic.set selfIntersection_ false);
                 Curvature=None;
                 Distance=Some(TerminationConditionDistance()); };
-            Thickness=ThicknessFormula.LeafParabolic() |> Optic.set c_ 1.5f;
+            Thickness=ThicknessFormula.Constant() |> Optic.set c_ 1.5f;
             TotalDistance=10.0f
          }
 
 
 module SpawnConfig =
-    open LibDworkin.Configs
-    
+
     type CircleAdvanced() = 
         inherit SpawnConfig()
         member val Radius = 3.0f with get, set
@@ -106,11 +117,13 @@ module SpawnConfig =
                     Some(agent :> Agent), 
                     pos + (((agent.Direction * r) * (this.Offset - 0.5f)) * agent.ThicknessFactor), 
                     ((r * 0.5f) * this.Proximity) * agent.ThicknessFactor)
-            let exit = 
+            let exit =
                 agent.DworkinEnvironment.QueryColliders(
                     collider.BoundingBox, 
-                    LayersList<CollisionLayer>(), 
-                    fun layer each -> (each.Parent <> Some(agent :> Agent)) && (not <| agent.Parent.Equals(each.Parent)) && (collide each collider) )
+                    CollisionLayers.All, 
+                    fun layer each -> 
+                        not ((each.Parent <> Some(agent :> Agent)) && (not <| agent.Parent.Equals(each.Parent)) && (collide each collider)) )
+                    |> not
             
             if not exit then
                 let offset = r * (this.Offset - 0.5f)
@@ -442,7 +455,7 @@ module SpawnConfig =
                 points.AddBeforeIndex(points.Last + (Point(this.Gap, this.Gap) * 0.5f), 6)
                 points.AddBeforeIndex(points.Fifth + (Point(this.Gap, -this.Gap) * 0.5f), 6)
             
-            points.Add(points.First)
+            //points.Add(points.First)
             points 
                 |> Seq.pairwise 
                 |> Seq.iter (
@@ -483,7 +496,7 @@ type PCB_RandomPosChips() =
         with get, set
     member val Speed = 0.5f with get, set
     member val Octagonal = true with get, set
-    member val Size = 1.0f with get, set
+    member val Size = 1.5f with get, set
 
     member this.Clone() = this.MemberwiseClone() :?> PCB_RandomPosChips
 
@@ -524,8 +537,8 @@ type PCB_RandomPosChips() =
         let mutable n = ((((this.Density * (width * height)) / (squared 1.25f)) / ((this.NxRange.Average * this.NyRange.Average) * (squared gap))) / (squared this.Size)) / 9.0f |> int
         if this.Branch then
             n <- int <| round (float32 n / (sqrt 2.0f))
-        let mutable nx = round <| env.Random.NextInRange(this.NxRange)
-        let mutable ny = round <| env.Random.NextInRange(this.NyRange)
+        let mutable nx = int (round <| env.Random.NextInRange(this.NxRange))
+        let mutable ny = int (round <| env.Random.NextInRange(this.NyRange))
         let spawnSites = ResizeArray()
         let mutable i = 0
         let mutable ts = [| for k in 1..n -> (env.Random.NextGaussian() * this.ThicknessVariance) + 1.0f |]
@@ -533,19 +546,14 @@ type PCB_RandomPosChips() =
         ts <- ts |> Array.map (fun x -> (max (x / tsAverage) 1.0f) * this.Size)
         
         while (spawnSites.Length < n) && (i < 10000) do
-            let radius = (((max nx ny) * gap) * (ts.[spawnSites.Length + 1])) * 1.25f
+            let radius = ((float32(max nx ny) * gap) * (ts.[spawnSites.Length])) * 1.25f
             let p = env.Random.NextInRectangle(env.Bounds.InsetBy(radius))
             let collider = CircleCollider(None, p, radius)
-            let mutable collides = 
-                env.QueryColliders(
-                    collider.BoundingBox, 
-                    LayersList([| spawn |], false), 
-                    fun layer each -> collide each collider)
-            if not <| collides then
+            if not <| env.TestForCollision(CollisionLayers([| spawn |], false), collider) then
                 env.AddColliderToLayer(collider, spawn)
-                spawnSites.Add([| collider.Center; Point(nx, ny); |])
-                nx <- round <| env.Random.NextInRange(this.NxRange)
-                ny <- round <| env.Random.NextInRange(this.NyRange)
+                spawnSites.Add([| collider.Center; Point(float32 nx, float32 ny); |])
+                nx <- int(round <| env.Random.NextInRange(this.NxRange))
+                ny <- int(round <| env.Random.NextInRange(this.NyRange))
             i <- i + 1
 
         env.RemoveColliderLayer(spawn)
@@ -562,7 +570,7 @@ type PCB_RandomPosChips() =
                         "filled"))
             |> Optic.set (groupConfig_ >-> config_ >-> termination_spawnConfig_ >-> cast >-> SpawnConfig.PCBTraceLengthLimited.TerminalConfig_ >-> hollowPart_) 
                 ((if this.Endpoints = "hollow" then 0.5f else 0.0f))
-            |> Optic.set (groupConfig_ >-> config_ >-> termination_spawnConfig_ >-> cast >-> PCB_RandomPosChips.Angles_) this.Angles
+            |> Optic.set (groupConfig_ >-> config_ >-> termination_spawnConfig_ >-> cast >-> SpawnConfig.PCBTraceLengthLimited.Angles_) this.Angles
             |> Optic.set (groupConfig_ >-> config_ >-> branching_) 
                 (if this.Branch then
                     this.BranchingConfig |> Optic.set (spawnConfig_ >-> cast<SpawnConfig, SpawnConfig.PCBBranchOffset> >-> branchProb_) this.Density :> BranchingStrategy
@@ -590,7 +598,7 @@ type PCB_RandomPosChips() =
                                 |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.ColliderSize_) transform)
                 let opts = AgentSpawnOptions(Position=each.First, AngleDeg=this.Angle)
                 if k > 1 then
-                    opts.DelayBy(int ((env.Random.NextFloat() * dist) / this.Speed))
+                    opts.DelayBy(int ((env.Random.NextFloat() * dist) / this.Speed / this.Size))
                 env.Spawn(
                     configToSpawn
                     |> Optic.set nx_ (int each.[1].X)
