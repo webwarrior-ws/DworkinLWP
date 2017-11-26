@@ -32,8 +32,9 @@ type MainActivity () =
             || Build.Model.Contains("Emulator") 
             || Build.Model.Contains("Android SDK built for x86")))
         
-        let renderer = //new TestRenderers.AdvancedShapesTestRenderer(this)
-            new LibDworkin.Renderer.DworkinRenderer(this, TestConfigs.iGeoExample40) 
+        let renderer = new LibDworkin.Renderer.DworkinRenderer(this, GeneratedConfigs.PCB_RandomPosChips())
+            //new TestRenderers.AdvancedShapesTestRenderer(this)
+            //new LibDworkin.Renderer.DworkinRenderer(this, TestConfigs.iGeoExample40) 
             //new TestRenderers.CollidersTestRenderer(this, TestConfigs.colliderStrategyTest)
             //new LibDworkin.Renderer.DworkinRenderer(this, TestConfigs.brushesAndSpeedsTest) 
             //new TestRenderers.ShapesTestRenderer(this) 
