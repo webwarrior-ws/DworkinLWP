@@ -128,6 +128,9 @@ end
 type LayersList<'T when 'T : equality>(items : 'T[], isComplement : bool) = struct
     member this.Contains(item : 'T) = 
         (items |> Array.contains item) <> isComplement
+    
+    static member None = LayersList<'T>([||], false)
+    static member All = LayersList<'T>([||], true)
 end
 
 
