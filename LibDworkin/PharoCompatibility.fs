@@ -77,6 +77,11 @@ type IList<'T> with
         this.[prng.Next(this.Count)]
 
 
+type 'T ``[]`` with
+    member this.AtRandom(prng : System.Random) =
+        this.[prng.Next(this.Length)]
+
+
 type System.Random with
     member inline this.NextFloat() =
         this.NextDouble() |> float32
@@ -106,7 +111,7 @@ type System.Random with
          this.NextGaussian() * sigma + mu
         
     member this.NextInRectangle(aRectangle : Rectangle) =
-        Point(lerp aRectangle.Left aRectangle.Right (this.NextFloat()), lerp aRectangle.Bottom aRectangle.Top (this.NextFloat()))
+        Point(lerp aRectangle.Left aRectangle.Right (this.NextFloat()), lerp aRectangle.Top aRectangle.Bottom (this.NextFloat()))
 
 
 

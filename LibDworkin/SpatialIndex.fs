@@ -55,33 +55,35 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
 
         this.Insert(obj, objBounds)
     
-    // proceed only if predicate returns true
+    /// Proceed only if predicate returns false.
+    /// Return true only if predicate gets called and returns true, false otherwise
     member this.Query(rectangle: Rectangle, predicate: 'T -> bool) : bool =
         let inline processItems() : bool =
             let mutable i = 0
-            let mutable proceed = true
-            while proceed && i < objectsCount do
+            let mutable fired = false
+            while not fired && i < objectsCount do
                 let candidate = &objectBounds.[i]
                 if rectangle.IntersectsWith &candidate then
-                    proceed <- predicate objects.[i]
+                    fired <- predicate objects.[i]
                 i <- i + 1
-            proceed
+            fired
         
-        (objectsCount < 1 || (allObjectsBounds.IntersectsWith rectangle |> not) || processItems()) && 
-            match nodes with
-            | Some(treeNodes) ->
-                match struct (center.QuadrantOf(rectangle.Left, rectangle.Top), 
-                              center.QuadrantOf(rectangle.Right, rectangle.Bottom)) with
-                | struct (q1, q2) when q1 = q2 -> 
-                    treeNodes.[q1].Query(rectangle, predicate)
-                | struct (2,  0) -> 
-                    treeNodes |> Array.forall (fun node -> node.Query(rectangle, predicate))
-                | struct (q1, q2) -> 
-                    treeNodes.[q1].Query(rectangle, predicate) && treeNodes.[q2].Query(rectangle, predicate)
-            | None -> true
+        (objectsCount >= 1 && (allObjectsBounds.IntersectsWith rectangle) && processItems()) ||
+        match nodes with
+        | Some(treeNodes) ->
+            match struct (center.QuadrantOf(rectangle.Left, rectangle.Top), 
+                            center.QuadrantOf(rectangle.Right, rectangle.Bottom)) with
+            | struct (q1, q2) when q1 = q2 -> 
+                treeNodes.[q1].Query(rectangle, predicate)
+            | struct (2,  0) -> 
+                treeNodes |> Array.exists (fun node -> node.Query(rectangle, predicate))
+            | struct (q1, q2) -> 
+                treeNodes.[q1].Query(rectangle, predicate) || treeNodes.[q2].Query(rectangle, predicate)
+        | None -> false
+        
 
     member this.Iterate(rectangle: Rectangle, action: 'T -> unit) : unit =
-        this.Query(rectangle, fun x -> action x; true) |> ignore
+        this.Query(rectangle, fun x -> action x; false) |> ignore
     
     // get all objects in tree
     member this.AllObjects() : seq<'T> =
@@ -93,12 +95,6 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
                 for node in treeNodes do 
                     yield! node.AllObjects()
             | None -> () }
-    
-    /// return true if object satisfying given predicate exists
-    member this.Exists(rectangle: Rectangle, predicate: 'T -> bool) : bool =
-        let mutable res = false
-        this.Query(rectangle, fun x -> res <- predicate x; not res) |> ignore
-        res
 
     /// Determine which node the object belongs to. 
     /// -1 means object cannot completely fit within a child node and is part of the parent node.

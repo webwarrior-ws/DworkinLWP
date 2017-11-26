@@ -10,6 +10,7 @@ open LibDworkin.Renderer
 open LibDworkin.AgentAbstractions
 open LibDworkin.SpatialIndex
 open LibDworkin.Colliders
+open LibDworkin.SpecializedCollections
 
 
 
@@ -71,7 +72,7 @@ type CollidingAgentsEnvironment(bounds) =
     member this.Collides(collider : Collider, parent : Agent) =
         let criterion (c : Collider) = 
             (match c.Parent with | Some(p) -> p <> parent | None -> true) && collide collider c
-        quadTree.Exists((collider :> IHasBounds).Bounds, criterion)
+        quadTree.Query((collider :> IHasBounds).Bounds, criterion)
  
 
 type CollidingAgent() =
@@ -170,7 +171,7 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
         match environment with
         | Some(env) -> 
             env.Step(this)
-            env.QueryColliders(env.Bounds, SpecializedCollections.LayersList([||], true), fun _ collider -> this.DrawCollider(collider); true) 
+            env.QueryColliders(env.Bounds, CollisionLayers.All, fun _ collider -> this.DrawCollider(collider); false) 
                 |> ignore
         | None -> ()
         

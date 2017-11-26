@@ -125,12 +125,6 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
 end
 
 
-type LayersList<'T when 'T : equality>(items : 'T[], isComplement : bool) = struct
-    member this.Contains(item : 'T) = 
-        (items |> Array.contains item) <> isComplement
-end
-
-
 type NumberRange = struct
     val Min : float32
     val Max : float32
@@ -146,4 +140,7 @@ type NumberRange = struct
 
     member this.Average =
         (this.Min + this.Max) * 0.5f
+    
+    member this.Contains(aNumber : float32) =
+        aNumber >= this.Min && aNumber <= this.Max
 end
