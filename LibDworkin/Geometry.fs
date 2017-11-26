@@ -112,7 +112,7 @@ type OpenTK.Box2 with
     member this.Center = Point((this.Left + this.Right) * 0.5f, (this.Top + this.Bottom) * 0.5f)
 
     member this.IsEmpty = 
-        this.Height = 0.0f && this.Width = 0.0f
+        this.Left = this.Right && this.Top = this.Bottom
 
     member this.Contains(rect : Rectangle) =
         rect.Left >= this.Left && rect.Top >= this.Top && rect.Right <= this.Right && rect.Bottom <= this.Bottom
@@ -160,6 +160,6 @@ type OpenTK.Box2 with
 let inline deg2rad degrees =
     degrees * Single.radiansInDegree
 
-/// linear interpolation between a and by at t [0, 1]
+/// linear interpolation between a and b at t [0, 1]
 let inline lerp a b t =
     a + ((b - a) * t)

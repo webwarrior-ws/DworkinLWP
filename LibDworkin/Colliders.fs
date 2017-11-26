@@ -196,3 +196,15 @@ type Collision =
         Obstacle: Collider
         Layer: CollisionLayer
     }
+
+
+/// Set of CollisionLayer instances. If isComplement is true, acts as set-theoretic complement set
+[<Struct>]
+type CollisionLayers(items : CollisionLayer[], isComplement : bool) = 
+    member this.Contains(item : CollisionLayer) = 
+        (items |> Array.contains item) <> isComplement
+    
+    new(items : CollisionLayer[]) = CollisionLayers(items, false)
+    
+    static member None = CollisionLayers([||], false)
+    static member All = CollisionLayers([||], true)

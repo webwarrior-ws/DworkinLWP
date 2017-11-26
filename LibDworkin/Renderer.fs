@@ -306,7 +306,12 @@ type DworkinRenderer(context, environmentConfig : Agents.IDworkinEnvironmentConf
     override this.OnSurfaceChanged(gl, width, height) =
         base.OnSurfaceChanged(gl, width, height)
         // setup scale and offset
-        environment <- Some(environmentConfig.GetEnvironment(Point(float32 width, float32 height)))
+        let env = environmentConfig.GetEnvironment(Point(float32 width, float32 height))
+        environment <- Some(env)
+        // skip steps when nothing happens
+        while not env.HasActiveAgents && env.Age < 1000 do
+            env.Step(this)
+        
         this.SetScale(1.0f / float32 width, 1.0f / float32 height)
         this.ClearMask()
     
