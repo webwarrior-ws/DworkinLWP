@@ -1,6 +1,7 @@
 ﻿module LibDworkin.Renderer
 
 open Geometry
+open PharoCompatibility
 open SpecializedCollections
 open AgentAbstractions
 
@@ -292,10 +293,29 @@ type BaseRenderer(context : Android.Content.Context) =
             shapesVertices.Reset()
             shapesVertexIndices.Reset()
     
+    /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
         scale <- Point(xs, ys)
         GL.UseProgram(shapesDrawingShader.Value.Program)
         GL.Uniform2(GL.GetUniformLocation(shapesDrawingShader.Value.Program, "scale"), xs, ys)
+    
+    ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
+    /// Constraints:
+    /// - between 480 and 600 on shorter side
+    /// Preferences:
+    /// - screen size being multiple of environment dimensions or vice versa
+    member this.GetDimensions(width : int, height : int) : Point =
+        let shortMin = 480.0f
+        let shortMax = 600.0f
+        let shortSide = float32(min width height)
+        
+        let multiple =
+            let preferredMultiples = [| 1.0f; 2.0f; 3.0f; 4.0f; 0.5f; 1.5f; (1.0f/1.5f); (5.0f/3.0f); (4.0f/3.0f); 0.75f; 2.5f; 3.5f |]
+            match preferredMultiples |> Array.tryFind (fun k -> between shortMin shortMax (shortSide / k)) with
+            | Some(k) -> k
+            | None -> shortSide / shortMin
+
+        Point(float32(width) / multiple, float32(height) / multiple)
 
 
 type DworkinRenderer(context, environmentConfig : Agents.IDworkinEnvironmentConfig) =
@@ -306,13 +326,14 @@ type DworkinRenderer(context, environmentConfig : Agents.IDworkinEnvironmentConf
     override this.OnSurfaceChanged(gl, width, height) =
         base.OnSurfaceChanged(gl, width, height)
         // setup scale and offset
-        let env = environmentConfig.GetEnvironment(Point(float32 width, float32 height))
+        let dimensions = this.GetDimensions(width, height)
+        let env = environmentConfig.GetEnvironment(dimensions)
         environment <- Some(env)
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
             env.Step(this)
         
-        this.SetScale(1.0f / float32 width, 1.0f / float32 height)
+        this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
         this.ClearMask()
     
     override this.OnDrawFrame(gl : Opengles.IGL10) =
