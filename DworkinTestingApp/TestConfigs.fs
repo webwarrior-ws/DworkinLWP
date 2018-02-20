@@ -175,3 +175,37 @@ let iGeoExample40  : IDworkinEnvironmentConfig =
             env.Spawn(config, AgentSpawnOptions(Position=size*0.5f), fun a -> a.ScaleBy(Point(2.0f, 1.0f))) |> ignore
             env }
 
+
+let circleAdvancedTest : IDworkinEnvironmentConfig = 
+    let terminalConfig = GeneratedConfigs.SpawnConfig.CircleAdvanced(Radius=10.0f)
+    
+    { new IDworkinEnvironmentConfig with
+        member this.GetEnvironment(size) = 
+            let env = DworkinEnvironment(Rectangle(Point(0.0f), size), 42)
+            
+            let config = { DworkinAgentConfig.Default with TotalDistance=0.01f}
+            withIndexDo
+                (fun (tc : SpawnConfig) i -> 
+                    env.Spawn(config, AgentSpawnOptions(Position=Point(50.0f, float32(i) * 50.0f)), fun (a : DworkinAgent) -> tc.Evaluate(a)) |> ignore
+                    env.Spawn(
+                        config, 
+                        AgentSpawnOptions(Position=Point(100.0f, float32(i) * 50.0f)), 
+                        fun a -> 
+                            a.ThicknessFactor <- 2.0f
+                            tc.Evaluate(a)) |> ignore
+                    env.Spawn(
+                        config, 
+                        AgentSpawnOptions(Position=Point(150.0f, float32(i) * 50.0f)), 
+                        fun a -> 
+                            a.ThicknessFactor <- 0.5f
+                            tc.Evaluate(a)) |> ignore
+                    env.Spawn(
+                        { config with Thickness=GeneratedConfigs.ThicknessFormula.Constant(C=2.0f) }, 
+                        AgentSpawnOptions(Position=Point(200.0f, float32(i) * 50.0f)), fun (a : DworkinAgent) -> tc.Evaluate(a)) |> ignore
+                )
+                ([| terminalConfig; terminalConfig |> Optic.set hollowPart_ 0.0f; terminalConfig |> Optic.set radius_ 20.0f; |])
+        
+            env.Spawn(
+                { DworkinAgentConfig.Default with  Thickness=GeneratedConfigs.ThicknessFormula.Constant(C=10.0f) }, 
+                AgentSpawnOptions(Position=Point(25.0f, 10.0f), Direction=Point(1.0f, 0.0f))) |> ignore
+            env}
