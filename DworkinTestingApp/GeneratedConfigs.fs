@@ -131,13 +131,13 @@ module SpawnConfig =
                     let scaleFactor = (1.0f + this.HollowPart) * 0.5f
                     let strokeWidth = (1.0f - this.HollowPart) * 0.5f
                     agent.SpawnShape(
-                        Shape.UnitCircle, 
+                        Shape.PrimitiveCircle, 
                         ShapeSpawnOptions(Scale=r*scaleFactor, Offset=offset, Paint={ Fill=false; StrokeWidth=strokeWidth/scaleFactor }))
                 else
-                    agent.SpawnShape(Shape.UnitCircle, ShapeSpawnOptions(Scale=r, Offset=offset))
+                    agent.SpawnShape(Shape.PrimitiveCircle, ShapeSpawnOptions(Scale=r, Offset=offset))
 
                 if this.InsidePart > 0.0f then
-                    agent.SpawnShape(Shape.UnitCircle, ShapeSpawnOptions(Scale=(r * this.HollowPart) * this.InsidePart, Offset=offset))
+                    agent.SpawnShape(Shape.PrimitiveCircle, ShapeSpawnOptions(Scale=(r * this.HollowPart) * this.InsidePart, Offset=offset))
             
                 if this.SpawnCollider then
                     let layer = 
