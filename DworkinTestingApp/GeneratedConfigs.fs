@@ -84,6 +84,7 @@ module DworkinAgentConfig =
 
 
 module SpawnConfig =
+    open LibDworkin.SpatialIndex
 
     type CircleAdvanced() = 
         inherit SpawnConfig()
@@ -114,22 +115,24 @@ module SpawnConfig =
             let collider = 
                 CircleCollider(
                     Some(agent :> Agent), 
-                    pos + (((agent.Direction * r) * (this.Offset - 0.5f)) * agent.ThicknessFactor), 
+                    pos + ((agent.Direction * r) * (this.Offset - 0.5f)), 
                     ((r * 0.5f) * this.Proximity) * agent.ThicknessFactor)
             let exit =
+                let predicate (layer : CollisionLayer) (each : Collider) =
+                    (each.Parent <> Some(agent :> Agent)) && ((box agent.Parent) <> (box each.Parent)) && (collide each collider)
                 agent.DworkinEnvironment.QueryColliders(
-                    collider.BoundingBox, 
+                    (collider :> IHasBounds).Bounds, 
                     CollisionLayers.All, 
-                    fun layer each -> 
-                        (each.Parent <> Some(agent :> Agent)) && (not <| agent.Parent.Equals(each.Parent)) && (collide each collider) )
+                    predicate)
             
             if not exit then
                 let offset = r * (this.Offset - 0.5f)
                 if this.HollowPart > 0.0f then
-                    let strokeWidth = (1.0f - this.HollowPart) * r
+                    let scaleFactor = (1.0f + this.HollowPart) * 0.5f
+                    let strokeWidth = (1.0f - this.HollowPart) * 0.5f
                     agent.SpawnShape(
                         Shape.UnitCircle, 
-                        ShapeSpawnOptions(Scale=r * (this.HollowPart + 1.0f) * 0.5f, Offset=offset, Paint={ Fill=false; StrokeWidth=strokeWidth }))
+                        ShapeSpawnOptions(Scale=r*scaleFactor, Offset=offset, Paint={ Fill=false; StrokeWidth=strokeWidth/scaleFactor }))
                 else
                     agent.SpawnShape(Shape.UnitCircle, ShapeSpawnOptions(Scale=r, Offset=offset))
 
@@ -137,11 +140,11 @@ module SpawnConfig =
                     agent.SpawnShape(Shape.UnitCircle, ShapeSpawnOptions(Scale=(r * this.HollowPart) * this.InsidePart, Offset=offset))
             
                 if this.SpawnCollider then
-                    agent.DworkinEnvironment.AddColliderToLayer(
-                        CircleCollider(
-                            collider.Parent, 
-                            collider.Center, (r*0.5f) * agent.ThicknessFactor), 
-                            (agent.Config.ColliderOptions :?> ColliderOptionsGeneral).Layer)
+                    let layer = 
+                        match agent.Config.ColliderOptions with
+                        | :? ColliderOptionsGeneral as co -> co.Layer
+                        | _ -> CollisionLayer.Default
+                    agent.DworkinEnvironment.AddColliderToLayer(CircleCollider(collider.Parent, collider.Center, (r*0.5f) * agent.ThicknessFactor), layer)
     
     
     type PCBBranchOffset() = 
@@ -208,7 +211,7 @@ module SpawnConfig =
                         deg2rad this.ColliderAngle))
                 let exit = 
                     agent.DworkinEnvironment.QueryColliders(
-                        collider.BoundingBox, 
+                        (collider :> IHasBounds).Bounds, 
                         agent.Config.TerminationConditions.Collision.Value.Layers, 
                         fun layer each -> (each.Parent <> Some(agent :> Agent)) && (collide collider each) )
                 
@@ -495,7 +498,7 @@ type PCB_RandomPosChips() =
         with get, set
     member val Speed = 0.5f with get, set
     member val Octagonal = true with get, set
-    member val Size = 1.5f with get, set
+    member val Size = 1.0f with get, set
 
     member this.Clone() = this.MemberwiseClone() :?> PCB_RandomPosChips
 
@@ -585,7 +588,7 @@ type PCB_RandomPosChips() =
                         let p = ((pos - sp).Abs()) - ((size + ss) * gap)
                         dist <- min dist (max p.X p.Y)
                 if this.Branch then
-                    let transform d = d * ts.[k]
+                    let transform d = d * ts.[k-1]
                     configToSpawn <- 
                         configToSpawn
                         |> Optic.map 
@@ -602,9 +605,10 @@ type PCB_RandomPosChips() =
                     configToSpawn
                     |> Optic.set nx_ (int size.X)
                     |> Optic.set ny_ (int size.Y)
-                    |> Optic.map gap_ (fun x -> x * ts.[k]), 
+                    |> Optic.map gap_ (fun x -> x * ts.[k-1]), 
                     opts,
-                    fun a -> a.ScaleBy(Point(ts.[k], 1.0f)))
+                    fun a -> a.ScaleBy(Point(ts.[k-1], 1.0f)))
                     |> ignore)
             spawnSites
-    
+
+            
