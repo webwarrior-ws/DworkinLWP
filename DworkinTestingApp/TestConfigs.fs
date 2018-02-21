@@ -177,7 +177,8 @@ let iGeoExample40  : IDworkinEnvironmentConfig =
 
 
 let circleAdvancedTest : IDworkinEnvironmentConfig = 
-    let terminalConfig = GeneratedConfigs.SpawnConfig.CircleAdvanced(Radius=10.0f)
+    let r = 20.0f
+    let terminalConfig = GeneratedConfigs.SpawnConfig.CircleAdvanced(Radius=r)
     
     { new IDworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
@@ -186,26 +187,30 @@ let circleAdvancedTest : IDworkinEnvironmentConfig =
             let config = { DworkinAgentConfig.Default with TotalDistance=0.01f}
             withIndexDo
                 (fun (tc : SpawnConfig) i -> 
-                    env.Spawn(config, AgentSpawnOptions(Position=Point(50.0f, float32(i) * 50.0f)), fun (a : DworkinAgent) -> tc.Evaluate(a)) |> ignore
+                    let y = 5.0f * r * float32(i)
+                    env.Spawn(config, AgentSpawnOptions(Position=Point(5.0f * r, y)), fun (a : DworkinAgent) -> tc.Evaluate(a)) |> ignore
                     env.Spawn(
                         config, 
-                        AgentSpawnOptions(Position=Point(100.0f, float32(i) * 50.0f)), 
+                        AgentSpawnOptions(Position=Point(10.0f * r, y)), 
                         fun a -> 
                             a.ThicknessFactor <- 2.0f
                             tc.Evaluate(a)) |> ignore
                     env.Spawn(
                         config, 
-                        AgentSpawnOptions(Position=Point(150.0f, float32(i) * 50.0f)), 
+                        AgentSpawnOptions(Position=Point(15.0f * r, y)), 
                         fun a -> 
                             a.ThicknessFactor <- 0.5f
                             tc.Evaluate(a)) |> ignore
                     env.Spawn(
                         { config with Thickness=GeneratedConfigs.ThicknessFormula.Constant(C=2.0f) }, 
-                        AgentSpawnOptions(Position=Point(200.0f, float32(i) * 50.0f)), fun (a : DworkinAgent) -> tc.Evaluate(a)) |> ignore
+                        AgentSpawnOptions(Position=Point(20.0f * r, y)), fun (a : DworkinAgent) -> tc.Evaluate(a)) |> ignore
                 )
-                ([| terminalConfig; terminalConfig |> Optic.set hollowPart_ 0.0f; terminalConfig |> Optic.set radius_ 20.0f; |])
+                ([| terminalConfig; terminalConfig |> Optic.set hollowPart_ 0.0f; terminalConfig |> Optic.set radius_ (r * 2.0f); |])
         
             env.Spawn(
-                { DworkinAgentConfig.Default with  Thickness=GeneratedConfigs.ThicknessFormula.Constant(C=10.0f) }, 
-                AgentSpawnOptions(Position=Point(25.0f, 10.0f), Direction=Point(1.0f, 0.0f))) |> ignore
+                { DworkinAgentConfig.Default with 
+                    Thickness=GeneratedConfigs.ThicknessFormula.Constant(C=r); 
+                    TotalDistance=20.0f * r; 
+                    Speed=AgentSpeedConstant(Magnitude=r) }, 
+                AgentSpawnOptions(Position=Point(2.5f * r, r), Direction=Point(1.0f, 0.0f))) |> ignore
             env}
