@@ -128,7 +128,8 @@ let inline roundTo quantum number =
 
 /// Equivalent to Smalltalk's #withIndexDo:
 let withIndexDo func sequence =
-    Seq.iteri (fun i x -> func x i) sequence
+    // in Smalltalk, indices are 1-based, so add 1 to i
+    Seq.iteri (fun i x -> func x (i+1)) sequence
 
 /// Power curve function from http://iquilezles.org/www/articles/functions/functions.htm
 let pcurve x a b =
