@@ -40,9 +40,10 @@ type Shape =
     | Quad of Point * Point * Point * Point
     | Polygon of Point[]
     with
-        static member UnitCircle = Circle(Point(), 0.5f)
-        static member UnitTriangle = Triangle(Point(0.0f, 0.5f), Point(-0.866f, -0.5f), Point(0.866f, -0.5f))
-        static member UnitSquare = Quad(Point(-0.5f, -0.5f), Point(0.5f, -0.5f), Point(0.5f, 0.5f), Point(-0.5f, 0.5f))
+        // some basic shapes with size of 1
+        static member PrimitiveCircle = Circle(Point(), 0.5f)
+        static member PrimitiveTriangle = Triangle(Point(0.0f, 0.5f), Point(-0.866f, -0.5f), Point(0.866f, -0.5f))
+        static member PrimitiveSquare = Quad(Point(-0.5f, -0.5f), Point(0.5f, -0.5f), Point(0.5f, 0.5f), Point(-0.5f, 0.5f))
 
 [<Struct>]
 type ShapePaint =
