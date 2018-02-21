@@ -410,6 +410,8 @@ type ShapeSpawnOptions() =
     member val Shape : Shape = Circle(Point(), 0.0f) with get, set
     member val Paint : ShapePaint = ShapePaint.Default with get, set
 
+    member private this.FinalScale = this.Scale * (match this.Parent with | Some(parent) -> parent.ThicknessFactor | None -> 1.0f)
+
     member this.TransformedShape =
         let pos = match this.Parent with | Some(parent) -> parent.Position | None -> Point(0.0f, 0.0f)
         let mutable shift = this.Position - pos
@@ -419,7 +421,7 @@ type ShapeSpawnOptions() =
 
         let translation = pos + shift
         let rotation = this.Direction.Theta - Single.HalfPi
-        let scale = this.Scale * (match this.Parent with | Some(parent) -> parent.ThicknessFactor | None -> 1.0f)
+        let scale = this.FinalScale
 
         let hasRotation = abs rotation > 1e-6f
 
@@ -435,6 +437,12 @@ type ShapeSpawnOptions() =
             | Triangle(a, b, c) -> Triangle(transform a, transform b, transform c)
             | Quad(a, b, c, d) -> Quad(transform a, transform b, transform c, transform d)
             | Polygon(points) -> Polygon(points |> Array.map transform)
+    
+    member this.TransformedPaint =
+        match this.Paint with
+        | { StrokeWidth=w } when w <> 0.0f -> { this.Paint with StrokeWidth=w*this.FinalScale }
+        | paint -> paint
+        
 
 // agent attributes
 type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
@@ -667,7 +675,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member this.SpawnShape(shape : Shape, options : ShapeSpawnOptions) =
         options.Parent <- Some(this.Copy())
         options.Shape <- shape
-        this.DworkinEnvironment.AddShape(options.TransformedShape, options.Paint)
+        this.DworkinEnvironment.AddShape(options.TransformedShape, options.TransformedPaint)
     
     member this.SpawnUsingOptions(options : AgentSpawnOptions) : Agent =
         match options.Seed with 
@@ -821,5 +829,5 @@ type DworkinEnvironment(bounds, randomSeed : int) =
 
     member this.SpawnShape(shape : Shape, options : ShapeSpawnOptions) =
         options.Shape <- shape
-        this.AddShape(options.TransformedShape, options.Paint)
+        this.AddShape(options.TransformedShape, options.TransformedPaint)
     
