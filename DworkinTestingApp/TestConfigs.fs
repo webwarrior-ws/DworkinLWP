@@ -90,7 +90,7 @@ let brushesAndSpeedsTest : IDworkinEnvironmentConfig =
         |> Optic.set brush_ (BrushStrategySolidJoint())
     let agent_SolidWithJoint_Quad =
         agent_SolidWithJoint 
-        |> Optic.set brush_ (BrushStrategySolidJoint(JointType=BrushJoint.Quad))
+        |> Optic.set brush_ (BrushStrategySolidJoint(JointType=BrushJoint.Bevel))
     let agent_Circles_Thickness =
         DworkinAgentConfig.Default 
         |> Optic.set brush_ (BrushStrategyCircles())
