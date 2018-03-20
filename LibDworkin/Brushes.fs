@@ -13,8 +13,8 @@ type BrushCap =
 
 
 type BrushJoint =
-    | Triangle
-    | Quad
+    | Bevel
+    | Miter
 
 
 type BrushNone() =
@@ -94,7 +94,7 @@ type BrushSolid() =
 type BrushSolidJoint() =
     inherit BrushSolidBase()
     let mutable jointDrawn = false
-    member val JointType = BrushJoint.Triangle with get, set
+    member val JointType = BrushJoint.Miter with get, set
 
     override this.Evaluate(agent, canvas) =
         if jointDrawn then
@@ -113,9 +113,9 @@ type BrushSolidJoint() =
                     let b = p + agentPerp
 
                     match this.JointType with
-                    | Triangle -> 
+                    | Miter -> 
                         canvas.DrawTriangle(a, b, p)
-                    | Quad ->
+                    | Bevel ->
                         let angle = agentPerp.AngleWith(parentPerp)
                         let c = p + (parentPerp + agentPerp) * (0.5f / abs (tan ((angle + Single.Pi) * 0.5f)) + 0.5f)
                         canvas.DrawQuad(a, c, b, p)

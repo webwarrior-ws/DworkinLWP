@@ -79,7 +79,7 @@ type BrushStrategySolid() =
     
 type BrushStrategySolidJoint() = 
     inherit BrushStrategy()
-    member val JointType : BrushJoint = BrushJoint.Triangle with get, set
+    member val JointType : BrushJoint = BrushJoint.Miter with get, set
 
     member this.Clone() = this.MemberwiseClone() :?> BrushStrategySolidJoint
 
