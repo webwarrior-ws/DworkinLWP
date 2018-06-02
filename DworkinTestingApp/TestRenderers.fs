@@ -109,7 +109,8 @@ type CollidingAgent() =
         
         canvas.DrawQuad(prevPos + prevPerp, prevPos - prevPerp, this.Position - currPerp, this.Position + currPerp)
     
-    interface IDworkinAgentState
+    interface IDworkinAgentState with
+        member this.Direction = this.Direction
 
 
 

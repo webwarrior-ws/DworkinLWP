@@ -284,11 +284,11 @@ type TerminationConditionCollision() =
          | None -> false) ||
         ((not this.SelfIntersection) && 
          match collider.Parent with
-         | Some(parent) -> agent = (parent :?> DworkinAgent)
+         | Some(parent) -> (agent :> IDworkinAgentState) = parent
          | None -> false) ||
         (this.IgnoreParent && 
          match collider.Parent, agent.Parent with
-         | Some(cp), Some(ap) -> (cp :?> DworkinAgent) = ap
+         | Some(cp), Some(ap) -> cp = (ap :> IDworkinAgentState)
          | _ -> false)
 
 
@@ -719,12 +719,26 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         override this.Equals(other) =
             this.Id = other.Id
 
-    interface IDworkinAgentState
+    interface IDworkinAgentState with
+        member this.Direction = this.Direction
 
    
  type DworkinAgentFootprint(agent : DworkinAgent) =
+    let direction = agent.Direction
+
     interface IDworkinAgentState with
         member this.Id = agent.Id
+        member this.Direction = direction
+    
+    interface IEquatable<IUnique> with
+        override this.Equals(other) =
+            (this :> IUnique).Id = other.Id
+    
+    override this.Equals(other) =
+        match other with
+        | :? IUnique as otherAgent -> (this :> IUnique).Id = otherAgent.Id
+        | _ -> false
+    override this.GetHashCode() = hash (this :> IUnique).Id
 
 
 type DworkinEnvironment(bounds, randomSeed : int) =
