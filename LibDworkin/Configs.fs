@@ -97,7 +97,7 @@ type BrushStrategySolidJoint() =
 // collider strategies
 [<AbstractClass>]
 type ColliderStrategy() =
-    abstract member Evaluate : DworkinAgent * CollisionLayer -> unit
+    abstract member Evaluate : DworkinAgent * #IColliderAttributes * CollisionLayer -> unit
 
 
 type ColliderStrategyCircles() = 
@@ -118,11 +118,11 @@ type ColliderStrategyCircles() =
         agent.DworkinEnvironment.AddColliderToLayer(collider, layer)
         collider
 
-    override this.Evaluate(agent, layer) =
+    override this.Evaluate(agent, attributes, layer) =
         if agent.DistanceCovered >= this.Offset then
             let mutable pos = agent.Position
             let r = agent.Thickness * 0.5f
-            match agent.Attributes.LastCollider.Get() with
+            match attributes.LastCollider.Get() with
             | Some(collider) -> 
                 let mutable lastCollider = collider :?> CircleCollider
                 let minR = agent.ThicknessFactor * 0.01f
@@ -135,9 +135,9 @@ type ColliderStrategyCircles() =
                 while criterion() do
                     pos <- lerp lastCollider.Center agent.Position (delta / dist)
                     lastCollider <- this.AddCollider(agent, pos, r, layer)
-                agent.Attributes.LastCollider.Set(lastCollider)
+                attributes.LastCollider.Set(lastCollider)
             | None -> 
-                agent.Attributes.LastCollider.Set(CircleCollider(Some(agent.GetFootprint()), pos, 0.0f))
+                attributes.LastCollider.Set(CircleCollider(Some(agent.GetFootprint()), pos, 0.0f))
     
 
 type ColliderStrategySegments() = 
@@ -149,17 +149,17 @@ type ColliderStrategySegments() =
     static member MinLength_ : Lens<ColliderStrategySegments, float32> = 
         (fun x -> x.MinLength), (fun value x -> let y = x.Clone() in y.MinLength <- value; y)
 
-    override this.Evaluate(agent, layer) =
+    override this.Evaluate(agent, attributes, layer) =
         let pos = agent.Position
-        match agent.Attributes.LastCollider.Get() with
+        match attributes.LastCollider.Get() with
         | Some(collider) -> 
             let mutable lastCollider = collider :?> SegmentCollider
             if lastCollider.End.SquaredDistanceTo(pos) >= (squared (this.MinLength * agent.LengthFactor)) then
                 lastCollider <- SegmentCollider(Some(agent.GetFootprint()), lastCollider.End, pos)
                 agent.DworkinEnvironment.AddColliderToLayer(lastCollider, layer)
-                agent.Attributes.LastCollider.Set(lastCollider)
+                attributes.LastCollider.Set(lastCollider)
         | None -> 
-            agent.Attributes.LastCollider.Set(SegmentCollider(Some(agent.GetFootprint()), pos, pos))
+            attributes.LastCollider.Set(SegmentCollider(Some(agent.GetFootprint()), pos, pos))
     
 
 type ColliderStrategy with
@@ -188,7 +188,7 @@ type ColliderOptionsGeneral() =
         (fun x -> x.Strategy), (fun value x -> let y = x.Clone() in y.Strategy <- value; y)
 
     override this.Evaluate(agent) =
-        this.Strategy.Evaluate(agent, this.Layer)
+        this.Strategy.Evaluate(agent, agent.Attributes, this.Layer)
 
 
 type ColliderOptions with

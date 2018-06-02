@@ -446,29 +446,43 @@ type ShapeSpawnOptions() =
         
 
 // agent attributes
-type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
-    struct
-        member this.Get() : 'T option = 
-            match dictionary.TryGetValue(id) with
-            | (true, v) -> Some(v)
-            | (false, _) -> None
-        
-        member this.Get(value : unit -> 'T) : 'T = 
-            match dictionary.TryGetValue(id) with
-            | (true, v) -> v
-            | (false, _) -> value()
-        
-        member this.Set(value : 'T) : unit =
-            dictionary.[id] <- value
-        
-        member this.GetOrSetIfAbsent(value : unit -> 'T) : 'T =
-            match dictionary.TryGetValue(id) with
-            | (true, v) -> v
-            | (false, _) -> 
-                let res = value()
-                dictionary.[id] <- res
-                res
+type IAttributeAccessor<'T> = 
+    interface
+        abstract member Get : unit -> 'T option
+        abstract member Get : (unit -> 'T) -> 'T
+        abstract member Set : 'T -> unit
+        abstract member GetOrSetIfAbsent : (unit -> 'T) -> 'T
     end
+
+
+[<Struct>]
+type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
+    member this.Get() : 'T option = 
+        match dictionary.TryGetValue(id) with
+        | (true, v) -> Some(v)
+        | (false, _) -> None
+        
+    member this.Get(value : unit -> 'T) : 'T = 
+        match dictionary.TryGetValue(id) with
+        | (true, v) -> v
+        | (false, _) -> value()
+        
+    member this.Set(value : 'T) : unit =
+        dictionary.[id] <- value
+        
+    member this.GetOrSetIfAbsent(value : unit -> 'T) : 'T =
+        match dictionary.TryGetValue(id) with
+        | (true, v) -> v
+        | (false, _) -> 
+            let res = value()
+            dictionary.[id] <- res
+            res
+    
+    interface IAttributeAccessor<'T> with
+        member this.Get() = this.Get()
+        member this.Get(value) = this.Get(value)
+        member this.Set(value) = this.Set(value)
+        member this.GetOrSetIfAbsent(value) = this.GetOrSetIfAbsent(value)
 
 
 type AttributesStore() =
@@ -479,6 +493,14 @@ type AttributesStore() =
     member val CanBranch = Dictionary<int, bool>()
     member val BranchInterval = Dictionary<int, NumberRange>()
 
+    
+/// To be used in collider strategies
+[<AllowNullLiteral>]
+type IColliderAttributes = 
+    interface
+        abstract member LastCollider : IAttributeAccessor<Collider>
+    end
+
 
 [<AllowNullLiteral>]
 type Attributes(store: AttributesStore, id : int) =
@@ -488,6 +510,9 @@ type Attributes(store: AttributesStore, id : int) =
     member this.DrawJoint = AttributeAccessor(store.DrawJoint, id)
     member this.CanBranch = AttributeAccessor(store.CanBranch, id)
     member this.BranchInterval = AttributeAccessor(store.BranchInterval, id)
+
+    interface IColliderAttributes with
+        member this.LastCollider = this.LastCollider :> IAttributeAccessor<Collider>
 
 
 let performAction (action : DworkinAgent -> unit) (agent : Agent) : unit =
