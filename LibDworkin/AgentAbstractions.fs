@@ -44,12 +44,15 @@ type Collider(parent : Agent option) =
 type Agent() =
     let mutable age = 0
     let mutable environment : Environment option = None
+    let mutable id = 0
 
     member this.Environment
         with get() : Environment option = environment
         and set(env : Environment option) = 
             environment <- env
             Option.iter this.InitializeIn environment
+    
+    member internal this.Id = id
     
     member this.Age = age
     
@@ -59,7 +62,18 @@ type Agent() =
         | None -> ()
     
     abstract member InitializeIn : Environment -> unit
-    default this.InitializeIn(env) = ()
+    default this.InitializeIn(env) = 
+        id <- env.NextId
+    
+    interface IEquatable<Agent> with
+        override this.Equals(other) =
+            this.Id = other.Id
+    
+    override this.Equals(other) =
+        match other with
+        | :? Agent as otherAgent -> this.Id = otherAgent.Id
+        | _ -> false
+    override this.GetHashCode() = hash this.Id
     
     abstract member LiesWithinBounds : Rectangle -> bool
 
