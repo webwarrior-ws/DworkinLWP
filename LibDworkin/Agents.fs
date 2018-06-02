@@ -519,7 +519,6 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
 
     let mutable random = Random(randomSeed)
 
-    member val private Id = 0 with get, set
     member val ThicknessFactor = 1.0f with get, set
     member val LengthFactor : float32 = 1.0f with get, set
     member val Generation = 1 with get, set
@@ -584,22 +583,6 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     
     member this.DworkinEnvironment : DworkinEnvironment =
         this.Environment.Value :?> DworkinEnvironment
-    
-    override this.InitializeIn(env) =
-        base.InitializeIn(env)
-        this.Id <- env.NextId
-    
-    interface IEquatable<Agent> with
-        override this.Equals(other) =
-            match other with
-            | :? DworkinAgent as otherAgent -> this.Id = otherAgent.Id
-            | _ -> false
-    
-    override this.Equals(other) =
-        match other with
-        | :? DworkinAgent as otherAgent -> this.Id = otherAgent.Id
-        | _ -> false
-    override this.GetHashCode() = hash this.Id
     
     member this.BranchMarks =
         this.Attributes.BranchMarks.GetOrSetIfAbsent(SmallDictionary.Create)
