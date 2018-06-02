@@ -31,6 +31,7 @@ type IDworkinAgentState =
     interface
         inherit  IUnique
         
+        abstract member Direction : Point
     end
 
 

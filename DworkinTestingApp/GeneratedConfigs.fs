@@ -291,9 +291,9 @@ module SpawnConfig =
                 | Some(value) -> 
                     match value.Obstacle.Parent with
                     | None -> this.TerminalConfig.Evaluate(agent)
-                    | Some(:? DworkinAgent as p) when ((abs (min (agent.Direction.AngleWith(p.Direction)) (p.Direction.AngleWith(agent.Direction)))) > Single.HalfPi) ->
+                    | Some(p) when ((abs (min (agent.Direction.AngleWith(p.Direction)) (p.Direction.AngleWith(agent.Direction)))) > Single.HalfPi) ->
                         this.TerminalConfig.Evaluate(agent)
-                    | Some(:? DworkinAgent as p) ->
+                    | Some(p) ->
                         agent.Spawn(
                             agent.Config, 
                             AgentSpawnOptions(Direction=p.Direction), 
