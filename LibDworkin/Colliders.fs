@@ -8,7 +8,7 @@ open OpenTK
 
 
 
-type CircleCollider(parent: Agent option, center: Point, radius: float32) =
+type CircleCollider(parent: IDworkinAgentState option, center: Point, radius: float32) =
     inherit Collider(parent)
 
     let mutable center = center
@@ -30,7 +30,7 @@ type CircleCollider(parent: Agent option, center: Point, radius: float32) =
         Rectangle(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
 
  
-type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, bearing: float32, centralAngle: float32) =
+type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radius: float32, bearing: float32, centralAngle: float32) =
     inherit CircleCollider(parent, center, radius)
 
     static let rightAngles = [| 0.0f; 1.5707963267948966f; 3.141592653589793f; 4.71238898038469f |]
@@ -111,7 +111,7 @@ type CircleSectorCollider(parent: Agent option, center: Point, radius: float32, 
         Rectangle.Encompassing(points)
 
 
-type SegmentCollider(parent: Agent option, p1: Point, p2: Point) =
+type SegmentCollider(parent: IDworkinAgentState option, p1: Point, p2: Point) =
     inherit Collider(parent)
 
     member val Start = p1

@@ -20,8 +20,22 @@ type ICanvas =
     end
 
 
+type IUnique =
+    interface
+        abstract member Id : int
+    end
+
+/// Interface that represents some important information about Dworkin agent.
+/// Used in colliders as information about parent and in DworkinProbeData class.
+type IDworkinAgentState =
+    interface
+        inherit  IUnique
+        
+    end
+
+
 [<AbstractClass>]
-type Collider(parent : Agent option) =
+type Collider(parent : IDworkinAgentState option) =
     interface SpatialIndex.IHasBounds with
         member this.Bounds =
             if this.BoundingBox.IsEmpty then
@@ -65,13 +79,13 @@ type Agent() =
     default this.InitializeIn(env) = 
         id <- env.NextId
     
-    interface IEquatable<Agent> with
+    interface IEquatable<IUnique> with
         override this.Equals(other) =
             this.Id = other.Id
     
     override this.Equals(other) =
         match other with
-        | :? Agent as otherAgent -> this.Id = otherAgent.Id
+        | :? IUnique as otherAgent -> this.Id = otherAgent.Id
         | _ -> false
     override this.GetHashCode() = hash this.Id
     
@@ -80,6 +94,9 @@ type Agent() =
     abstract member Step : ICanvas -> unit
     default this.Step(canvas) =
         age <- age + 1
+    
+    interface IUnique with
+        member this.Id = id
 
 
 [<AbstractClass>]

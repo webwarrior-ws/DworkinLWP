@@ -71,7 +71,7 @@ type CollidingAgentsEnvironment(bounds) =
     
     member this.Collides(collider : Collider, parent : Agent) =
         let criterion (c : Collider) = 
-            (match c.Parent with | Some(p) -> p <> parent | None -> true) && collide collider c
+            (match c.Parent with | Some(p) -> (p :> IUnique) <> (parent :> IUnique) | None -> true) && collide collider c
         quadTree.Query((collider :> IHasBounds).Bounds, criterion)
  
 
@@ -91,7 +91,7 @@ type CollidingAgent() =
         base.Step(canvas)
         
         let r = 1.0f
-        let collider = CircleCollider(Some(this :> Agent), this.Position + this.Direction * r, r-0.1f)
+        let collider = CircleCollider(Some(this :> IDworkinAgentState), this.Position + this.Direction * r, r-0.1f)
         let env = this.Environment.Value :?> CollidingAgentsEnvironment
         
         if env.Random.NextDouble() < 0.1 then
@@ -108,6 +108,8 @@ type CollidingAgent() =
         let currPerp = this.Direction.LeftRotated * r //* (this.Thickness * 0.5f)
         
         canvas.DrawQuad(prevPos + prevPerp, prevPos - prevPerp, this.Position - currPerp, this.Position + currPerp)
+    
+    interface IDworkinAgentState
 
 
 

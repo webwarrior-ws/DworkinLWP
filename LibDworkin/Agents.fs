@@ -247,7 +247,7 @@ type TerminationConditionCollision() =
                 detectorsAccessor.GetOrSetIfAbsent(fun () -> 
                     detectorConfigs |> Array.map (fun each -> 
                         let collider = each.GetCollider()
-                        collider.Parent <- Some(agent :> Agent)
+                        collider.Parent <- Some(agent.GetFootprint())
                         collider))
             
             let sizeFactor = 
@@ -628,6 +628,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         //random <- random.MemberwiseClone() :?> Random
         // cannot copy random. Is it an issue?
         brush <- null
+    
+    member this.GetFootprint() : IDworkinAgentState =
+        DworkinAgentFootprint(this) :> IDworkinAgentState
 
     member this.ResetCache() =
         speed <- Nullable()
@@ -687,7 +690,17 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         config.Termination.Evaluate(this)
         this.Delete()
     
-        
+    interface IEquatable<IUnique> with
+        override this.Equals(other) =
+            this.Id = other.Id
+
+    interface IDworkinAgentState
+
+   
+ type DworkinAgentFootprint(agent : DworkinAgent) =
+    interface IDworkinAgentState with
+        member this.Id = agent.Id
+
 
 type DworkinEnvironment(bounds, randomSeed : int) =
     inherit Environment(bounds)

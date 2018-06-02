@@ -114,12 +114,12 @@ module SpawnConfig =
             let r = (agent.Thickness * this.Radius) / agent.ThicknessFactor
             let collider = 
                 CircleCollider(
-                    Some(agent :> Agent), 
+                    Some(agent :> IDworkinAgentState), 
                     pos + ((agent.Direction * r) * (this.Offset - 0.5f)), 
                     ((r * 0.5f) * this.Proximity) * agent.ThicknessFactor)
             let exit =
                 let predicate (layer : CollisionLayer) (each : Collider) =
-                    (each.Parent <> Some(agent :> Agent)) && ((box agent.Parent) <> (box each.Parent)) && (collide each collider)
+                    (each.Parent <> Some(agent :> IDworkinAgentState)) && ((box agent.Parent) <> (box each.Parent)) && (collide each collider)
                 agent.DworkinEnvironment.QueryColliders(
                     (collider :> IHasBounds).Bounds, 
                     CollisionLayers.All, 
@@ -213,7 +213,7 @@ module SpawnConfig =
                     agent.DworkinEnvironment.QueryColliders(
                         (collider :> IHasBounds).Bounds, 
                         agent.Config.TerminationConditions.Collision.Value.Layers, 
-                        fun layer each -> (each.Parent <> Some(agent :> Agent)) && (collide collider each) )
+                        fun layer each -> (each.Parent <> Some(agent :> IDworkinAgentState)) && (collide collider each) )
                 
                 if not exit then
                     let mutable config = 

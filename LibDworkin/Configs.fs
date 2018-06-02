@@ -114,7 +114,7 @@ type ColliderStrategyCircles() =
         (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
 
     member this.AddCollider(agent : DworkinAgent, pos, r, layer) =
-        let collider = CircleCollider(Some(agent.Copy() :> Agent), pos, r)
+        let collider = CircleCollider(Some(agent.GetFootprint()), pos, r)
         agent.DworkinEnvironment.AddColliderToLayer(collider, layer)
         collider
 
@@ -137,7 +137,7 @@ type ColliderStrategyCircles() =
                     lastCollider <- this.AddCollider(agent, pos, r, layer)
                 agent.Attributes.LastCollider.Set(lastCollider)
             | None -> 
-                agent.Attributes.LastCollider.Set(CircleCollider(Some(agent :> Agent), pos, 0.0f))
+                agent.Attributes.LastCollider.Set(CircleCollider(Some(agent.GetFootprint()), pos, 0.0f))
     
 
 type ColliderStrategySegments() = 
@@ -155,11 +155,11 @@ type ColliderStrategySegments() =
         | Some(collider) -> 
             let mutable lastCollider = collider :?> SegmentCollider
             if lastCollider.End.SquaredDistanceTo(pos) >= (squared (this.MinLength * agent.LengthFactor)) then
-                lastCollider <- SegmentCollider(Some(agent :> Agent), lastCollider.End, pos)
+                lastCollider <- SegmentCollider(Some(agent.GetFootprint()), lastCollider.End, pos)
                 agent.DworkinEnvironment.AddColliderToLayer(lastCollider, layer)
                 agent.Attributes.LastCollider.Set(lastCollider)
         | None -> 
-            agent.Attributes.LastCollider.Set(SegmentCollider(Some(agent :> Agent), pos, pos))
+            agent.Attributes.LastCollider.Set(SegmentCollider(Some(agent.GetFootprint()), pos, pos))
     
 
 type ColliderStrategy with
