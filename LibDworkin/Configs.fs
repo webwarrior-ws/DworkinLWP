@@ -98,7 +98,7 @@ type BrushStrategySolidJoint() =
 // collider strategies
 [<AbstractClass>]
 type ColliderStrategy() =
-    abstract member Evaluate : #IDworkinAgentState * #IColliderAttributes -> Collider[]
+    abstract member Evaluate : #IDworkinAgentState * #IColliderAttributes -> list<Collider>
 
 
 type ColliderStrategyCircles() = 
@@ -128,19 +128,19 @@ type ColliderStrategyCircles() =
                     delta <- (r + lastCollider.Radius) / this.Density
                     dist <- agent.Position.DistanceTo(lastCollider.Center)
                     (r > minR) && ((dist - delta) > 0.0f)
-                let result = ResizeArray<Collider>()
+                let mutable result : Collider list = []
                 while criterion() do
                     pos <- lerp lastCollider.Center agent.Position (delta / dist)
                     lastCollider <- CircleCollider(Some(agent.GetFootprint()), pos, r)
-                    result.Add lastCollider
+                    result <- (lastCollider :> Collider) :: result
                 attributes.LastCollider.Set(lastCollider)
-                result.ToArray()
+                result
             | None -> 
                 let collider = CircleCollider(Some(agent.GetFootprint()), pos, 0.0f)
                 attributes.LastCollider.Set(collider)
-                [| collider |]
+                [ collider ]
         else
-            Array.empty
+            []
     
 
 type ColliderStrategySegments() = 
@@ -160,12 +160,12 @@ type ColliderStrategySegments() =
             if lastCollider.End.SquaredDistanceTo(pos) >= (squared (this.MinLength * agent.LengthFactor)) then
                 lastCollider <- SegmentCollider(Some(agent.GetFootprint()), lastCollider.End, pos)
                 attributes.LastCollider.Set(lastCollider)
-                [| lastCollider |]
-            else Array.empty
+                [ lastCollider ]
+            else []
         | None -> 
             let collider = SegmentCollider(Some(agent.GetFootprint()), pos, pos)
             attributes.LastCollider.Set(collider)
-            [| collider |]
+            [ collider ]
     
 
 type ColliderStrategy with
