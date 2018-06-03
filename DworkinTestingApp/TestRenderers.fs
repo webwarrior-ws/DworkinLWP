@@ -91,7 +91,7 @@ type CollidingAgent() =
         base.Step(canvas)
         
         let r = 1.0f
-        let collider = CircleCollider(Some(this :> IDworkinAgentState), this.Position + this.Direction * r, r-0.1f)
+        let collider = CircleCollider(Some(this.GetFootprint()), this.Position + this.Direction * r, r-0.1f)
         let env = this.Environment.Value :?> CollidingAgentsEnvironment
         
         if env.Random.NextDouble() < 0.1 then
@@ -108,10 +108,18 @@ type CollidingAgent() =
         let currPerp = this.Direction.LeftRotated * r //* (this.Thickness * 0.5f)
         
         canvas.DrawQuad(prevPos + prevPerp, prevPos - prevPerp, this.Position - currPerp, this.Position + currPerp)
-    
-    interface IDworkinAgentState with
-        member this.Direction = this.Direction
 
+    member this.GetFootprint() =
+        // stub
+        { new IDworkinAgentState with
+              member this.Direction = raise (System.NotImplementedException())
+              member this.DistanceCovered = raise (System.NotImplementedException())
+              member this.GetFootprint() = raise (System.NotImplementedException())
+              member this.Id = raise (System.NotImplementedException())
+              member this.LengthFactor = raise (System.NotImplementedException())
+              member this.Position = raise (System.NotImplementedException())
+              member this.Thickness = raise (System.NotImplementedException())
+              member this.ThicknessFactor = raise (System.NotImplementedException()) }
 
 
 type CollidingAgentsTestRenderer(context) =

@@ -87,6 +87,10 @@ type BrushStrategy() =
 [<AbstractClass>]
 type ColliderOptions() = 
     abstract Evaluate : DworkinAgent -> unit
+    default this.Evaluate(agent) =
+        this.Evaluate(agent, agent.Attributes, agent.DworkinEnvironment)
+
+    abstract Evaluate : #IDworkinAgentState * #IColliderAttributes * DworkinEnvironment -> unit
 
 
 [<AbstractClass>]
@@ -720,13 +724,29 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             this.Id = other.Id
 
     interface IDworkinAgentState with
+        member this.DistanceCovered = this.DistanceCovered
+        member this.GetFootprint() = this.GetFootprint()
+        member this.Id = this.Id
+        member this.LengthFactor = this.LengthFactor
+        member this.Position = this.Position
+        member this.Thickness = this.Thickness
+        member this.ThicknessFactor = this.ThicknessFactor
         member this.Direction = this.Direction
 
    
  type DworkinAgentFootprint(agent : DworkinAgent) =
+    let position = agent.Position
     let direction = agent.Direction
+    let thickness = agent.Thickness
+    let distanceCovered = agent.DistanceCovered
 
     interface IDworkinAgentState with
+        member this.DistanceCovered = distanceCovered
+        member this.GetFootprint() = this :> IDworkinAgentState
+        member this.LengthFactor = agent.ThicknessFactor
+        member this.Position = position
+        member this.Thickness = thickness
+        member this.ThicknessFactor = agent.ThicknessFactor
         member this.Id = agent.Id
         member this.Direction = direction
     
