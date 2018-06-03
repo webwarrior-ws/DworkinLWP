@@ -10,6 +10,7 @@ open AgentAbstractions
 open Colliders
 open Agents
 open Brushes
+
 open System
 
 
@@ -97,7 +98,7 @@ type BrushStrategySolidJoint() =
 // collider strategies
 [<AbstractClass>]
 type ColliderStrategy() =
-    abstract member Evaluate : DworkinAgent * #IColliderAttributes * CollisionLayer -> unit
+    abstract member Evaluate : #IDworkinAgentState * #IColliderAttributes -> Collider[]
 
 
 type ColliderStrategyCircles() = 
@@ -113,12 +114,7 @@ type ColliderStrategyCircles() =
     static member Offset_ : Lens<ColliderStrategyCircles, float32> = 
         (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
 
-    member this.AddCollider(agent : DworkinAgent, pos, r, layer) =
-        let collider = CircleCollider(Some(agent.GetFootprint()), pos, r)
-        agent.DworkinEnvironment.AddColliderToLayer(collider, layer)
-        collider
-
-    override this.Evaluate(agent, attributes, layer) =
+    override this.Evaluate(agent, attributes) =
         if agent.DistanceCovered >= this.Offset then
             let mutable pos = agent.Position
             let r = agent.Thickness * 0.5f
@@ -132,12 +128,19 @@ type ColliderStrategyCircles() =
                     delta <- (r + lastCollider.Radius) / this.Density
                     dist <- agent.Position.DistanceTo(lastCollider.Center)
                     (r > minR) && ((dist - delta) > 0.0f)
+                let result = ResizeArray<Collider>()
                 while criterion() do
                     pos <- lerp lastCollider.Center agent.Position (delta / dist)
-                    lastCollider <- this.AddCollider(agent, pos, r, layer)
+                    lastCollider <- CircleCollider(Some(agent.GetFootprint()), pos, r)
+                    result.Add lastCollider
                 attributes.LastCollider.Set(lastCollider)
+                result.ToArray()
             | None -> 
-                attributes.LastCollider.Set(CircleCollider(Some(agent.GetFootprint()), pos, 0.0f))
+                let collider = CircleCollider(Some(agent.GetFootprint()), pos, 0.0f)
+                attributes.LastCollider.Set(collider)
+                [| collider |]
+        else
+            Array.empty
     
 
 type ColliderStrategySegments() = 
@@ -149,17 +152,20 @@ type ColliderStrategySegments() =
     static member MinLength_ : Lens<ColliderStrategySegments, float32> = 
         (fun x -> x.MinLength), (fun value x -> let y = x.Clone() in y.MinLength <- value; y)
 
-    override this.Evaluate(agent, attributes, layer) =
+    override this.Evaluate(agent, attributes) =
         let pos = agent.Position
         match attributes.LastCollider.Get() with
         | Some(collider) -> 
             let mutable lastCollider = collider :?> SegmentCollider
             if lastCollider.End.SquaredDistanceTo(pos) >= (squared (this.MinLength * agent.LengthFactor)) then
                 lastCollider <- SegmentCollider(Some(agent.GetFootprint()), lastCollider.End, pos)
-                agent.DworkinEnvironment.AddColliderToLayer(lastCollider, layer)
                 attributes.LastCollider.Set(lastCollider)
+                [| lastCollider |]
+            else Array.empty
         | None -> 
-            attributes.LastCollider.Set(SegmentCollider(Some(agent.GetFootprint()), pos, pos))
+            let collider = SegmentCollider(Some(agent.GetFootprint()), pos, pos)
+            attributes.LastCollider.Set(collider)
+            [| collider |]
     
 
 type ColliderStrategy with
@@ -171,6 +177,7 @@ type ColliderOptionsNone() =
     inherit ColliderOptions()
     static member val Instance = ColliderOptionsNone()
     override this.Evaluate(agent) = ()
+    override this.Evaluate(agentState, attributes, environment) = ()
 
 
 type ColliderOptionsGeneral() =
@@ -186,9 +193,10 @@ type ColliderOptionsGeneral() =
 
     static member Strategy_ : Lens<ColliderOptionsGeneral, ColliderStrategy> = 
         (fun x -> x.Strategy), (fun value x -> let y = x.Clone() in y.Strategy <- value; y)
-
-    override this.Evaluate(agent) =
-        this.Strategy.Evaluate(agent, agent.Attributes, this.Layer)
+    
+    override this.Evaluate(agentState, attributes, environment) =
+        for collider in this.Strategy.Evaluate(agentState, attributes) do
+            environment.AddColliderToLayer(collider, this.Layer)
 
 
 type ColliderOptions with

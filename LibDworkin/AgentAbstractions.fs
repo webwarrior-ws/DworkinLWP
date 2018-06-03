@@ -32,6 +32,13 @@ type IDworkinAgentState =
         inherit  IUnique
         
         abstract member Direction : Point
+        abstract member Position : Point
+        abstract member Thickness : float32
+        abstract member DistanceCovered : float32
+        abstract member ThicknessFactor : float32
+        abstract member LengthFactor : float32
+
+        abstract member GetFootprint : unit -> IDworkinAgentState
     end
 
 
