@@ -165,9 +165,9 @@ type TerminationConditions =
             (fun x -> x.Collision.Value), (fun value x -> { x with Collision = Some(value) })
 
         member this.AnySatisfy(agent : DworkinAgent) =
-            (match this.Distance with  | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
+            (match this.Distance  with | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
             (match this.Curvature with | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
-            (match this.Collision with | Some(cond) -> cond.Evaluate(agent) | None -> false)
+            (match this.Collision with | Some(cond) -> not agent.NoCollisions && cond.Evaluate(agent) | None -> false)
 
 type TerminationConditionDistance() = 
     static member val Instance = TerminationConditionDistance()
@@ -552,6 +552,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member val LengthFactor : float32 = 1.0f with get, set
     member val Generation = 1 with get, set
     member val GenerationLimit = 50 with get, set
+    member val NoCollisions = false with get, set
     member val Collision : Collision option = None with get, set
     
     member this.Random = random
@@ -700,11 +701,13 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.DworkinEnvironment.SpawnUsingOptions(options)
 
     override this.Step(canvas) =
-        if this.Age = 0 && (match config.TerminationConditions.Collision with | Some(x) -> x.Evaluate(this) | None -> false) then
+        if this.Age = 0 && not this.NoCollisions 
+           && (match config.TerminationConditions.Collision with | Some(x) -> x.Evaluate(this) | None -> false) then
             this.Delete()
         else
             this.Brush.Evaluate(this, canvas)
-            config.ColliderOptions.Evaluate(this)
+            if not this.NoCollisions then 
+                config.ColliderOptions.Evaluate(this)
             if config.TerminationConditions.AnySatisfy(this) then
                 this.Terminate()
             else
@@ -739,6 +742,11 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     let direction = agent.Direction
     let thickness = agent.Thickness
     let distanceCovered = agent.DistanceCovered
+    let mutable id = 0
+    
+    member this.Id 
+        with get() = if id = 0 then agent.Id else id
+        and set(value : int) = id <- value
 
     interface IDworkinAgentState with
         member this.DistanceCovered = distanceCovered
@@ -747,7 +755,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         member this.Position = position
         member this.Thickness = thickness
         member this.ThicknessFactor = agent.ThicknessFactor
-        member this.Id = agent.Id
+        member this.Id = this.Id
         member this.Direction = direction
     
     interface IEquatable<IUnique> with
