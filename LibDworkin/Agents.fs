@@ -740,9 +740,8 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
  type DworkinAgentFootprint(agent : DworkinAgent) =
     let position = agent.Position
     let direction = agent.Direction
-    let thickness = agent.Thickness
     let distanceCovered = agent.DistanceCovered
-    let mutable id = 0
+    let mutable id = 0 // not needed? TODO: revise
     
     member this.Id 
         with get() = if id = 0 then agent.Id else id
@@ -753,7 +752,10 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         member this.GetFootprint() = this :> IDworkinAgentState
         member this.LengthFactor = agent.ThicknessFactor
         member this.Position = position
-        member this.Thickness = thickness
+        member this.Thickness =
+            let s = distanceCovered * DworkinAgentFormula.Factor
+            let t = min (distanceCovered / agent.TotalDistance) 1.0f
+            agent.Config.Thickness.Evaluate(s, t) * agent.ThicknessFactor
         member this.ThicknessFactor = agent.ThicknessFactor
         member this.Id = this.Id
         member this.Direction = direction
