@@ -90,6 +90,12 @@ type OpenTK.Vector2 with
         let theta = angle - p.Theta
         Point(center.X + (r * cos theta), center.Y - (r * sin theta))
     
+    /// Rotate around (0,0)
+    member this.Rotate(angle) =
+        let ca = cos angle
+        let sa = sin angle
+        Point(this.Y * sa + (this.X * ca), this.Y * ca - (this.X * sa))
+    
     member this.Angle =
         atan2 this.Y this.X
     
