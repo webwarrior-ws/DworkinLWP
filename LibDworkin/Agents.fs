@@ -357,8 +357,8 @@ type SpawnOptions() =
                 direction.Value
             else
                 match this.Parent with 
-                | Some(parent) -> parent.Direction.Rotate(this.Angle * parent.FlipFactor, Point(0.0f, 0.0f)) 
-                | None -> Point(0.0f, -1.0f).Rotate(this.Angle, Point(0.0f, 0.0f))
+                | Some(parent) -> parent.Direction.Rotate(this.Angle * parent.FlipFactor) 
+                | None -> Point(0.0f, -1.0f).Rotate(this.Angle)
         and set(point: Point) =
             direction <- Nullable(point)
 
@@ -713,7 +713,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             else
                 let rotation = this.Curvature * this.Speed
                 base.Step(canvas)
-                this.Direction <- this.Direction.Rotate(rotation, Point(0.0f, 0.0f))
+                this.Direction <- this.Direction.Rotate(rotation)
 
                 config.Branching.Evaluate(this)
                 this.ResetCache()

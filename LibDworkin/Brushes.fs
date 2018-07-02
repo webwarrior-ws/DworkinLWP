@@ -41,7 +41,7 @@ type BrushSolidBase() =
         let mutable perpendicular = agent.Direction.LeftRotated * (agent.Thickness * 0.5f)
         let angle = this.GetAngle(agent)
         if angle <> 0.0f then
-            perpendicular <- (perpendicular / (max (cos angle) 0.25f)).Rotate(angle, Point.Zero)
+            perpendicular <- (perpendicular / (max (cos angle) 0.25f)).Rotate(angle)
         let lhs = agent.Position + perpendicular
         let rhs = agent.Position - perpendicular
         match prevPoints with
