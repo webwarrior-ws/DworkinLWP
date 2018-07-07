@@ -90,9 +90,6 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
          
     override this.CalculateBoundingBox() =
         let points = ResizeArray<Point>(5)
-        let intersections =  [| 
-            Point(this.Center.X + this.Radius, this.Center.Y); Point(this.Center.X, this.Center.Y + this.Radius);
-            Point(this.Center.X - this.Radius, this.Center.Y); Point(this.Center.X, this.Center.Y - this.Radius) |]
         
         rightAngles |> (Array.iteri (fun i angle -> 
             let mutable alpha = angle - bearing + (centralAngle * 0.5f)
@@ -100,8 +97,8 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
                 alpha <- alpha + Single.TwoPi
             elif alpha > Single.TwoPi then
                 alpha <- alpha - Single.TwoPi
-            if alpha >= 0.0f && alpha <= centralAngle then
-                points.Add intersections.[i]))
+            if alpha <= centralAngle then
+                points.Add(this.IntersectionPointAt i)))
         
         if points.Count <= 1 then points.Add this.Center
         if points.Count < 4 then 
@@ -109,6 +106,12 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
             points.Add this.R2
         
         Rectangle.Encompassing(points)
+    
+    member inline private this.IntersectionPointAt(i : int) =
+        if PharoCompatibility.isOdd i then
+            Point(((2.0f - (float32 i)) * this.Radius) + this.Center.X, this.Center.Y)
+        else
+            Point(this.Center.X, ((3.0f - (float32 i)) * this.Radius) + this.Center.Y)
 
 
 type SegmentCollider(parent: IDworkinAgentState option, p1: Point, p2: Point) =
@@ -161,7 +164,7 @@ module CollisionTests =
         if Point.Dot(p, p) > (sector.Radius * sector.Radius) then
             false
         else
-            let angle = ((p.Theta - sector.Bearing) + (sector.CentralAngle / 2.0f)) % Single.TwoPi
+            let angle = ((p.Theta - sector.Bearing) + (sector.CentralAngle * 0.5f)) % Single.TwoPi
             (angle >= 0.0f && angle <= sector.CentralAngle) ||
             (segmentSegment sector.Center sector.R1 p1 p2) || 
             (segmentSegment sector.Center sector.R2 p1 p2)
