@@ -208,7 +208,9 @@ type AgentSpeedAdaptive() =
     inherit AgentSpeed()
     static member val Instance = AgentSpeedAdaptive()
     override this.Evaluate(agent) =
-        sqrt (max 0.01f (1.0f - (abs ((agent.Curvature / Single.Pi) * 4.0f))))
+        match agent.Curvature with
+        | 0.0f -> 1.0f
+        | c -> sqrt (max 0.01f (1.0f - (abs (c / Single.Pi * 4.0f))))
     
 
 type AgentSpeedConstant() = 
