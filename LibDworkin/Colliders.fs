@@ -33,8 +33,6 @@ type CircleCollider(parent: IDworkinAgentState option, center: Point, radius: fl
 type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radius: float32, bearing: float32, centralAngle: float32) =
     inherit CircleCollider(parent, center, radius)
 
-    static let rightAngles = [| 0.0f; 1.5707963267948966f; 3.141592653589793f; 4.71238898038469f |]
-
     let mutable bearing = bearing
     let mutable centralAngle = centralAngle
     let mutable r1 = Point.Zero
@@ -89,29 +87,47 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
         r2 <- Point.Zero
          
     override this.CalculateBoundingBox() =
-        let points = ResizeArray<Point>(5)
-        
-        rightAngles |> (Array.iteri (fun i angle -> 
-            let mutable alpha = angle - bearing + (centralAngle * 0.5f)
+        //Highly optimized code.
+        //Start with center (it is always within bounds). 
+        //Check points at 0, 90, 10, 270 degrees and expand bounds by including those that are within the sector.
+        //If not all of these points were included, also include r1 and r2.
+        let mutable result = Rectangle.FromTLRB(this.Center.Y, this.Center.X, this.Center.X, this.Center.Y)
+        let mutable ptsCount = 0
+
+        let angleShift = (centralAngle * 0.5f) - bearing
+        let inline includesAngle angle =
+            let mutable alpha = angle + angleShift
             if alpha < 0.0f then
                 alpha <- alpha + Single.TwoPi
             elif alpha > Single.TwoPi then
                 alpha <- alpha - Single.TwoPi
-            if alpha <= centralAngle then
-                points.Add(this.IntersectionPointAt i)))
+            alpha <= centralAngle
         
-        if points.Count <= 1 then points.Add this.Center
-        if points.Count < 4 then 
-            points.Add this.R1
-            points.Add this.R2
+        if includesAngle 0.0f then
+            result.Right <- this.Center.X + this.Radius
+            ptsCount <- ptsCount + 1
         
-        Rectangle.Encompassing(points)
-    
-    member inline private this.IntersectionPointAt(i : int) =
-        if PharoCompatibility.isOdd i then
-            Point(((2.0f - (float32 i)) * this.Radius) + this.Center.X, this.Center.Y)
-        else
-            Point(this.Center.X, ((3.0f - (float32 i)) * this.Radius) + this.Center.Y)
+        if includesAngle 1.5707963267948966f then
+            result.Bottom <- this.Center.Y + this.Radius
+            ptsCount <- ptsCount + 1
+        
+        if includesAngle 3.141592653589793f then
+            result.Left <- this.Center.X - this.Radius
+            ptsCount <- ptsCount + 1
+        
+        if includesAngle 4.71238898038469f then
+            result.Top <- this.Center.Y - this.Radius
+            ptsCount <- ptsCount + 1
+        
+        if ptsCount < 4 then 
+            let p1 = this.R1
+            let p2 = this.R2
+            result.Top <- min result.Top (min p1.Y p2.Y)
+            result.Left <- min result.Left (min p1.X p2.X)
+            result.Bottom <- max result.Bottom (max p1.Y p2.Y)
+            result.Right <- max result.Right (max p1.X p2.X)
+        
+        result
 
 
 type SegmentCollider(parent: IDworkinAgentState option, p1: Point, p2: Point) =
