@@ -66,7 +66,6 @@ type ProbeData() =
         this.Footprints.Add(aProbeAgent.GetFootprint() :?> DworkinAgentFootprint)
 
 
-
 and DworkinProbeAgent(config, randomSeed, speedFactor : float32, stepsBetweenCollisionCheck : int) =
     inherit DworkinAgent(config, randomSeed)
     
@@ -109,6 +108,7 @@ type ProbeSpawnOptions() =
     inherit AgentSpawnOptions()
     member val SpeedFactor = 1.0f with get, set
     member val StepsBetweenCollisionCheck = 1 with get, set
+
 
 
 type DworkinEnvironment with
