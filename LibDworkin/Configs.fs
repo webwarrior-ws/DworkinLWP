@@ -368,23 +368,34 @@ type BranchingCriterion with
     static member Default = BranchingCriterionInterval_Default() :> BranchingCriterion
     
 
+type PlaceBranchMark =
+    | Always
+    | OnSpawn
+
+
 type BranchingCriterionBased() = 
     inherit BranchingStrategy()
     member val Criterion : BranchingCriterion = BranchingCriterion.Default with get, set
+    member val PlaceBranchMark = PlaceBranchMark.Always with get, set
     member val SpawnConfig : SpawnConfig = SpawnConfig.Default with get, set
 
     member this.Clone() = this.MemberwiseClone() :?> BranchingCriterionBased
 
     static member Criterion_ : Lens<BranchingCriterionBased, BranchingCriterion> = 
         (fun x -> x.Criterion), (fun value x -> let y = x.Clone() in y.Criterion <- value; y)
+    
+    static member PlaceBranchMark_ : Lens<BranchingCriterionBased, PlaceBranchMark> = 
+        (fun x -> x.PlaceBranchMark), (fun value x -> let y = x.Clone() in y.PlaceBranchMark <- value; y)
 
     static member SpawnConfig_ : Lens<BranchingCriterionBased, SpawnConfig> = 
         (fun x -> x.SpawnConfig), (fun value x -> let y = x.Clone() in y.SpawnConfig <- value; y)
 
     override this.Evaluate(agent) =
         if this.Criterion.Evaluate(agent) then
+            let initialAgentsCount = agent.DworkinEnvironment.AgentsCount
             this.SpawnConfig.Evaluate(agent)
-            agent.AddBranchMarkFor(BranchMark(agent.DistanceCovered), this.Criterion.Tag)
+            if this.PlaceBranchMark = Always || agent.DworkinEnvironment.AgentsCount > initialAgentsCount then
+                agent.AddBranchMarkFor(BranchMark(agent.DistanceCovered), this.Criterion.Tag)
     
 
 // termination
