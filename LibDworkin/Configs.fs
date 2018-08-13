@@ -116,27 +116,30 @@ type ColliderStrategyCircles() =
 
     override this.Evaluate(agent, attributes) =
         if agent.DistanceCovered >= this.Offset then
-            let mutable pos = agent.Position
-            let r = agent.Thickness * 0.5f
             match attributes.LastCollider.Get() with
             | Some(collider) -> 
-                let mutable lastCollider = collider :?> CircleCollider
+                let r = agent.Thickness * 0.5f
                 let minR = agent.ThicknessFactor * 0.01f
-                let mutable delta = 0.0f
-                let mutable dist = 0.0f
-                let inline criterion () = 
-                    delta <- (r + lastCollider.Radius) / this.Density
-                    dist <- agent.Position.DistanceTo(lastCollider.Center)
-                    (r > minR) && ((dist - delta) > 0.0f)
-                let mutable result : Collider list = []
-                while criterion() do
-                    pos <- lerp lastCollider.Center agent.Position (delta / dist)
-                    lastCollider <- CircleCollider(Some(agent.GetFootprint()), pos, r)
-                    result <- (lastCollider :> Collider) :: result
-                attributes.LastCollider.Set(lastCollider)
-                result
+                if r < minR then
+                    []
+                else
+                    let mutable lastCollider = collider :?> CircleCollider
+                    let mutable delta = 0.0f
+                    let mutable dist = 0.0f
+                    let inline criterion () = 
+                        delta <- (r + lastCollider.Radius) / this.Density
+                        dist <- agent.Position.DistanceTo(lastCollider.Center)
+                        (dist - delta) > 0.0f
+                    let mutable result : Collider list = []
+                    while criterion() do
+                        let pos = lerp lastCollider.Center agent.Position (delta / dist)
+                        lastCollider <- CircleCollider(Some(agent.GetFootprint()), pos, r)
+                        result <- (lastCollider :> Collider) :: result
+                    if not <| List.isEmpty result then
+                        attributes.LastCollider.Set(lastCollider)
+                    result
             | None -> 
-                let collider = CircleCollider(Some(agent.GetFootprint()), pos, 0.0f)
+                let collider = CircleCollider(Some(agent.GetFootprint()), agent.Position, 0.0f)
                 attributes.LastCollider.Set(collider)
                 [ collider ]
         else
