@@ -699,6 +699,12 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         | Some(_) -> () 
         | None -> options.Seed <- Some(this.Random.Next())
         this.DworkinEnvironment.SpawnUsingOptions(options)
+    
+    /// perform agent rotation and movement
+    member this.MoveAndRotate() =
+        let rotation = this.Curvature * this.Speed
+        base.Step()
+        this.Direction <- this.Direction.Rotate(rotation)
 
     override this.Step(canvas) =
         if this.Age = 0 && not this.NoCollisions 
@@ -711,10 +717,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             if config.TerminationConditions.AnySatisfy(this) then
                 this.Terminate()
             else
-                let rotation = this.Curvature * this.Speed
-                base.Step(canvas)
-                this.Direction <- this.Direction.Rotate(rotation)
-
+                this.MoveAndRotate()
                 config.Branching.Evaluate(this)
                 this.ResetCache()
 
@@ -746,6 +749,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member this.Id 
         with get() = if id = 0 then agent.Id else id
         and set(value : int) = id <- value
+    
+    member this.Config = agent.Config
+    member this.DworkinEnvironment = agent.DworkinEnvironment
 
     interface IDworkinAgentState with
         member this.DistanceCovered = distanceCovered

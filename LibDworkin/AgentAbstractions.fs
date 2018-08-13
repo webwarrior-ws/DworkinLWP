@@ -101,6 +101,10 @@ type Agent() =
 
     abstract member Step : ICanvas -> unit
     default this.Step(canvas) =
+        this.Step()
+    
+    abstract member Step : unit -> unit
+    default this.Step() =
         age <- age + 1
     
     interface IUnique with
@@ -115,8 +119,8 @@ type DelayAgent() =
 
     override this.LiesWithinBounds(bounds) = true
     
-    override this.Step(canvas) =
-        base.Step(canvas)
+    override this.Step() =
+        base.Step()
         if this.ReadyToRelease then
             match this.Environment with
             | Some(env) ->
@@ -151,12 +155,12 @@ type MovingAgent() =
 
     override this.LiesWithinBounds(bounds) = bounds.ContainsPoint(this.Position)
 
-    override this.Step(canvas) =
+    override this.Step() =
         let currSpeed = this.Speed
         this.Position <- this.Position + (this.Direction * currSpeed)
         distanceCovered <- distanceCovered + currSpeed
 
-        base.Step(canvas)
+        base.Step()
 
 
 [<AbstractClass>]
