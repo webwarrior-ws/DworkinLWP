@@ -62,12 +62,19 @@ type Shader(vertexShader, fragmentShader) =
 type BaseRenderer(context : Android.Content.Context) =
     inherit Java.Lang.Object()
 
+    let glVersion = 
+        let activityManager = context.GetSystemService(Android.Content.Context.ActivityService) :?> Android.App.ActivityManager
+        let rawVersion = activityManager.DeviceConfigurationInfo.ReqGlEsVersion
+        (rawVersion >>> 16, rawVersion &&& 0xffff)
+
     // fields
     let mutable shapesVertices = Buffer<Vector2>(128)
     let mutable shapesVertexIndices = Buffer<int>(128)
 
     let mutable maskTexture = 0
+    let mutable maskTextureMultisample = 0
     let mutable maskFrameBuffer = 0
+    let mutable maskFrameBufferMultisample = 0
     let mutable maskRenderBuffer = 0
     let mutable quadVBO = 0
     let mutable maskedImageShader : Shader option = None
@@ -77,6 +84,9 @@ type BaseRenderer(context : Android.Content.Context) =
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
     let mutable scale = Point(1.0f, 1.0f)
+    let mutable canUseAA = glVersion >= (3, 1)
+
+    member this.UsesAA = canUseAA
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     member internal this.MaskTexture = maskTexture
@@ -91,6 +101,9 @@ type BaseRenderer(context : Android.Content.Context) =
         member this.Dispose() = 
             GL.DeleteTexture maskTexture
             GL.DeleteFramebuffers(1, [| maskFrameBuffer |])
+            if this.UsesAA then
+                GL.DeleteTexture maskTextureMultisample
+                GL.DeleteFramebuffers(1, [| maskFrameBufferMultisample |])
             GL.DeleteBuffers(2, [| quadVBO; shapesVBO |])
             GL.DeleteRenderbuffers(1, [| maskRenderBuffer |])
             base.Dispose()
@@ -192,6 +205,26 @@ type BaseRenderer(context : Android.Content.Context) =
         let size = radius * float32(min wallpaperWidth wallpaperHeight) / (min scale.X scale.Y)
         // account for DPI?
         max 6 ( min (int (size * 4.0f)) 120)
+    
+    /// initialize mask texture and framebuffer
+    member private this.InitializeMask() =
+        if maskTexture <> 0 then
+            GL.DeleteTexture maskTexture 
+        maskTexture <- gen1 GL.GenTextures
+        GL.BindTexture(TextureTarget.Texture2D, maskTexture)
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
+                      PixelFormat.Rgb, PixelType.UnsignedShort565, nativeint 0)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+
+        maskFrameBuffer <- gen1 GL.GenFramebuffers
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                TextureTarget.Texture2D, maskTexture, 0)      
+        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+        GL.Clear(ClearBufferMask.ColorBufferBit)
 
     abstract member OnSurfaceChanged : Opengles.IGL10 * int * int -> unit
     default this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
@@ -200,25 +233,30 @@ type BaseRenderer(context : Android.Content.Context) =
         wallpaperWidth <- width
         wallpaperHeight <- height
 
-        if maskTexture <> 0 then
-            GL.DeleteTexture maskTexture
-            
-        maskTexture <- gen1 GL.GenTextures
-        GL.BindTexture(TextureTarget.Texture2D, maskTexture)
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
-                        PixelFormat.Rgb, PixelType.UnsignedShort565, nativeint 0)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
-                
-        maskFrameBuffer <- gen1 GL.GenFramebuffers
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
-        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, maskTexture, 0)
-            
-        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-        GL.Clear(ClearBufferMask.ColorBufferBit)
+        this.InitializeMask()
+
+        if this.UsesAA then
+            try
+                if maskTextureMultisample <> 0 then
+                    GL.DeleteTexture maskTextureMultisample
+                maskTextureMultisample <- gen1 GL.GenTextures
+                Graphics.ES31.GL.BindTexture(Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample)
+                let sampleCount = 2
+                Graphics.ES31.GL.TexStorage2DMultisample(Graphics.ES31.All.Texture2DMultisample, sampleCount, Graphics.ES31.All.Rgb8, 
+                                                         wallpaperWidth, wallpaperHeight, true)
+
+                maskFrameBufferMultisample <- gen1 GL.GenFramebuffers
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBufferMultisample)
+                Graphics.ES31.GL.FramebufferTexture2D(Graphics.ES31.All.Framebuffer, Graphics.ES31.All.ColorAttachment0, 
+                                                      Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample, 0)
+                GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+                GL.Clear(ClearBufferMask.ColorBufferBit)
+            with 
+                | :? System.EntryPointNotFoundException -> // no OpenGL ES 3.1 support
+                    canUseAA <- false
+                    GL.DeleteTexture maskTextureMultisample
+                    if maskFrameBufferMultisample <> 0 then
+                        GL.DeleteFramebuffers(1, [| maskFrameBufferMultisample |])
 
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
@@ -264,7 +302,7 @@ type BaseRenderer(context : Android.Content.Context) =
         GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
         GL.EnableVertexAttribArray(aTexCoords)
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
-        
+
         GL.DrawArrays(BeginMode.Triangles, 0, 6)
         
         GL.DisableVertexAttribArray(aTexCoords)
@@ -273,8 +311,8 @@ type BaseRenderer(context : Android.Content.Context) =
     member this.RenderShapes() =
         if shapesVertexIndices.Size > 0 then
             assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
-
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+            
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, if this.UsesAA then maskFrameBufferMultisample else maskFrameBuffer)
             GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
             GL.UseProgram(shapesDrawingShader.Value.Program)
             let aPos = GL.GetAttribLocation(shapesDrawingShader.Value.Program, "pos")
@@ -292,6 +330,12 @@ type BaseRenderer(context : Android.Content.Context) =
             
             shapesVertices.Reset()
             shapesVertexIndices.Reset()
+
+            if this.UsesAA then
+                Graphics.ES31.GL.BindFramebuffer(Graphics.ES31.FramebufferTarget.ReadFramebuffer, maskFrameBufferMultisample)
+                Graphics.ES31.GL.BindFramebuffer(Graphics.ES31.FramebufferTarget.DrawFramebuffer, maskFrameBuffer)
+                Graphics.ES31.GL.BlitFramebuffer(0, 0, wallpaperWidth, wallpaperHeight, 0, 0, wallpaperWidth, wallpaperHeight, 
+                                                 Graphics.ES31.ClearBufferMask.ColorBufferBit, Graphics.ES31.BlitFramebufferFilter.Nearest)
     
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
