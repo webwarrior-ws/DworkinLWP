@@ -30,7 +30,20 @@ module Helpers =
          1.0f;  1.0f; 
         -1.0f;  1.0f;
         -1.0f; -1.0f;|]
+    
+    let getOrSetIfAbsent (dict : System.Collections.Generic.IDictionary<'K, 'V>) (key : 'K) (value : unit -> 'V) =
+        match dict.TryGetValue(key) with
+        | (true, v) -> v
+        | (false, _) -> 
+            let computedValue = value()
+            dict.[key] <- computedValue
+            computedValue
  
+ type Android.Content.Context with
+    member this.TextFromAsset(filename : string) =
+        use reader = new System.IO.StreamReader(this.Assets.Open(filename))
+        reader.ReadToEnd()
+
 
 type Shader(vertexShader, fragmentShader) =
     // adapted code from OpenTK examples
@@ -56,8 +69,17 @@ type Shader(vertexShader, fragmentShader) =
 
         if !status_code <> 1 then failwith !info
     
+    let uniformLocations = System.Collections.Generic.Dictionary<string, int>()
+    let attributeLocations = System.Collections.Generic.Dictionary<string, int>()
+    
     member this.Program = program
 
+    member this.GetUniformLocation(name : string) =
+        getOrSetIfAbsent uniformLocations name (fun () -> GL.GetUniformLocation(this.Program, name))
+    
+    member this.GetAttributeLocation(name : string) =
+        getOrSetIfAbsent attributeLocations name (fun () -> GL.GetAttribLocation(this.Program, name))
+ 
 
 type BaseRenderer(context : Android.Content.Context) =
     inherit Java.Lang.Object()
@@ -92,10 +114,6 @@ type BaseRenderer(context : Android.Content.Context) =
     member internal this.MaskTexture = maskTexture
     member internal this.MaskFrameBuffer = maskFrameBuffer
     member internal this.QuadVBO = quadVBO
-
-    member this.TextFromAsset(filename : string) =
-        use reader = new System.IO.StreamReader(context.Assets.Open(filename))
-        reader.ReadToEnd()
 
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
@@ -265,8 +283,8 @@ type BaseRenderer(context : Android.Content.Context) =
     default this.OnSurfaceCreated(gl: Opengles.IGL10, config: Egl.EGLConfig) = 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         
-        maskedImageShader <- Some(Shader(this.TextFromAsset "shaders/DrawMaskedImage.vert", this.TextFromAsset "shaders/DrawMaskedImage.frag"))
-        shapesDrawingShader <- Some(Shader(this.TextFromAsset "shaders/DrawShapes.vert", this.TextFromAsset "shaders/DrawShapes.frag"))
+        maskedImageShader <- Some(Shader(context.TextFromAsset "shaders/DrawMaskedImage.vert", context.TextFromAsset "shaders/DrawMaskedImage.frag"))
+        shapesDrawingShader <- Some(Shader(context.TextFromAsset "shaders/DrawShapes.vert", context.TextFromAsset "shaders/DrawShapes.frag"))
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
@@ -296,9 +314,9 @@ type BaseRenderer(context : Android.Content.Context) =
         GL.UseProgram(maskedImageShader.Value.Program)
         GL.ActiveTexture(TextureUnit.Texture0)
         GL.BindTexture(TextureTarget.Texture2D, maskTexture)
-        GL.Uniform1(GL.GetUniformLocation(maskedImageShader.Value.Program, "mask"), 0)
-        GL.Uniform2(GL.GetUniformLocation(maskedImageShader.Value.Program, "screenDimensions"), float32 wallpaperWidth, float32 wallpaperHeight)
-        let aTexCoords = GL.GetAttribLocation(maskedImageShader.Value.Program, "texCoords")
+        GL.Uniform1(maskedImageShader.Value.GetUniformLocation("mask"), 0)
+        GL.Uniform2(maskedImageShader.Value.GetUniformLocation("screenDimensions"), float32 wallpaperWidth, float32 wallpaperHeight)
+        let aTexCoords = maskedImageShader.Value.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
         GL.EnableVertexAttribArray(aTexCoords)
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
@@ -315,7 +333,7 @@ type BaseRenderer(context : Android.Content.Context) =
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, if this.UsesAA then maskFrameBufferMultisample else maskFrameBuffer)
             GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
             GL.UseProgram(shapesDrawingShader.Value.Program)
-            let aPos = GL.GetAttribLocation(shapesDrawingShader.Value.Program, "pos")
+            let aPos = shapesDrawingShader.Value.GetAttributeLocation("pos")
             GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
             GL.BufferData(BufferTarget.ArrayBuffer, 
                           nativeint (shapesVertices.Size * sizeof<Vector2>), 
@@ -341,7 +359,7 @@ type BaseRenderer(context : Android.Content.Context) =
     member this.SetScale(xs : float32, ys : float32) =
         scale <- Point(xs, ys)
         GL.UseProgram(shapesDrawingShader.Value.Program)
-        GL.Uniform2(GL.GetUniformLocation(shapesDrawingShader.Value.Program, "scale"), xs, ys)
+        GL.Uniform2(shapesDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:
