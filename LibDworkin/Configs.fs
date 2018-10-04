@@ -378,6 +378,7 @@ type BranchingCriterionBased() =
     member val Criterion : BranchingCriterion = BranchingCriterion.Default with get, set
     member val PlaceBranchMark = PlaceBranchMark.Always with get, set
     member val SpawnConfig : SpawnConfig = SpawnConfig.Default with get, set
+    member val Delay = 0 with get, set
 
     member this.Clone() = this.MemberwiseClone() :?> BranchingCriterionBased
 
@@ -389,13 +390,38 @@ type BranchingCriterionBased() =
 
     static member SpawnConfig_ : Lens<BranchingCriterionBased, SpawnConfig> = 
         (fun x -> x.SpawnConfig), (fun value x -> let y = x.Clone() in y.SpawnConfig <- value; y)
-
-    override this.Evaluate(agent) =
-        if this.Criterion.Evaluate(agent) then
+    
+    static member Delay_ : Lens<BranchingCriterionBased, int> = 
+        (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
+    
+    member private this.PerformBranchingFor(agent) =
+        match this.PlaceBranchMark with
+        | Always -> this.SpawnConfig.Evaluate(agent) // Branch mark already added in Evaluate() method
+        | OnSpawn ->
             let initialAgentsCount = agent.DworkinEnvironment.AgentsCount
             this.SpawnConfig.Evaluate(agent)
-            if this.PlaceBranchMark = Always || agent.DworkinEnvironment.AgentsCount > initialAgentsCount then
+            if agent.DworkinEnvironment.AgentsCount > initialAgentsCount then
                 agent.AddBranchMarkFor(BranchMark(agent.DistanceCovered), this.Criterion.Tag)
+    
+    override this.Evaluate(agent) =
+        let alwaysPlaceBranchMark = this.PlaceBranchMark = Always
+        if alwaysPlaceBranchMark && not <| this.Criterion.Evaluate(agent) then 
+            ()
+        else
+            if alwaysPlaceBranchMark && this.Criterion.Evaluate(agent) then
+                agent.AddBranchMarkFor(BranchMark(agent.DistanceCovered), this.Criterion.Tag)
+            
+            if this.Delay <= 0 then
+                if alwaysPlaceBranchMark || this.Criterion.Evaluate(agent) then
+                    this.PerformBranchingFor(agent)
+            else
+                let agentSnapshot = agent.Copy()
+                agent.DworkinEnvironment.Delay(
+                    (fun _ -> 
+                        if alwaysPlaceBranchMark || this.Criterion.Evaluate(agentSnapshot) then
+                            this.PerformBranchingFor(agentSnapshot)
+                        None), 
+                    this.Delay)
 
 
 type DworkinBranchingMultivariant() = 
