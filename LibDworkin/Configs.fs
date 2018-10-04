@@ -396,6 +396,19 @@ type BranchingCriterionBased() =
             this.SpawnConfig.Evaluate(agent)
             if this.PlaceBranchMark = Always || agent.DworkinEnvironment.AgentsCount > initialAgentsCount then
                 agent.AddBranchMarkFor(BranchMark(agent.DistanceCovered), this.Criterion.Tag)
+
+
+type DworkinBranchingMultivariant() = 
+    inherit BranchingStrategy()
+    member val Strategies : BranchingStrategy[] = [||] with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> DworkinBranchingMultivariant
+
+    static member Strategies_ : Lens<DworkinBranchingMultivariant, BranchingStrategy[]> = 
+        (fun x -> x.Strategies), (fun value x -> let y = x.Clone() in y.Strategies <- value; y)
+
+    override this.Evaluate(agent) =
+        for each in this.Strategies do each.Evaluate(agent)
     
 
 // termination
