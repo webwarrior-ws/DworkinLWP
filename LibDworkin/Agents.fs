@@ -655,8 +655,6 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         copy
     
     member this.PostCopy() =
-        //random <- random.MemberwiseClone() :?> Random
-        // cannot copy random. Is it an issue?
         brush <- null
     
     member this.GetFootprint() : IDworkinAgentState =
