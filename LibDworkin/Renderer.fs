@@ -62,7 +62,7 @@ type AbstractPlatform() =
 type NETCorePlatform() =
     inherit AbstractPlatform()
     override this.TextFromAsset(filename : string) =
-        failwith "notimplemented"
+        System.IO.File.ReadAllText(@"D:\Projects\DworkinLWP\LibDworkin\Assets\" + filename)
     override this.GLVersion = 
         (3, 1) // for now
 #endif
@@ -373,8 +373,9 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 #if __ANDROID__            
             GL.DrawElements(BeginMode.Triangles, shapesVertexIndices.Size, DrawElementsType.UnsignedInt, shapesVertexIndices.Array)
-#else        
-            GL.DrawElements(PrimitiveType.Triangles, shapesVertexIndices.Size, DrawElementsType.UnsignedShort, shapesVertexIndices.Array)
+#else       
+            Graphics.ES30.GL.DrawElements(Graphics.ES30.PrimitiveType.Triangles, shapesVertexIndices.Size, 
+                                          Graphics.ES30.DrawElementsType.UnsignedInt, shapesVertexIndices.Array)
 #endif
 
             GL.DisableVertexAttribArray(aPos)
@@ -420,8 +421,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         Point(float32(width) / multiple, float32(height) / multiple)
 
 
-type DworkinRenderer(context, environmentConfig : Agents.IDworkinEnvironmentConfig) =
-    inherit BaseRenderer(context)
+type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentConfig) =
+    inherit BaseRenderer(platform)
 
     let mutable environment : Agents.DworkinEnvironment option = None
     

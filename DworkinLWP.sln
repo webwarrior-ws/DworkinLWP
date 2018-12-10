@@ -9,7 +9,9 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LibDworkin", "LibDworkin\Li
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DworkinTestingApp", "DworkinTestingApp\DworkinTestingApp.fsproj", "{4FC67C3A-6AD6-4388-9241-D6C1967639D3}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LibDworkin-PC", "LibDworkin-PC\LibDworkin-PC.fsproj", "{C248EF0D-99E1-4345-AC48-8D9270BC4EBD}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "LibDworkin-PC", "LibDworkin-PC\LibDworkin-PC.fsproj", "{C248EF0D-99E1-4345-AC48-8D9270BC4EBD}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DworkinTestingApp-PC", "DworkinTestingApp-PC\DworkinTestingApp-PC.fsproj", "{5240D1AE-E4AD-449A-BEA5-A8855F08FCCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,6 +39,10 @@ Global
 		{C248EF0D-99E1-4345-AC48-8D9270BC4EBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C248EF0D-99E1-4345-AC48-8D9270BC4EBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C248EF0D-99E1-4345-AC48-8D9270BC4EBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5240D1AE-E4AD-449A-BEA5-A8855F08FCCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5240D1AE-E4AD-449A-BEA5-A8855F08FCCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5240D1AE-E4AD-449A-BEA5-A8855F08FCCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5240D1AE-E4AD-449A-BEA5-A8855F08FCCA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
