@@ -1,8 +1,9 @@
 ﻿module rec LibDworkin.AgentAbstractions
 
+open OpenTK
+
 open Geometry
 
-open OpenTK
 open SpecializedCollections
 open SpatialIndex
 open System

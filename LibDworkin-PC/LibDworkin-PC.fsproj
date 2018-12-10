@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>LibDworkin_PC</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../LibDworkin/Aether.fs" />
+    <Compile Include="../LibDworkin/Geometry.fs" />
+    <Compile Include="../LibDworkin/SpecializedCollections.fs" />
+    <Compile Include="../LibDworkin/PharoCompatibility.fs" />
+    <Compile Include="../LibDworkin/SimplexNoise.fs" />
+    <Compile Include="../LibDworkin/SpatialIndex.fs" />
+    <Compile Include="../LibDworkin/AgentAbstractions.fs" />
+    <Compile Include="../LibDworkin/DelayAgents.fs" />
+    <Compile Include="../LibDworkin/Colliders.fs" />
+    <Compile Include="../LibDworkin/Agents.fs" />
+    <Compile Include="../LibDworkin/Probes.fs" />
+    <Compile Include="../LibDworkin/Brushes.fs" />
+    <Compile Include="../LibDworkin/Configs.fs" />
+    <Compile Include="../LibDworkin/Renderer.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTK.NETCore" Version="1.1.2749.6433" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.5.4" />
+  </ItemGroup>
+
+</Project>

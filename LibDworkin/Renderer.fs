@@ -1,5 +1,8 @@
 ﻿module LibDworkin.Renderer
 
+open OpenTK.Graphics.ES20
+open OpenTK
+
 open Geometry
 open PharoCompatibility
 open SpecializedCollections
@@ -7,11 +10,10 @@ open AgentAbstractions
 
 open Microsoft.FSharp.NativeInterop
 
+#if __ANDROID__
 open Android.Opengl
 open Javax.Microedition.Khronos
-
-open OpenTK.Graphics.ES20
-open OpenTK
+#endif
 
 
 #nowarn "9"
@@ -39,13 +41,33 @@ module Helpers =
             dict.[key] <- computedValue
             computedValue
  
- type Android.Content.Context with
-    member this.TextFromAsset(filename : string) =
-        use reader = new System.IO.StreamReader(this.Assets.Open(filename))
+/// Platform-independent facade used by renderers to load shaders and other stuff
+[<AbstractClass>]
+type AbstractPlatform() =
+    abstract member TextFromAsset : string -> string
+    abstract member GLVersion : int*int
+
+#if __ANDROID__
+ type AndroidPlatform(context : Android.Content.Context) =
+    inherit AbstractPlatform()
+    override this.TextFromAsset(filename : string) =
+        use reader = new System.IO.StreamReader(context.Assets.Open(filename))
         reader.ReadToEnd()
+    
+    override this.GLVersion =
+        let activityManager = context.GetSystemService(Android.Content.Context.ActivityService) :?> Android.App.ActivityManager
+        let rawVersion = activityManager.DeviceConfigurationInfo.ReqGlEsVersion
+        (rawVersion >>> 16, rawVersion &&& 0xffff)
+#else
+type NETCorePlatform() =
+    inherit AbstractPlatform()
+    override this.TextFromAsset(filename : string) =
+        failwith "notimplemented"
+    override this.GLVersion = 
+        (3, 1) // for now
+#endif
 
-
-type Shader(vertexShader, fragmentShader) =
+type Shader(vertexShader : string, fragmentShader : string) =
     // adapted code from OpenTK examples
     let status_code = ref 0
     let info = ref ""
@@ -81,13 +103,11 @@ type Shader(vertexShader, fragmentShader) =
         getOrSetIfAbsent attributeLocations name (fun () -> GL.GetAttribLocation(this.Program, name))
  
 
-type BaseRenderer(context : Android.Content.Context) =
+type BaseRenderer(platform : AbstractPlatform) =
+#if __ANDROID__
     inherit Java.Lang.Object()
-
-    let glVersion = 
-        let activityManager = context.GetSystemService(Android.Content.Context.ActivityService) :?> Android.App.ActivityManager
-        let rawVersion = activityManager.DeviceConfigurationInfo.ReqGlEsVersion
-        (rawVersion >>> 16, rawVersion &&& 0xffff)
+#endif
+    let glVersion = platform.GLVersion
 
     // fields
     let mutable shapesVertices = Buffer<Vector2>(128)
@@ -114,7 +134,7 @@ type BaseRenderer(context : Android.Content.Context) =
     member internal this.MaskTexture = maskTexture
     member internal this.MaskFrameBuffer = maskFrameBuffer
     member internal this.QuadVBO = quadVBO
-
+#if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
             GL.DeleteTexture maskTexture
@@ -130,14 +150,14 @@ type BaseRenderer(context : Android.Content.Context) =
             base.Handle
 
         member this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
-            this.OnSurfaceChanged(gl, width, height)
+            this.OnSurfaceChanged(width, height)
 
         member this.OnSurfaceCreated(gl: Opengles.IGL10, config: Egl.EGLConfig) = 
-            this.OnSurfaceCreated(gl, config)
+            this.OnSurfaceCreated()
 
         member this.OnDrawFrame(gl : Opengles.IGL10) =
-            this.OnDrawFrame(gl)
-    
+            this.OnDrawFrame()
+#endif   
     interface ICanvas with
         member this.DrawTriangle(a, b, c) =
             let currIndex = shapesVertices.Size
@@ -244,8 +264,8 @@ type BaseRenderer(context : Android.Content.Context) =
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
-    abstract member OnSurfaceChanged : Opengles.IGL10 * int * int -> unit
-    default this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
+    abstract member OnSurfaceChanged : int * int -> unit
+    default this.OnSurfaceChanged(width: int, height: int) = 
         // Set the OpenGL viewport to fill the entire surface. 
         GL.Viewport(0, 0, width, height)
         wallpaperWidth <- width
@@ -258,15 +278,25 @@ type BaseRenderer(context : Android.Content.Context) =
                 if maskTextureMultisample <> 0 then
                     GL.DeleteTexture maskTextureMultisample
                 maskTextureMultisample <- gen1 GL.GenTextures
-                Graphics.ES31.GL.BindTexture(Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample)
-                let sampleCount = 2
-                Graphics.ES31.GL.TexStorage2DMultisample(Graphics.ES31.All.Texture2DMultisample, sampleCount, Graphics.ES31.All.Rgb8, 
-                                                         wallpaperWidth, wallpaperHeight, true)
-
                 maskFrameBufferMultisample <- gen1 GL.GenFramebuffers
+                let sampleCount = 2
+#if __ANDROID__
+                Graphics.ES31.GL.BindTexture(Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample)
+                
+                Graphics.ES31.GL.TexStorage2DMultisample(Graphics.ES31.All.Texture2DMultisample, sampleCount, Graphics.ES31.All.Rgb8, 
+                                                         wallpaperWidth, wallpaperHeight, true)                
                 GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBufferMultisample)
                 Graphics.ES31.GL.FramebufferTexture2D(Graphics.ES31.All.Framebuffer, Graphics.ES31.All.ColorAttachment0, 
                                                       Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample, 0)
+#else
+                Graphics.OpenGL.GL.BindTexture(Graphics.OpenGL.TextureTarget.Texture2DMultisample, maskTextureMultisample)
+                
+                Graphics.OpenGL.GL.TexStorage2DMultisample(Graphics.OpenGL.TextureTargetMultisample2d.Texture2DMultisample, sampleCount, 
+                                                           Graphics.OpenGL.SizedInternalFormat.Rgba8,  wallpaperWidth, wallpaperHeight, true)                
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBufferMultisample)
+                Graphics.OpenGL.GL.FramebufferTexture2D(Graphics.OpenGL.FramebufferTarget.Framebuffer, Graphics.OpenGL.FramebufferAttachment.ColorAttachment0, 
+                                                      Graphics.OpenGL.TextureTarget.Texture2DMultisample, maskTextureMultisample, 0)
+#endif
                 GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
                 GL.Clear(ClearBufferMask.ColorBufferBit)
             with 
@@ -279,12 +309,12 @@ type BaseRenderer(context : Android.Content.Context) =
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
     
-    abstract member OnSurfaceCreated : Opengles.IGL10 * Egl.EGLConfig -> unit
-    default this.OnSurfaceCreated(gl: Opengles.IGL10, config: Egl.EGLConfig) = 
+    abstract member OnSurfaceCreated : unit -> unit
+    default this.OnSurfaceCreated() = 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         
-        maskedImageShader <- Some(Shader(context.TextFromAsset "shaders/DrawMaskedImage.vert", context.TextFromAsset "shaders/DrawMaskedImage.frag"))
-        shapesDrawingShader <- Some(Shader(context.TextFromAsset "shaders/DrawShapes.vert", context.TextFromAsset "shaders/DrawShapes.frag"))
+        maskedImageShader <- Some(Shader(platform.TextFromAsset "shaders/DrawMaskedImage.vert", platform.TextFromAsset "shaders/DrawMaskedImage.frag"))
+        shapesDrawingShader <- Some(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
@@ -299,8 +329,8 @@ type BaseRenderer(context : Android.Content.Context) =
         GL.Disable(EnableCap.CullFace)
 
     
-    abstract member OnDrawFrame : Opengles.IGL10 -> unit
-    default this.OnDrawFrame(gl : Opengles.IGL10) =
+    abstract member OnDrawFrame : unit -> unit
+    default this.OnDrawFrame() =
         // Clear the rendering surface. 
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
@@ -341,8 +371,11 @@ type BaseRenderer(context : Android.Content.Context) =
                           BufferUsage.StreamDraw)
             GL.EnableVertexAttribArray(aPos)
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-            
+#if __ANDROID__            
             GL.DrawElements(BeginMode.Triangles, shapesVertexIndices.Size, DrawElementsType.UnsignedInt, shapesVertexIndices.Array)
+#else        
+            GL.DrawElements(PrimitiveType.Triangles, shapesVertexIndices.Size, DrawElementsType.UnsignedShort, shapesVertexIndices.Array)
+#endif
 
             GL.DisableVertexAttribArray(aPos)
             
@@ -350,10 +383,17 @@ type BaseRenderer(context : Android.Content.Context) =
             shapesVertexIndices.Reset()
 
             if this.UsesAA then
+#if __ANDROID__            
                 Graphics.ES31.GL.BindFramebuffer(Graphics.ES31.FramebufferTarget.ReadFramebuffer, maskFrameBufferMultisample)
                 Graphics.ES31.GL.BindFramebuffer(Graphics.ES31.FramebufferTarget.DrawFramebuffer, maskFrameBuffer)
                 Graphics.ES31.GL.BlitFramebuffer(0, 0, wallpaperWidth, wallpaperHeight, 0, 0, wallpaperWidth, wallpaperHeight, 
                                                  Graphics.ES31.ClearBufferMask.ColorBufferBit, Graphics.ES31.BlitFramebufferFilter.Nearest)
+#else
+                Graphics.OpenGL.GL.BindFramebuffer(Graphics.OpenGL.FramebufferTarget.ReadFramebuffer, maskFrameBufferMultisample)
+                Graphics.OpenGL.GL.BindFramebuffer(Graphics.OpenGL.FramebufferTarget.DrawFramebuffer, maskFrameBuffer)
+                Graphics.OpenGL.GL.BlitFramebuffer(0, 0, wallpaperWidth, wallpaperHeight, 0, 0, wallpaperWidth, wallpaperHeight, 
+                                                 Graphics.OpenGL.ClearBufferMask.ColorBufferBit, Graphics.OpenGL.BlitFramebufferFilter.Nearest)
+#endif
     
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
@@ -385,8 +425,8 @@ type DworkinRenderer(context, environmentConfig : Agents.IDworkinEnvironmentConf
 
     let mutable environment : Agents.DworkinEnvironment option = None
     
-    override this.OnSurfaceChanged(gl, width, height) =
-        base.OnSurfaceChanged(gl, width, height)
+    override this.OnSurfaceChanged(width, height) =
+        base.OnSurfaceChanged(width, height)
         // setup scale and offset
         let dimensions = this.GetDimensions(width, height)
         let env = environmentConfig.GetEnvironment(dimensions)
@@ -398,7 +438,7 @@ type DworkinRenderer(context, environmentConfig : Agents.IDworkinEnvironmentConf
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
         this.ClearMask()
     
-    override this.OnDrawFrame(gl : Opengles.IGL10) =
+    override this.OnDrawFrame() =
         match environment with
         | Some(env) -> env.Step(this)
         | None -> ()

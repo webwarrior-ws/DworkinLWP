@@ -1,10 +1,10 @@
 ﻿module LibDworkin.Colliders
 
 
+open OpenTK
+
 open Geometry
 open AgentAbstractions
-
-open OpenTK
 
 
 
