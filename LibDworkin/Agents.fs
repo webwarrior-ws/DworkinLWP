@@ -837,9 +837,13 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         try
             colliders.GetOrSetIfAbsent(layer, fun () -> QuadTree(initialQuadTreeBounds)).Insert(aCollider)
         with
-        | :? OutOfBounds as ex -> 
+        | :? OutOfBounds as ex ->
+#if __ANDROID__       
             Android.Util.Log.Error("Dworkin", sprintf "collider (%A) out of bounds (%A)" ex.objBounds ex.treeBounds)
             |> ignore
+#else
+            ()
+#endif
     
     /// Apply predicate to all colliders within given rect on given layers.
     /// Stop when predicate returns true or all colliders are processed.

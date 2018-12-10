@@ -4,7 +4,6 @@ open System.Collections.Generic
 
 
 type Point = OpenTK.Vector2
-
 type Rectangle = OpenTK.Box2
 
 

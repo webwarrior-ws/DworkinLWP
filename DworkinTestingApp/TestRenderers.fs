@@ -17,8 +17,8 @@ open LibDworkin.SpecializedCollections
 type ShapesTestRenderer(context) =
     inherit BaseRenderer(context)                
     
-    override this.OnSurfaceChanged(gl, w, h) =
-        base.OnSurfaceChanged(gl, w, h)
+    override this.OnSurfaceChanged(w, h) =
+        base.OnSurfaceChanged( w, h)
         let ratio = float32 w / float32 h
         if ratio < 1.0f then
             this.SetScale(0.5f, 0.5f * ratio)
@@ -27,7 +27,7 @@ type ShapesTestRenderer(context) =
         GL.ClearColor(0.5f, 0.0f, 0.5f, 1.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
-    override this.OnDrawFrame(gl : Opengles.IGL10) =
+    override this.OnDrawFrame() =
         let canvas = this :> ICanvas
         //canvas.DrawQuad(Point(1.0f, 1.0f), Point(1.0f, 2.0f), Point(2.0f, 2.0f), Point(2.0f, 1.0f))
         //canvas.DrawQuad(Point(0.0f, 0.0f), Point(0.0f, 1.0f), Point(1.0f, 1.0f), Point(1.0f, 0.0f))
@@ -39,7 +39,7 @@ type ShapesTestRenderer(context) =
 
  type AdvancedShapesTestRenderer(context) =
     inherit ShapesTestRenderer(context)                
-    override this.OnDrawFrame(gl : Opengles.IGL10) =
+    override this.OnDrawFrame() =
         let canvas = this :> ICanvas
         
         //canvas.DrawCircleContour(Point(1.0f, 1.0f), 0.95f, 0.1f)
@@ -127,8 +127,8 @@ type CollidingAgentsTestRenderer(context) =
 
     let mutable environment : CollidingAgentsEnvironment option = None
 
-    override this.OnSurfaceChanged(gl, width, height) =
-        base.OnSurfaceChanged(gl, width, height)
+    override this.OnSurfaceChanged(width, height) =
+        base.OnSurfaceChanged(width, height)
 
         let bounds = Rectangle.FromTLRB(0.0f, 0.0f, float32 width, float32 height)
         let env = CollidingAgentsEnvironment(bounds)
@@ -142,7 +142,7 @@ type CollidingAgentsTestRenderer(context) =
         
         this.SetScale(1.0f / float32 width, 1.0f / float32 height)
 
-    override this.OnDrawFrame(gl : Opengles.IGL10) =
+    override this.OnDrawFrame() =
         environment |> Option.iter (fun env -> env.Step(this))
         this.RenderShapes()
         this.DrawMaskedImage()
@@ -162,8 +162,8 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
                 | _ -> false
             member this.GetHashCode(a) = LanguagePrimitives.PhysicalHash a })
 
-    override this.OnSurfaceChanged(gl, width, height) =
-        base.OnSurfaceChanged(gl, width, height)
+    override this.OnSurfaceChanged(width, height) =
+        base.OnSurfaceChanged(width, height)
         environment <- Some(environmentConfig.GetEnvironment(Point(float32 width, float32 height)))        
         this.SetScale(1.0f / float32 width, 1.0f / float32 height)
 
@@ -178,7 +178,7 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
                 (this :> ICanvas).DrawQuad(segment.Start + perp, segment.Start - perp, segment.End - perp, segment.End + perp)
             | _ -> ()
 
-    override this.OnDrawFrame(gl : Opengles.IGL10) =
+    override this.OnDrawFrame() =
         match environment with
         | Some(env) -> 
             env.Step(this)
