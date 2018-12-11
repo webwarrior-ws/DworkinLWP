@@ -2,13 +2,23 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net461</TargetFramework>
     <RootNamespace>DworkinTestingApp_PC</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+	<Content Include="DefaultSkin.png">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
 	<Compile Include="../DworkinTestingApp/GeneratedConfigs.fs" />
+	<Compile Include="GUI.fs" />
 	<Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup />
+
+  <ItemGroup>
+    <PackageReference Include="Gwen.Renderer.OpenTK" Version="3.0.6001.430" />
   </ItemGroup>
 
   <ItemGroup>
