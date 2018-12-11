@@ -425,17 +425,17 @@ type ShapeSpawnOptions() =
         | None -> ()
 
         let translation = pos + shift
-        let rotation = this.Direction.Theta - Single.HalfPi
+        let rotation = Single.HalfPi - this.Direction.Theta
         let scale = this.FinalScale
 
         let hasRotation = abs rotation > 1e-6f
 
-        if translation = Point() && not hasRotation && scale = 1.0f then
+        if translation = Point.Zero && not hasRotation && scale = 1.0f then
             this.Shape
         else
             let inline transform (p : Point) =
                 let pScaled = p * scale
-                (if hasRotation then pScaled.Rotate(rotation, pScaled) else pScaled) + translation
+                (if hasRotation then pScaled.Rotate(rotation) else pScaled) + translation
         
             match this.Shape with
             | Circle(center, radius) -> Circle(transform center, radius * scale)
