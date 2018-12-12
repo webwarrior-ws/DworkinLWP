@@ -46,6 +46,8 @@ let configGui  =
                     Builders.floatSliderEditor "Angle" GeneratedConfigs.PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
                     Builders.checkboxEditor "Vias" GeneratedConfigs.PCB_RandomPosChips.Vias_;
                     Builders.radioButtonEditor "Endpoints" GeneratedConfigs.PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
+                    Builders.checkboxEditor "Branch" GeneratedConfigs.PCB_RandomPosChips.Branch_;
+                    Builders.checkboxEditor "Octagonal" GeneratedConfigs.PCB_RandomPosChips.Octagonal_;
                 ]
         ]
 
