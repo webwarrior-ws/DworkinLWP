@@ -10,6 +10,27 @@ open LibDworkin.Aether
 
 [<AutoOpen>]
 module Widgets = 
+    [<System.Runtime.InteropServices.DllImport("gdi32.dll")>]
+    extern int GetDeviceCaps(System.IntPtr hdc, int nIndex)
+    type DeviceCap =
+    | VERTRES = 10
+    |DESKTOPVERTRES = 117
+    |LOGPIXELSY = 90
+
+    let scaleFactor = 
+        let g = System.Drawing.Graphics.FromHwnd(System.IntPtr.Zero)
+        let desktop = g.GetHdc()
+        let LogicalScreenHeight = GetDeviceCaps(desktop, int DeviceCap.VERTRES)
+        let PhysicalScreenHeight = GetDeviceCaps(desktop, int DeviceCap.DESKTOPVERTRES)
+        g.ReleaseHdc(desktop)
+        float PhysicalScreenHeight / float LogicalScreenHeight
+    
+    // element size constants
+    let lineHeight = int(20.0 * scaleFactor)
+    let sliderWidth = int(180.0 * scaleFactor)
+    let guiWidth = int(240.0 * scaleFactor)
+    let guiPadding = int(20.0 * scaleFactor)
+
     [<AbstractClass>]
     type AbstractGui() =
         abstract member Update : unit -> unit
@@ -39,7 +60,7 @@ module Widgets =
             let notchCount = if step = 0.0f then 0 else int((maxValue - minValue) / step)
             slider <- new HorizontalSlider(panel, Min=minValue, Max=maxValue, Value=(Optic.get lens (!this.ConfigRef)), 
                                            SnapToNotches=(notchCount>0), NotchCount=notchCount, 
-                                           Width=180, Height=20, Dock=Gwen.Pos.Top)
+                                           Width=sliderWidth, Height=lineHeight, Dock=Gwen.Pos.Top)
             panel.SizeToChildren() |> ignore
     
         override this.Update() =
@@ -52,7 +73,7 @@ module Widgets =
         let mutable checkbox : LabeledCheckBox = null
 
         override this.Initialize(parent) =
-            checkbox <- new LabeledCheckBox(parent, Text=name, IsChecked=(Optic.get lens (!this.ConfigRef)), Height=20, Dock=Gwen.Pos.Top)
+            checkbox <- new LabeledCheckBox(parent, Text=name, IsChecked=(Optic.get lens (!this.ConfigRef)), Height=lineHeight, Dock=Gwen.Pos.Top)
     
         override this.Update() =
             if checkbox <> null && checkbox.IsChecked <> Optic.get lens (!this.ConfigRef) then
@@ -63,7 +84,7 @@ module Widgets =
         let mutable radioGroup : RadioButtonGroup = null
 
         override this.Initialize(parent) =
-            radioGroup <- new RadioButtonGroup(parent, Text=name, Height=20, Dock=Gwen.Pos.Top)
+            radioGroup <- new RadioButtonGroup(parent, Text=name, Height=lineHeight, Dock=Gwen.Pos.Top)
             for opt in options do
                 let radioButton = radioGroup.AddOption(opt.ToString())
                 radioButton.Dock <- Gwen.Pos.Left
@@ -127,8 +148,8 @@ module Widgets =
             canvas <- parent
 
             tabPanel <- new TabControl(canvas)
-            tabPanel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, 20, 20)
-            tabPanel.SetSize(240, canvas.Height * 2 / 3) |> ignore
+            tabPanel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, guiPadding, guiPadding)
+            tabPanel.SetSize(guiWidth, canvas.Height * 2 / 3) |> ignore
 
             for each in configGuis do
                 let panel = new GroupBox(tabPanel)
