@@ -4,9 +4,11 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net461</TargetFramework>
     <RootNamespace>DworkinTestingApp_PC</RootNamespace>
+	<ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
+	<None Include="app.manifest" />
 	<Content Include="DefaultSkin.png">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
