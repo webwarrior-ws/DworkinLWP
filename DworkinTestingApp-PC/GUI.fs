@@ -10,20 +10,14 @@ open LibDworkin.Aether
 
 [<AutoOpen>]
 module Widgets = 
-    [<System.Runtime.InteropServices.DllImport("gdi32.dll")>]
-    extern int GetDeviceCaps(System.IntPtr hdc, int nIndex)
-    type DeviceCap =
-    | VERTRES = 10
-    |DESKTOPVERTRES = 117
-    |LOGPIXELSY = 90
-
+    [<System.Runtime.InteropServices.DllImport("user32.dll")>]
+    extern int GetDpiForSystem()
+    
     let scaleFactor = 
-        let g = System.Drawing.Graphics.FromHwnd(System.IntPtr.Zero)
-        let desktop = g.GetHdc()
-        let LogicalScreenHeight = GetDeviceCaps(desktop, int DeviceCap.VERTRES)
-        let PhysicalScreenHeight = GetDeviceCaps(desktop, int DeviceCap.DESKTOPVERTRES)
-        g.ReleaseHdc(desktop)
-        float PhysicalScreenHeight / float LogicalScreenHeight
+        try
+            float(GetDpiForSystem()) / 96.0;
+        with | _ -> 1.0
+    //failwithf "%f" scaleFactor
     
     // element size constants
     let lineHeight = int(20.0 * scaleFactor)
@@ -74,6 +68,8 @@ module Widgets =
 
         override this.Initialize(parent) =
             checkbox <- new LabeledCheckBox(parent, Text=name, IsChecked=(Optic.get lens (!this.ConfigRef)), Height=lineHeight, Dock=Gwen.Pos.Top)
+            if scaleFactor <> 1.0 then 
+                checkbox.Children.[0].Width <- checkbox.GetChildrenSize().Y
     
         override this.Update() =
             if checkbox <> null && checkbox.IsChecked <> Optic.get lens (!this.ConfigRef) then
@@ -84,10 +80,13 @@ module Widgets =
         let mutable radioGroup : RadioButtonGroup = null
 
         override this.Initialize(parent) =
-            radioGroup <- new RadioButtonGroup(parent, Text=name, Height=lineHeight, Dock=Gwen.Pos.Top)
+            radioGroup <- new RadioButtonGroup(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
+            radioGroup.AutoSizeToContents <- false
             for opt in options do
                 let radioButton = radioGroup.AddOption(opt.ToString())
-                radioButton.Dock <- Gwen.Pos.Left
+                radioButton.Dock <- Gwen.Pos.Left ||| Gwen.Pos.CenterH
+                if scaleFactor <> 1.0 then 
+                    radioButton.Margin <- Margin(0, lineHeight*3/4, 0, 0)
             let currValue = Optic.get lens (!this.ConfigRef)
             radioGroup.SetSelection(List.findIndex (fun each -> each = currValue) options)
         
