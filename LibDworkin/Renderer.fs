@@ -132,7 +132,8 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     member internal this.MaskTexture = maskTexture
-    member internal this.MaskFrameBuffer = maskFrameBuffer
+    /// Use this to draw to mask
+    member internal this.MaskFrameBuffer = if this.UsesAA then maskFrameBufferMultisample else maskFrameBuffer
     member internal this.QuadVBO = quadVBO
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
@@ -335,7 +336,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
     member this.ClearMask() =
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.MaskFrameBuffer)
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
@@ -360,7 +361,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         if shapesVertexIndices.Size > 0 then
             assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
             
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, if this.UsesAA then maskFrameBufferMultisample else maskFrameBuffer)
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.MaskFrameBuffer)
             GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
             GL.UseProgram(shapesDrawingShader.Value.Program)
             let aPos = shapesDrawingShader.Value.GetAttributeLocation("pos")
@@ -424,20 +425,30 @@ type BaseRenderer(platform : AbstractPlatform) =
 type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentConfig) =
     inherit BaseRenderer(platform)
 
+    let mutable environmentConfig = environmentConfig
     let mutable environment : Agents.DworkinEnvironment option = None
+
+    member this.EnvironmentConfig 
+        with get() : Agents.IDworkinEnvironmentConfig = environmentConfig
+        and set(config : Agents.IDworkinEnvironmentConfig) =
+            environmentConfig <- config
+            this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
-    override this.OnSurfaceChanged(width, height) =
-        base.OnSurfaceChanged(width, height)
-        // setup scale and offset
-        let dimensions = this.GetDimensions(width, height)
+    member this.ResetEnvironment(dimensions : Point) =
+        this.ClearMask()
         let env = environmentConfig.GetEnvironment(dimensions)
         environment <- Some(env)
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
             env.Step(this)
+
+    override this.OnSurfaceChanged(width, height) =
+        base.OnSurfaceChanged(width, height)
+        // setup scale and offset
+        let dimensions = this.GetDimensions(width, height)
+        this.ResetEnvironment(dimensions)
         
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
-        this.ClearMask()
     
     override this.OnDrawFrame() =
         match environment with
