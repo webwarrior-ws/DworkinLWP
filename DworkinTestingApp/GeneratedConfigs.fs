@@ -382,7 +382,9 @@ module SpawnConfig =
                     if this.StartWithVias then
                         let termination_terminalConfig_ = termination_spawnConfig_ >-> cast<SpawnConfig, PCBTraceLengthLimited> >-> terminalConfig_
                         agent.Spawn(
-                            this.Config|> Optic.set (termination_terminalConfig_ >-> spawnCollider_) false, 
+                            this.Config
+                                |> Optic.set (termination_terminalConfig_ >-> spawnCollider_) false
+                                |> Optic.set totalDistance_ 0.0f, 
                             AgentSpawnOptions(
                                 Seed=Some(1),
                                 OffsetSideways=dx,
@@ -461,7 +463,7 @@ module SpawnConfig =
                 let shape = Polygon(points.ToArray()) 
                 let paint = { Fill=this.Appearance = "filled"; StrokeWidth=this.GroupConfig.Config.Thickness.Evaluate(0.0f, 0.0f) * agent.ThicknessFactor }
                 agent.DworkinEnvironment.SpawnShape(shape, ShapeSpawnOptions(Position=agent.Position, Direction=agent.Direction, Paint=paint))
-
+            
             points.Add(points.First)
             points 
                 |> Seq.pairwise 
