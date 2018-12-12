@@ -191,24 +191,14 @@ type TerminationConditionCurvature() =
         abs agent.Curvature > this.MaxCurvature
 
 type TerminationConditionCollision() = 
-    let mutable secondaryDetector : CollisionDetectorConfig option = None
-
     member val DetectorSize = DetectorSize.Relative with get, set
     member val Handler : CollisionHandler option = None with get, set
     member val IgnoreParent = false with get, set
     member val Layers = CollisionLayers.All with get, set
     member val MinDistance = 0.0f with get, set
     member val PrimaryDetector = CollisionDetectorConfig.Default with get, set
+    member val SecondaryDetector : CollisionDetectorConfig option = None with get, set
     member val SelfIntersection = true with get, set
-
-    member this.SecondaryDetector 
-        with get() = secondaryDetector
-        and set(anObject : CollisionDetectorConfig option) =
-            secondaryDetector <- 
-                match anObject with
-                | Some(detector) when Option.isNone secondaryDetector ->
-                    Some({ detector with Distance=3.0f; Angle=30.0f })
-                | _ -> anObject
 
     member this.Clone() = this.MemberwiseClone() :?> TerminationConditionCollision
 
