@@ -13,6 +13,8 @@ open LibDworkin.Aether
 type AbstractGui() =
     abstract member Update : unit -> unit
     abstract member Initialize : Base -> unit
+    abstract member ToggleVisibility : unit -> unit
+    default this.ToggleVisibility() = ()
 
 
 [<AbstractClass>]
@@ -120,10 +122,14 @@ type EnviromentConfigChooserGui(renderer : DworkinRenderer, configGuis : IEnviro
                 lastTabName <- tabPanel.CurrentButton.Name
             else
                 currConfigGui.Update()
+    
+    override this.ToggleVisibility() =
+        if tabPanel <> null then
+            if tabPanel.IsVisible then tabPanel.Hide() else tabPanel.Show()
 
 
 
-type Window(width : int, height : int, ?guis : AbstractGui list) as this =
+type Window(width : int, height : int, guis : AbstractGui list) as this =
     inherit GameWindow(width, height)
 
     let input = Gwen.Input.OpenTK(this)
@@ -132,10 +138,7 @@ type Window(width : int, height : int, ?guis : AbstractGui list) as this =
     let canvas = new Canvas(skin)
 
     member this.Canvas = canvas
-    member this.Guis = 
-        match guis with
-        | Some(lst) -> lst
-        | None -> []
+    member this.Guis = guis
     
     override this.OnLoad(e) =
         skin.DefaultFont <- new Font(renderer, "Arial", 10)
