@@ -23,6 +23,7 @@ type CircleCollider(parent: IDworkinAgentState option, center: Point, radius: fl
     member this.Radius
         with get() : float32 = radius
         and set(num: float32) =
+            assert (num > 0.0f)
             radius <- num
             this.FlushCache()
     
@@ -38,7 +39,7 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
     let mutable r1 = Point.Zero
     let mutable r2 = Point.Zero
 
-    new() = CircleSectorCollider(None, Point(), 0.0f, 0.0f, Single.TwoPi)
+    new() = CircleSectorCollider(None, Point.Zero, 0.0f, 0.0f, Single.TwoPi)
 
     member this.Bearing
         with get() : float32 = bearing

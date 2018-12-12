@@ -17,9 +17,9 @@ module Widgets =
         abstract member ToggleVisibility : unit -> unit
         default this.ToggleVisibility() = ()
 
-
+    /// Base class for editors that edit Dworkin config properties
     [<AbstractClass>]
-    type EnvironmentPropertyGui<'TConfig>() =
+    type ConfigPropertyEditor<'TConfig>() =
         inherit AbstractGui()
 
         let mutable configRef : 'TConfig ref option = None
@@ -28,8 +28,8 @@ module Widgets =
             and set(reference : 'TConfig ref) = configRef <- Some(reference)
 
 
-    type FloatSliderPropertyGui<'TConfig>(name : string, lens : Lens<'TConfig, float32>, minValue: float32, maxValue: float32, step: float32) =
-        inherit EnvironmentPropertyGui<'TConfig>()
+    type FloatSliderPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, float32>, minValue: float32, maxValue: float32, step: float32) =
+        inherit ConfigPropertyEditor<'TConfig>()
         let mutable slider : HorizontalSlider = null
 
         override this.Initialize(parent) =
@@ -47,8 +47,8 @@ module Widgets =
                 this.ConfigRef := Optic.set lens slider.Value (!this.ConfigRef)
  
 
-     type CheckboxPropertyGui<'TConfig>(name : string, lens : Lens<'TConfig, bool>) =
-        inherit EnvironmentPropertyGui<'TConfig>()
+     type CheckboxPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, bool>) =
+        inherit ConfigPropertyEditor<'TConfig>()
         let mutable checkbox : LabeledCheckBox = null
 
         override this.Initialize(parent) =
@@ -58,8 +58,8 @@ module Widgets =
             if checkbox <> null && checkbox.IsChecked <> Optic.get lens (!this.ConfigRef) then
                 this.ConfigRef := Optic.set lens checkbox.IsChecked (!this.ConfigRef)
      
-     type RadioButtonPropertyGui<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
-        inherit EnvironmentPropertyGui<'TConfig>()
+     type RadioButtonPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
+        inherit ConfigPropertyEditor<'TConfig>()
         let mutable radioGroup : RadioButtonGroup = null
 
         override this.Initialize(parent) =
@@ -77,19 +77,19 @@ module Widgets =
                 if currValue <> options.[currIndex] then
                     this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
 
-
+    /// Superclass of EnvironmentConfigEditor needed only because it's not parametrized by config type
     [<AbstractClass>]
-    type IEnvironmentConfigGui() =
+    type IEnvironmentConfigEditor() =
         inherit AbstractGui()
         abstract Renderer : DworkinRenderer option with get, set
         abstract Name : string with get
         abstract SetConfig : unit -> unit
 
 
-    type EnvironmentConfigGui<'TConfig when 'TConfig :> DworkinEnvironmentConfig>(name : string, 
-                                                                                  config : 'TConfig, 
-                                                                                  propertyGuis : EnvironmentPropertyGui<'TConfig> list) =
-        inherit IEnvironmentConfigGui()
+    type EnvironmentConfigEditor<'TConfig when 'TConfig :> DworkinEnvironmentConfig>(name : string, 
+                                                                                     config : 'TConfig, 
+                                                                                     propertyGuis : ConfigPropertyEditor<'TConfig> list) =
+        inherit IEnvironmentConfigEditor()
         let configRef = ref config
         let mutable lastConfig = config
 
@@ -116,7 +116,7 @@ module Widgets =
                 lastConfig <- !configRef
 
 
-    type EnviromentConfigChooserGui(renderer : DworkinRenderer, configGuis : IEnvironmentConfigGui list) = 
+    type EnviromentConfigChooser(renderer : DworkinRenderer, configGuis : IEnvironmentConfigEditor list) = 
         inherit AbstractGui()
 
         let mutable canvas : Base = null 
@@ -137,7 +137,6 @@ module Widgets =
                 tabButton.UserData <- each
                 panel.AutoSizeToContents <- true
                 panel.ShouldDrawBackground <- true
-                //panel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, 10, 10)
 
                 each.Renderer <- Some(renderer)
                 each.Initialize(panel)
@@ -148,7 +147,7 @@ module Widgets =
     
         override this.Update() = 
             if tabPanel <> null then
-                let currConfigGui = tabPanel.CurrentButton.UserData :?> IEnvironmentConfigGui
+                let currConfigGui = tabPanel.CurrentButton.UserData :?> IEnvironmentConfigEditor
                 if lastTabName <> tabPanel.CurrentButton.Name then
                     currConfigGui.SetConfig()
                     lastTabName <- tabPanel.CurrentButton.Name
@@ -207,17 +206,17 @@ type Window(width : int, height : int, guis : AbstractGui list) as this =
 
 /// Helper functions to make GUI Widgets
 module Builders =
-    let environmentChooser (renderer : DworkinRenderer) (configGuis : IEnvironmentConfigGui list) =
-        EnviromentConfigChooserGui(renderer, configGuis)
+    let environmentChooser (renderer : DworkinRenderer) (configGuis : IEnvironmentConfigEditor list) =
+        EnviromentConfigChooser(renderer, configGuis)
     
-    let environmentEditor (name : string) (config : 'TConfig) (propertyGuis : EnvironmentPropertyGui<'TConfig> list) =
-        EnvironmentConfigGui(name, config, propertyGuis)
+    let environmentEditor (name : string) (config : 'TConfig) (propertyGuis : ConfigPropertyEditor<'TConfig> list) =
+        EnvironmentConfigEditor(name, config, propertyGuis)
     
     let floatSliderEditor (name : string) (lens : Lens<'TConfig, float32>) (minValue : float32) (maxValue : float32) (step : float32) =
-        FloatSliderPropertyGui(name, lens, minValue, maxValue, step)
+        FloatSliderPropertyEditor(name, lens, minValue, maxValue, step)
     
     let checkboxEditor (name : string) (lens : Lens<'TConfig, bool>) =
-        CheckboxPropertyGui(name , lens)
+        CheckboxPropertyEditor(name , lens)
     
     let radioButtonEditor (name : string) (lens : Lens<'TConfig, 'TValue>) (options: 'TValue list) =
-        RadioButtonPropertyGui(name, lens, options)
+        RadioButtonPropertyEditor(name, lens, options)
