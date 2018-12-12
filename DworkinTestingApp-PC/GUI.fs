@@ -1,4 +1,4 @@
-module rec GUI
+module GUI
 
 open OpenTK
 open Gwen
@@ -8,124 +8,156 @@ open LibDworkin.Configs
 open LibDworkin.Aether
 
 
-
-[<AbstractClass>]
-type AbstractGui() =
-    abstract member Update : unit -> unit
-    abstract member Initialize : Base -> unit
-    abstract member ToggleVisibility : unit -> unit
-    default this.ToggleVisibility() = ()
-
-
-[<AbstractClass>]
-type EnvironmentPropertyGui<'TConfig>() =
-    inherit AbstractGui()
-
-    let mutable configRef : 'TConfig ref option = None
-    member this.ConfigRef 
-        with get() = configRef.Value
-        and set(reference : 'TConfig ref) = configRef <- Some(reference)
+[<AutoOpen>]
+module Widgets = 
+    [<AbstractClass>]
+    type AbstractGui() =
+        abstract member Update : unit -> unit
+        abstract member Initialize : Base -> unit
+        abstract member ToggleVisibility : unit -> unit
+        default this.ToggleVisibility() = ()
 
 
-type FloatSliderPropertyGui<'TConfig>(name : string, lens : Lens<'TConfig, float32>, minValue: float32, maxValue: float32, step: float32) =
-    inherit EnvironmentPropertyGui<'TConfig>()
-    let mutable slider : HorizontalSlider = null
+    [<AbstractClass>]
+    type EnvironmentPropertyGui<'TConfig>() =
+        inherit AbstractGui()
 
-    override this.Initialize(parent) =
-        let panel = new GroupBox(parent)
-        panel.Text <- name
-        panel.AutoSizeToContents <- true
-        //panel.ShouldDrawBackground <- true
-        //panel.Position(Gwen.Pos.Top, 5, 5)
-        let notchCount = if step = 0.0f then 0 else int((maxValue - minValue) / step)
-        slider <- new HorizontalSlider(panel, Min=minValue, Max=maxValue, Value=(Optic.get lens (!this.ConfigRef)), 
-                                       SnapToNotches=(notchCount>0), NotchCount=notchCount, 
-                                       Width=180, Height=20, Dock=Gwen.Pos.Top)
-        panel.SizeToChildren() |> ignore
+        let mutable configRef : 'TConfig ref option = None
+        member this.ConfigRef 
+            with get() = configRef.Value
+            and set(reference : 'TConfig ref) = configRef <- Some(reference)
+
+
+    type FloatSliderPropertyGui<'TConfig>(name : string, lens : Lens<'TConfig, float32>, minValue: float32, maxValue: float32, step: float32) =
+        inherit EnvironmentPropertyGui<'TConfig>()
+        let mutable slider : HorizontalSlider = null
+
+        override this.Initialize(parent) =
+            let panel = new GroupBox(parent, Dock=Gwen.Pos.Top)
+            panel.Text <- name
+            panel.AutoSizeToContents <- true
+            let notchCount = if step = 0.0f then 0 else int((maxValue - minValue) / step)
+            slider <- new HorizontalSlider(panel, Min=minValue, Max=maxValue, Value=(Optic.get lens (!this.ConfigRef)), 
+                                           SnapToNotches=(notchCount>0), NotchCount=notchCount, 
+                                           Width=180, Height=20, Dock=Gwen.Pos.Top)
+            panel.SizeToChildren() |> ignore
     
-    override this.Update() =
-        if slider <> null && slider.Value <> Optic.get lens (!this.ConfigRef) then
-            this.ConfigRef := Optic.set lens slider.Value (!this.ConfigRef)
+        override this.Update() =
+            if slider <> null && slider.Value <> Optic.get lens (!this.ConfigRef) then
+                this.ConfigRef := Optic.set lens slider.Value (!this.ConfigRef)
  
 
-[<AbstractClass>]
-type IEnvironmentConfigGui() =
-    inherit AbstractGui()
-    abstract Renderer : DworkinRenderer option with get, set
-    abstract Name : string with get
-    abstract SetConfig : unit -> unit
+     type CheckboxPropertyGui<'TConfig>(name : string, lens : Lens<'TConfig, bool>) =
+        inherit EnvironmentPropertyGui<'TConfig>()
+        let mutable checkbox : LabeledCheckBox = null
 
-
-type EnvironmentConfigGui<'TConfig when 'TConfig :> DworkinEnvironmentConfig>(name : string, config : 'TConfig, propertyGuis : EnvironmentPropertyGui<'TConfig> list) =
-    inherit IEnvironmentConfigGui()
-    let configRef = ref config
-    let mutable lastConfig = config
-
-    override val Renderer : DworkinRenderer option = None with get, set
+        override this.Initialize(parent) =
+            checkbox <- new LabeledCheckBox(parent, Text=name, IsChecked=(Optic.get lens (!this.ConfigRef)), Height=20, Dock=Gwen.Pos.Top)
     
-    override this.Name = name
-    member this.Config = !configRef
+        override this.Update() =
+            if checkbox <> null && checkbox.IsChecked <> Optic.get lens (!this.ConfigRef) then
+                this.ConfigRef := Optic.set lens checkbox.IsChecked (!this.ConfigRef)
+     
+     type RadioButtonPropertyGui<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
+        inherit EnvironmentPropertyGui<'TConfig>()
+        let mutable radioGroup : RadioButtonGroup = null
 
-    override this.Initialize(panel : Base) =
-        for gui in propertyGuis do 
-            gui.ConfigRef <- configRef
-            gui.Initialize(panel)
-    
-    override this.SetConfig() =
-        match this.Renderer with
-        | Some(renderer) -> renderer.EnvironmentConfig <- !configRef
-        | None -> ()
-
-    override this.Update() = 
-        for gui in propertyGuis do 
-            gui.Update()
-        if not(Unchecked.equals lastConfig !configRef) then
-            this.SetConfig()
-            lastConfig <- !configRef
-
-
-type EnviromentConfigChooserGui(renderer : DworkinRenderer, configGuis : IEnvironmentConfigGui list) = 
-    inherit AbstractGui()
-
-    let mutable canvas : Base = null 
-    let mutable lastTabName = ""
-    let mutable tabPanel : TabControl = null
-
-    override this.Initialize(parent : Base) =
-        canvas <- parent
-
-        tabPanel <- new TabControl(canvas)
-        tabPanel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, 20, 20)
-        tabPanel.SetSize(240, canvas.Height * 2 / 3) |> ignore
-
-        for each in configGuis do
-            let panel = new GroupBox(tabPanel)
-            let tabButton = tabPanel.AddPage(each.Name, panel)
-            tabButton.Name <- each.Name
-            tabButton.UserData <- each
-            panel.AutoSizeToContents <- true
-            panel.ShouldDrawBackground <- true
-            //panel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, 10, 10)
-
-            each.Renderer <- Some(renderer)
-            each.Initialize(panel)
-
-            panel.SizeToChildren() |> ignore
+        override this.Initialize(parent) =
+            radioGroup <- new RadioButtonGroup(parent, Text=name, Height=20, Dock=Gwen.Pos.Top)
+            for opt in options do
+                let radioButton = radioGroup.AddOption(opt.ToString())
+                radioButton.Dock <- Gwen.Pos.Left
+            let currValue = Optic.get lens (!this.ConfigRef)
+            radioGroup.SetSelection(List.findIndex (fun each -> each = currValue) options)
         
-        lastTabName <- tabPanel.CurrentButton.Name
+        override this.Update() =
+            if radioGroup <> null then
+                let currIndex = radioGroup.SelectedIndex
+                let currValue = Optic.get lens (!this.ConfigRef)
+                if currValue <> options.[currIndex] then
+                    this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
+
+
+    [<AbstractClass>]
+    type IEnvironmentConfigGui() =
+        inherit AbstractGui()
+        abstract Renderer : DworkinRenderer option with get, set
+        abstract Name : string with get
+        abstract SetConfig : unit -> unit
+
+
+    type EnvironmentConfigGui<'TConfig when 'TConfig :> DworkinEnvironmentConfig>(name : string, 
+                                                                                  config : 'TConfig, 
+                                                                                  propertyGuis : EnvironmentPropertyGui<'TConfig> list) =
+        inherit IEnvironmentConfigGui()
+        let configRef = ref config
+        let mutable lastConfig = config
+
+        override val Renderer : DworkinRenderer option = None with get, set
     
-    override this.Update() = 
-        if tabPanel <> null then
-            let currConfigGui = tabPanel.CurrentButton.UserData :?> IEnvironmentConfigGui
-            if lastTabName <> tabPanel.CurrentButton.Name then
-                currConfigGui.SetConfig()
-                lastTabName <- tabPanel.CurrentButton.Name
-            else
-                currConfigGui.Update()
+        override this.Name = name
+        member this.Config = !configRef
+
+        override this.Initialize(panel : Base) =
+            for gui in propertyGuis do 
+                gui.ConfigRef <- configRef
+                gui.Initialize(panel)
     
-    override this.ToggleVisibility() =
-        if tabPanel <> null then
-            if tabPanel.IsVisible then tabPanel.Hide() else tabPanel.Show()
+        override this.SetConfig() =
+            match this.Renderer with
+            | Some(renderer) -> renderer.EnvironmentConfig <- !configRef
+            | None -> ()
+
+        override this.Update() = 
+            for gui in propertyGuis do 
+                gui.Update()
+            if not(Unchecked.equals lastConfig !configRef) then
+                this.SetConfig()
+                lastConfig <- !configRef
+
+
+    type EnviromentConfigChooserGui(renderer : DworkinRenderer, configGuis : IEnvironmentConfigGui list) = 
+        inherit AbstractGui()
+
+        let mutable canvas : Base = null 
+        let mutable lastTabName = ""
+        let mutable tabPanel : TabControl = null
+
+        override this.Initialize(parent : Base) =
+            canvas <- parent
+
+            tabPanel <- new TabControl(canvas)
+            tabPanel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, 20, 20)
+            tabPanel.SetSize(240, canvas.Height * 2 / 3) |> ignore
+
+            for each in configGuis do
+                let panel = new GroupBox(tabPanel)
+                let tabButton = tabPanel.AddPage(each.Name, panel)
+                tabButton.Name <- each.Name
+                tabButton.UserData <- each
+                panel.AutoSizeToContents <- true
+                panel.ShouldDrawBackground <- true
+                //panel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, 10, 10)
+
+                each.Renderer <- Some(renderer)
+                each.Initialize(panel)
+
+                panel.SizeToChildren() |> ignore
+        
+            lastTabName <- tabPanel.CurrentButton.Name
+    
+        override this.Update() = 
+            if tabPanel <> null then
+                let currConfigGui = tabPanel.CurrentButton.UserData :?> IEnvironmentConfigGui
+                if lastTabName <> tabPanel.CurrentButton.Name then
+                    currConfigGui.SetConfig()
+                    lastTabName <- tabPanel.CurrentButton.Name
+                else
+                    currConfigGui.Update()
+    
+        override this.ToggleVisibility() =
+            if tabPanel <> null then
+                if tabPanel.IsVisible then tabPanel.Hide() else tabPanel.Show()
 
 
 
