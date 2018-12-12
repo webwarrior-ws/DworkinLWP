@@ -205,5 +205,19 @@ type Window(width : int, height : int, guis : AbstractGui list) as this =
         for each in this.Guis do each.Update()
 
 
+/// Helper functions to make GUI Widgets
 module Builders =
-    let foo = None
+    let environmentChooser (renderer : DworkinRenderer) (configGuis : IEnvironmentConfigGui list) =
+        EnviromentConfigChooserGui(renderer, configGuis)
+    
+    let environmentEditor (name : string) (config : 'TConfig) (propertyGuis : EnvironmentPropertyGui<'TConfig> list) =
+        EnvironmentConfigGui(name, config, propertyGuis)
+    
+    let floatSliderEditor (name : string) (lens : Lens<'TConfig, float32>) (minValue : float32) (maxValue : float32) (step : float32) =
+        FloatSliderPropertyGui(name, lens, minValue, maxValue, step)
+    
+    let checkboxEditor (name : string) (lens : Lens<'TConfig, bool>) =
+        CheckboxPropertyGui(name , lens)
+    
+    let radioButtonEditor (name : string) (lens : Lens<'TConfig, 'TValue>) (options: 'TValue list) =
+        RadioButtonPropertyGui(name, lens, options)
