@@ -1,17 +1,14 @@
 ﻿module Program
 
 open OpenTK
-open OpenTK.Graphics
 open OpenTK.Graphics.ES20
 
 open LibDworkin.Renderer
-open LibDworkin.Aether
-open LibDworkin.Configs
-
+open GUI
 
 
 type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRenderer, ?guis : GUI.Widgets.AbstractGui list) =
-    inherit GUI.Window(1280, 720, match guis with | Some(lst) -> lst | None -> [])
+    inherit GUI.Window(1280, 720, defaultArg guis [])
 
     override this.OnLoad(e) = 
         base.OnLoad(e)
@@ -39,20 +36,22 @@ let config = GeneratedConfigs.PCB_RandomPosChips()
 let renderer = DworkinRenderer(NETCorePlatform(), config)
 
 let configGui  = 
-    GUI.Widgets.EnviromentConfigChooserGui(renderer, 
+    Builders.environmentChooser
+        renderer
         [
-            GUI.Widgets.EnvironmentConfigGui(
-                "PCB-RandomPosChips", config, 
+            Builders.environmentEditor
+                "PCB-RandomPosChips"
+                config
                 [ 
-                    GUI.Widgets.FloatSliderPropertyGui("Angle", GeneratedConfigs.PCB_RandomPosChips.Angle_, 0.0f, 90.0f, 45.0f);
-                    GUI.Widgets.CheckboxPropertyGui("Vias", GeneratedConfigs.PCB_RandomPosChips.Vias_);
-                    GUI.Widgets.RadioButtonPropertyGui("Endpoints", GeneratedConfigs.PCB_RandomPosChips.Endpoints_, ["hollow"; "filled"])
-                ])
-        ] )
+                    Builders.floatSliderEditor "Angle" GeneratedConfigs.PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
+                    Builders.checkboxEditor "Vias" GeneratedConfigs.PCB_RandomPosChips.Vias_;
+                    Builders.radioButtonEditor "Endpoints" GeneratedConfigs.PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
+                ]
+        ]
 
 
 [<EntryPoint>]
-let main argv =
+let main _argv =
     let window = new MainWindow<_>(renderer, [configGui])
     window.Run(30.0)
 
