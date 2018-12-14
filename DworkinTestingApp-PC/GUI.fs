@@ -41,16 +41,23 @@ module Widgets =
             with get() = configRef.Value
             and set(reference : 'TConfig ref) = configRef <- Some(reference)
 
-
-    type FloatSliderPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, float32>, minValue: float32, maxValue: float32, step: float32) =
+    
+    [<AbstractClass>]
+    type AbstractSliderPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, minValue: 'TValue, maxValue: 'TValue, step: 'TValue) =
         inherit ConfigPropertyEditor<'TConfig>()
         let mutable slider : HorizontalSlider = null
         let mutable numField : TextBoxNumeric = null
 
+        abstract Zero : 'TValue
+        abstract ToFloat : 'TValue -> float32
+        abstract FromFloat : float32 -> 'TValue
+
+        member this.GetValue() = this.ToFloat(Optic.get lens (!this.ConfigRef))
+
         override this.Initialize(parent) =
             let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
-            let notchCount = if step = 0.0f then 0 else int((maxValue - minValue) / step)
-            slider <- new HorizontalSlider(panel, Min=minValue, Max=maxValue, Value=(Optic.get lens (!this.ConfigRef)), 
+            let notchCount = if step = this.Zero then 0 else int((this.ToFloat maxValue - this.ToFloat minValue) / this.ToFloat step)
+            slider <- new HorizontalSlider(panel, Min=this.ToFloat minValue, Max=this.ToFloat maxValue, Value=this.GetValue(), 
                                            SnapToNotches=(notchCount>0), NotchCount=notchCount, 
                                            Width=sliderWidth*9/10, Height=lineHeight, Dock=Gwen.Pos.Left)
             numField <- new TextBoxNumeric(panel, Height=lineHeight, Width=sliderWidth/10, AutoSizeToContents=true, 
@@ -58,11 +65,37 @@ module Widgets =
             slider.add_ValueChanged(fun _base _args -> numField.Value <- slider.Value)
     
         override this.Update() =
-            if slider <> null && slider.Value <> Optic.get lens (!this.ConfigRef) then
-                this.ConfigRef := Optic.set lens slider.Value (!this.ConfigRef)
- 
+            if slider <> null && slider.Value <> this.GetValue() then
+                this.ConfigRef := Optic.set lens (this.FromFloat slider.Value) (!this.ConfigRef)
+    
 
-     type CheckboxPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, bool>) =
+    type FloatSliderPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, float32>, minValue: float32, maxValue: float32, step: float32) =
+        inherit AbstractSliderPropertyEditor<'TConfig, float32>(name, lens, minValue, maxValue, step)
+        override this.Zero = 0.0f
+        override this.ToFloat(x) = float32 x
+        override this.FromFloat(x) = x
+    
+
+    type IntSliderPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, int>, minValue: int, maxValue: int, step: int) =
+        inherit AbstractSliderPropertyEditor<'TConfig, int>(name, lens, minValue, maxValue, step)
+        override this.Zero = 0
+        override this.ToFloat(x) = float32 x
+        override this.FromFloat(x) = int(x)
+    
+
+    type IntNumberboxPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, int>) =
+        inherit ConfigPropertyEditor<'TConfig>()
+        let mutable numberbox : NumericUpDown = null
+
+        override this.Initialize(parent) =
+            numberbox <- new NumericUpDown(parent, Text=name, Value=float32(Optic.get lens (!this.ConfigRef)), Height=lineHeight, Dock=Gwen.Pos.Top)
+    
+        override this.Update() =
+            if numberbox <> null && (int numberbox.Value) <> Optic.get lens (!this.ConfigRef) then
+                this.ConfigRef := Optic.set lens (int numberbox.Value) (!this.ConfigRef)
+
+
+    type CheckboxPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, bool>) =
         inherit ConfigPropertyEditor<'TConfig>()
         let mutable checkbox : LabeledCheckBox = null
 
@@ -75,7 +108,7 @@ module Widgets =
             if checkbox <> null && checkbox.IsChecked <> Optic.get lens (!this.ConfigRef) then
                 this.ConfigRef := Optic.set lens checkbox.IsChecked (!this.ConfigRef)
      
-     type RadioButtonPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
+    type RadioButtonPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
         inherit ConfigPropertyEditor<'TConfig>()
         let mutable radioGroup : RadioButtonGroup = null
 
@@ -97,7 +130,7 @@ module Widgets =
                 if currValue <> options.[currIndex] then
                     this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
      
-     type DropdownListPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
+    type DropdownListPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
         inherit ConfigPropertyEditor<'TConfig>()
         let mutable dropdownList : ComboBox = null
         let items = ResizeArray<MenuItem>()
@@ -253,6 +286,9 @@ module Builders =
     
     let floatSliderEditor (name : string) (lens : Lens<'TConfig, float32>) (minValue : float32) (maxValue : float32) (step : float32) =
         FloatSliderPropertyEditor(name, lens, minValue, maxValue, step)
+
+    let intSliderEditor (name : string) (lens : Lens<'TConfig, int>) (minValue : int) (maxValue : int) (step : int) =
+        IntSliderPropertyEditor(name, lens, minValue, maxValue, step)
     
     let checkboxEditor (name : string) (lens : Lens<'TConfig, bool>) =
         CheckboxPropertyEditor(name , lens)
@@ -262,3 +298,6 @@ module Builders =
     
     let dropdownListEditor (name : string) (lens : Lens<'TConfig, 'TValue>) (options: 'TValue list) =
         DropdownListPropertyEditor(name, lens, options)
+    
+    let numberboxEditor (name : string) (lens : Lens<'TConfig, int>) =
+        IntNumberboxPropertyEditor(name, lens)
