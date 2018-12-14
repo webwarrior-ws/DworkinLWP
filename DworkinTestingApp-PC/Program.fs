@@ -55,6 +55,7 @@ let configGui  =
                     Builders.floatSliderEditor "Density" GeneratedConfigs.PCB_RandomPosChips.Density_ 0.2f 0.8f 0.05f;
                     Builders.floatSliderEditor "Size" GeneratedConfigs.PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
                     Builders.floatSliderEditor "Speed" GeneratedConfigs.PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
+                    Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.PCB_RandomPosChips>;
                 ]
         ]
 
