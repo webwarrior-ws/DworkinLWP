@@ -75,7 +75,7 @@ type Agent() =
             environment <- env
             Option.iter this.InitializeIn environment
     
-    member internal this.Id = id
+    member this.Id = id
     
     member this.Age = age
     
