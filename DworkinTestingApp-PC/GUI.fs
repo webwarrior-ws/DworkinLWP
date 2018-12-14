@@ -48,8 +48,7 @@ module Widgets =
         let mutable numField : TextBoxNumeric = null
 
         override this.Initialize(parent) =
-            let panel = new GroupBox(parent, Height=lineHeight*2, Dock=Gwen.Pos.Top)
-            panel.Text <- name
+            let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
             let notchCount = if step = 0.0f then 0 else int((maxValue - minValue) / step)
             slider <- new HorizontalSlider(panel, Min=minValue, Max=maxValue, Value=(Optic.get lens (!this.ConfigRef)), 
                                            SnapToNotches=(notchCount>0), NotchCount=notchCount, 
@@ -84,7 +83,7 @@ module Widgets =
             radioGroup <- new RadioButtonGroup(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
             radioGroup.AutoSizeToContents <- false
             for opt in options do
-                let radioButton = radioGroup.AddOption(opt.ToString())
+                let radioButton = radioGroup.AddOption(sprintf "%A" opt)
                 radioButton.Dock <- Gwen.Pos.Left ||| Gwen.Pos.CenterH
                 if scaleFactor <> 1.0 then 
                     radioButton.Margin <- Margin(0, lineHeight*3/4, 0, 0)
@@ -97,6 +96,25 @@ module Widgets =
                 let currValue = Optic.get lens (!this.ConfigRef)
                 if currValue <> options.[currIndex] then
                     this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
+     
+     type DropdownListPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
+        inherit ConfigPropertyEditor<'TConfig>()
+        let mutable dropdownList : ComboBox = null
+        let items = ResizeArray<MenuItem>()
+
+        override this.Initialize(parent) =
+            let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
+            dropdownList <- new ComboBox(panel, Height=lineHeight, Dock=Gwen.Pos.Top)
+            for opt in options do
+                dropdownList.AddItem(sprintf "%A" opt) |> items.Add
+
+        override this.Update() = 
+            if dropdownList <> null then
+                let currIndex = items.IndexOf(dropdownList.SelectedItem)
+                let currValue = Optic.get lens (!this.ConfigRef)
+                if currIndex >= 0 && currValue <> options.[currIndex] then
+                    this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
+
 
     /// Superclass of EnvironmentConfigEditor needed only because it's not parametrized by config type
     [<AbstractClass>]
@@ -241,3 +259,6 @@ module Builders =
     
     let radioButtonEditor (name : string) (lens : Lens<'TConfig, 'TValue>) (options: 'TValue list) =
         RadioButtonPropertyEditor(name, lens, options)
+    
+    let dropdownListEditor (name : string) (lens : Lens<'TConfig, 'TValue>) (options: 'TValue list) =
+        DropdownListPropertyEditor(name, lens, options)
