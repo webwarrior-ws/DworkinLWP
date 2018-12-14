@@ -138,6 +138,9 @@ let inline distance_< ^U , ^V when ^U : (static member Distance_ : Lens< ^U, ^V>
 let inline angle_< ^U , ^V when ^U : (static member Angle_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Angle_ : Lens< ^U, ^V>) ()))
 
+let inline alpha_< ^U , ^V when ^U : (static member Alpha_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Alpha_ : Lens< ^U, ^V>) ()))
+
 let inline offset_< ^U , ^V when ^U : (static member Offset_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Offset_ : Lens< ^U, ^V>) ()))
 
@@ -197,6 +200,21 @@ let inline recursionLimit_< ^U , ^V when ^U : (static member RecursionLimit_ : L
     
 let inline radius_< ^U , ^V when ^U : (static member Radius_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Radius_ : Lens< ^U, ^V>) ()))
+
+let inline p_< ^U , ^V when ^U : (static member P_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member P_ : Lens< ^U, ^V>) ()))
+
+let inline minInterval_< ^U , ^V when ^U : (static member MinInterval_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member MinInterval_ : Lens< ^U, ^V>) ()))
+
+let inline genLimit_< ^U , ^V when ^U : (static member GenLimit_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member GenLimit_ : Lens< ^U, ^V>) ()))
+
+let inline lengthRange_< ^U , ^V when ^U : (static member LengthRange_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member LengthRange_ : Lens< ^U, ^V>) ()))
+
+let inline lengthSteps_< ^U , ^V when ^U : (static member LengthSteps_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member LengthSteps_ : Lens< ^U, ^V>) ()))
 
 
 // compound lenses
