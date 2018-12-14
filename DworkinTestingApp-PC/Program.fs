@@ -7,6 +7,7 @@ open LibDworkin.Renderer
 open GUI
 
 
+
 type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRenderer, ?guis : GUI.Widgets.AbstractGui list) =
     inherit GUI.Window(1280, 720, defaultArg guis [])
 
@@ -36,6 +37,7 @@ let config = GeneratedConfigs.PCB_RandomPosChips()
 let renderer = DworkinRenderer(NETCorePlatform(), config)
 
 let configGui  = 
+    let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
     Builders.environmentChooser
         renderer
         [
@@ -48,6 +50,11 @@ let configGui  =
                     Builders.radioButtonEditor "Endpoints" GeneratedConfigs.PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
                     Builders.checkboxEditor "Branch" GeneratedConfigs.PCB_RandomPosChips.Branch_;
                     Builders.checkboxEditor "Octagonal" GeneratedConfigs.PCB_RandomPosChips.Octagonal_;
+                    Builders.dropdownListEditor "Angles" GeneratedConfigs.PCB_RandomPosChips.Angles_ possibleAnglesValues;
+                    Builders.floatSliderEditor "Thickness variance" GeneratedConfigs.PCB_RandomPosChips.ThicknessVariance_ 0.0f 1.0f 0.1f;
+                    Builders.floatSliderEditor "Density" GeneratedConfigs.PCB_RandomPosChips.Density_ 0.2f 0.8f 0.05f;
+                    Builders.floatSliderEditor "Size" GeneratedConfigs.PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
+                    Builders.floatSliderEditor "Speed" GeneratedConfigs.PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
                 ]
         ]
 
