@@ -302,9 +302,9 @@ type BranchingCriterion() =
 type BranchingCriterionCustom() = 
     inherit BranchingCriterion()
     override this.Evaluate(anAgent) =
-        this.Evaluate(anAgent, anAgent.LastBranchMarkFor(this.Tag))
+        this.Evaluate(anAgent, anAgent.LastBranchMarkFor(this.Tag), this.Tag)
     
-    abstract member Evaluate: DworkinAgent * BranchMark -> bool
+    abstract member Evaluate: DworkinAgent * BranchMark * int -> bool
 
 
 [<AbstractClass>]
