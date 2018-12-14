@@ -80,7 +80,19 @@ type IList<'T> with
 type 'T ``[]`` with
     member this.AtRandom(prng : System.Random) =
         this.[prng.Next(this.Length)]
-
+    
+    /// take n last elemets of an array
+    member this.TakeLast(n : int) : 'T[] =
+        this.[this.Length-n..this.Length-1]
+    
+    member this.ShuffleBy(random : System.Random) : unit =
+        for i in this.Length-1 .. -1 .. 1 do
+            // swap elemets at i and random.Next(i)
+            let i2 = random.Next(i)
+            let e = this.[i]
+            let e2 = this.[i2]
+            this.[i] <- e2
+            this.[i2] <- e
 
 type System.Random with
     member inline this.NextFloat() =
