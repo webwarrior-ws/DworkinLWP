@@ -17,12 +17,11 @@ module Widgets =
         try
             float(GetDpiForSystem()) / 96.0;
         with | _ -> 1.0
-    //failwithf "%f" scaleFactor
     
     // element size constants
     let lineHeight = int(20.0 * scaleFactor)
     let sliderWidth = int(180.0 * scaleFactor)
-    let guiWidth = int(240.0 * scaleFactor)
+    let guiWidth = int(220.0 * scaleFactor)
     let guiPadding = int(20.0 * scaleFactor)
 
     [<AbstractClass>]
@@ -46,16 +45,18 @@ module Widgets =
     type FloatSliderPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, float32>, minValue: float32, maxValue: float32, step: float32) =
         inherit ConfigPropertyEditor<'TConfig>()
         let mutable slider : HorizontalSlider = null
+        let mutable numField : TextBoxNumeric = null
 
         override this.Initialize(parent) =
-            let panel = new GroupBox(parent, Dock=Gwen.Pos.Top)
+            let panel = new GroupBox(parent, Height=lineHeight*2, Dock=Gwen.Pos.Top)
             panel.Text <- name
-            panel.AutoSizeToContents <- true
             let notchCount = if step = 0.0f then 0 else int((maxValue - minValue) / step)
             slider <- new HorizontalSlider(panel, Min=minValue, Max=maxValue, Value=(Optic.get lens (!this.ConfigRef)), 
                                            SnapToNotches=(notchCount>0), NotchCount=notchCount, 
-                                           Width=sliderWidth, Height=lineHeight, Dock=Gwen.Pos.Top)
-            panel.SizeToChildren() |> ignore
+                                           Width=sliderWidth*9/10, Height=lineHeight, Dock=Gwen.Pos.Left)
+            numField <- new TextBoxNumeric(panel, Height=lineHeight, Width=sliderWidth/10, AutoSizeToContents=true, 
+                                           Value=slider.Value, IsDisabled=true, Dock=Gwen.Pos.Left)
+            slider.add_ValueChanged(fun _base _args -> numField.Value <- slider.Value)
     
         override this.Update() =
             if slider <> null && slider.Value <> Optic.get lens (!this.ConfigRef) then
