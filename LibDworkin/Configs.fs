@@ -514,6 +514,11 @@ type DworkinAgentConfig with
 type DworkinEnvironmentConfig() =
     member val RandomSeed = 42 with get, set
 
+    member this.Clone() = this.MemberwiseClone() :?> DworkinEnvironmentConfig
+
+    static member RandomSeed_ : Lens<DworkinEnvironmentConfig, int> = 
+        (fun x -> x.RandomSeed), (fun value x -> let y = x.Clone() in y.RandomSeed <- value; y)
+
     interface IDworkinEnvironmentConfig with
         member this.GetEnvironment(size) =
             let env = DworkinEnvironment(Rectangle(Point.Zero, size), this.RandomSeed)

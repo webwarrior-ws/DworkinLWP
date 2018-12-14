@@ -23,6 +23,10 @@ let makeGenericLens lensGetter =
 
 // lenses for configs:
 
+// DworkinEnvironmentConfig:
+let randomSeed_<'a when 'a :> DworkinEnvironmentConfig> : Lens<'a, int> = 
+    (fun x -> x.RandomSeed), (fun value x -> let y = x.Clone() in y.RandomSeed <- value; y :?> 'a)
+
 // DworkinAgentConfig:
 let branching_<'a when 'a :> BranchingStrategy> : Lens<DworkinAgentConfig, 'a> = 
     DworkinAgentConfig.Branching_ >-> cast
@@ -89,7 +93,7 @@ let jointType_ = BrushStrategySolidJoint.JointType_
 let density_ = ColliderStrategyCircles.Density_
 
 // ColliderStrategySegments
-let minLength = ColliderStrategySegments.MinLength_
+let minLength_ = ColliderStrategySegments.MinLength_
 
 // ColliderOptionsGeneral
 let strategy_<'a when 'a :> ColliderStrategy> : Lens<ColliderOptionsGeneral, 'a> = 
