@@ -88,7 +88,9 @@ module Widgets =
         let mutable numberbox : NumericUpDown = null
 
         override this.Initialize(parent) =
-            numberbox <- new NumericUpDown(parent, Text=name, Value=float32(Optic.get lens (!this.ConfigRef)), Height=lineHeight, Dock=Gwen.Pos.Top)
+            let panel = new Layout.Splitter(parent, Height=lineHeight, Dock=Gwen.Pos.Top)
+            let _label = new Label(panel, Text=name, Height=lineHeight, Dock=Gwen.Pos.Left)
+            numberbox <- new NumericUpDown(panel, Value=float32(Optic.get lens (!this.ConfigRef)), Height=lineHeight, Width=lineHeight*3, Dock=Gwen.Pos.Right)
     
         override this.Update() =
             if numberbox <> null && (int numberbox.Value) <> Optic.get lens (!this.ConfigRef) then
