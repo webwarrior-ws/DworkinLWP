@@ -33,8 +33,8 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
  
 
  
-let config = GeneratedConfigs.PCB_RandomPosChips()
-let renderer = DworkinRenderer(NETCorePlatform(), config)
+let pcbConfig = GeneratedConfigs.PCB_RandomPosChips()
+let renderer = DworkinRenderer(NETCorePlatform(), pcbConfig)
 
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
@@ -42,8 +42,8 @@ let configGui  =
         renderer
         [
             Builders.environmentEditor
-                "PCB-RandomPosChips"
-                config
+                "PCB-RandPosChips"
+                pcbConfig
                 [ 
                     Builders.floatSliderEditor "Angle" GeneratedConfigs.PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
                     Builders.checkboxEditor "Vias" GeneratedConfigs.PCB_RandomPosChips.Vias_;
@@ -56,14 +56,20 @@ let configGui  =
                     Builders.floatSliderEditor "Size" GeneratedConfigs.PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
                     Builders.floatSliderEditor "Speed" GeneratedConfigs.PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
                     Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.PCB_RandomPosChips>;
-                ]
+                ];
+            Builders.environmentEditor
+                "SpiralsProbesBranching1"
+                (GeneratedConfigs.SpiralsProbesBranching1())
+                [ 
+                    Builders.intSliderEditor "N" GeneratedConfigs.SpiralsProbesBranching1.N_ 1 8 1;
+                    Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.SpiralsProbesBranching1>;
+                ];
         ]
 
 
 [<EntryPoint>]
 let main _argv =
-    //let window = new MainWindow<_>(renderer, [configGui])
-    let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.SpiralsProbesBranching1()))
+    let window = new MainWindow<_>(renderer, [configGui])
     window.Run(30.0)
 
     0 // return an integer exit code
