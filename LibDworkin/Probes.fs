@@ -115,6 +115,7 @@ type DworkinEnvironment with
     member this.LaunchProbe(probeConfig : DworkinAgentConfig, options : ProbeSpawnOptions, agentBlock : DworkinProbeAgent -> unit) =
         let seed = match options.Seed with | Some(value) -> value | None -> this.Random.Next()
         let probe = DworkinProbeAgent(probeConfig, seed, options.SpeedFactor, options.StepsBetweenCollisionCheck)
+        probe.Environment <- Some(this :> Environment)
         options.Config <- Some(probeConfig)
         probe.Position <- options.Position
         probe.Direction <- options.Direction
