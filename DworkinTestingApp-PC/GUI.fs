@@ -55,7 +55,7 @@ module Widgets =
         member this.GetValue() = this.ToFloat(Optic.get lens (!this.ConfigRef))
 
         override this.Initialize(parent) =
-            let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
+            let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Width=sliderWidth+sliderWidth/10, Dock=Gwen.Pos.Top)
             let notchCount = if step = this.Zero then 0 else int((this.ToFloat maxValue - this.ToFloat minValue) / this.ToFloat step)
             slider <- new HorizontalSlider(panel, Min=this.ToFloat minValue, Max=this.ToFloat maxValue, Value=this.GetValue(), 
                                            SnapToNotches=(notchCount>0), NotchCount=notchCount, 
