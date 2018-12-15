@@ -139,12 +139,11 @@ module DworkinAgentConfig =
                             |> Optic.set p_ 0.075f
                             |> Optic.set minInterval_ 15.0f),
                     SpawnConfig=
-                        (SpawnConfig.Probe1BranchRecByLen2()
+                        (SpawnConfig.Probe1BranchRecByLen()
                             |> Optic.set angle_ -15.0f
                             |> Optic.set genLimit_ 20
                             |> Optic.set lengthRange_ (NumberRange(50.0f, 300.0f))
-                            |> Optic.set lengthSteps_ 3)
-                );
+                            |> Optic.set lengthSteps_ 3));
             ColliderOptions=ColliderOptionsGeneral();
             Curvature=CurvatureFormula.Tan_t_() |> Optic.set c_ 0.0315f;
             Speed=AgentSpeedConstant();
@@ -396,7 +395,6 @@ module SpawnConfig =
                                 a.Flip())
     
 
-    
     type PCBTraceGroup2VarLen() = 
         inherit SpawnConfig()
         member val Width = 100 with get, set
@@ -474,6 +472,7 @@ module SpawnConfig =
                             ), 
                             fun a -> a.Terminate()))
                 (Seq.rev interval)
+    
 
     type PCBTracesFromChip() = 
         inherit SpawnConfig()
@@ -560,61 +559,48 @@ module SpawnConfig =
                                 None),
                             1))
     
-    type Probe1BranchRecByLen2() = 
+    type Probe1BranchRecByLen() = 
         inherit SpawnConfig()
         member val Angle = 0.0f with get, set
-        member val GenLimit = 4 with get, set
-        member val LengthRange = NumberRange(100.0f, 200.0f) with get, set
-        member val LengthSteps = 4 with get, set
+        member val GenLimit = 12 with get, set
+        member val LengthRange = NumberRange(100.0f, 500.0f) with get, set
+        member val LengthSteps = 6 with get, set
 
-        member this.Clone() = this.MemberwiseClone() :?> Probe1BranchRecByLen2
+        member this.Clone() = this.MemberwiseClone() :?> Probe1BranchRecByLen
 
-        static member Angle_ : Lens<Probe1BranchRecByLen2, float32> = 
+        static member Angle_ : Lens<Probe1BranchRecByLen, float32> = 
             (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
-        static member GenLimit_ : Lens<Probe1BranchRecByLen2, _> = 
+        static member GenLimit_ : Lens<Probe1BranchRecByLen, _> = 
             (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
-        static member LengthRange_ : Lens<Probe1BranchRecByLen2, _> = 
+        static member LengthRange_ : Lens<Probe1BranchRecByLen, _> = 
             (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
-        static member LengthSteps_ : Lens<Probe1BranchRecByLen2, _> = 
+        static member LengthSteps_ : Lens<Probe1BranchRecByLen, _> = 
             (fun x -> x.LengthSteps), (fun value x -> let y = x.Clone() in y.LengthSteps <- value; y)
 
         override this.Evaluate(agent, pos) =
+            let agentBlock = fun (a : DworkinAgent) -> a.Flip()
             agent.GenerationLimit <- this.GenLimit
-            let angles = ([| this.Angle; -this.Angle; |])
-            angles.ShuffleBy(agent.Random)
-            let lengths : float32[] = 
-                (this.LengthRange.By(this.LengthRange.Extent / float32(this.LengthSteps)) |> Seq.toArray).TakeLast(agent.Random.Next(this.LengthSteps))
-                |> Array.rev
-            Seq.iter
-                (fun (phi : float32) -> 
-                    lengths 
-                    |> Seq.iter
-                       (fun length -> 
-                            let scale = agent.RelativeThickness / agent.Config.Thickness.Evaluate(0.0f, 0.0f)
-                            let agentBlock = 
-                                fun (a : DworkinAgent) -> 
-                                    if phi <= 0.0f then
-                                        a.Flip()
-                                    a.ScaleBy(scale)
-                            let config = agent.Config|> Optic.set totalDistance_ (length / scale)
-                            let probeData = 
-                                agent.LaunchProbe(
-                                    config, 
-                                    ProbeSpawnOptions(AngleDeg=phi, StepsBetweenCollisionCheck=4),
-                                    agentBlock)
-                            match probeData.Collision with
-                            | Some(_) -> ()
-                            | None -> 
-                                (*return*) 
-                                agent.Spawn(
-                                    config, 
-                                    AgentSpawnOptions(AngleDeg=phi), 
-                                    fun (a : DworkinAgent) -> 
-                                        agentBlock a
-                                        a.NoCollisions <- true
-                                        probeData.Id <- a.Id
-                                        probeData.SpawnColliders())))
-                angles
+            this.LengthRange.By(this.LengthRange.Extent / float32(this.LengthSteps))
+                |> Seq.rev
+                |> Seq.tryFind
+                (fun length -> 
+                    let config = agent.Config|> Optic.set totalDistance_ length
+                    let probeData = 
+                        agent.LaunchProbe(
+                            config, 
+                            ProbeSpawnOptions(AngleDeg=this.Angle, StepsBetweenCollisionCheck=4), 
+                            agentBlock)
+                    if probeData.Collision.IsNone then
+                        agent.Spawn(
+                            config, 
+                            AgentSpawnOptions(AngleDeg=this.Angle), 
+                            fun a -> 
+                                agentBlock a
+                                a.NoCollisions <- true
+                                probeData.SpawnColliders())
+                        true
+                    else false)
+                 |> ignore
 
 
 type PCB_RandomPosChips() = 

@@ -280,7 +280,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                     GL.DeleteTexture maskTextureMultisample
                 maskTextureMultisample <- gen1 GL.GenTextures
                 maskFrameBufferMultisample <- gen1 GL.GenFramebuffers
-                let sampleCount = 2
+                let sampleCount = 4
 #if __ANDROID__
                 Graphics.ES31.GL.BindTexture(Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample)
                 
