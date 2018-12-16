@@ -59,6 +59,19 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
                 i <- i + 1
         
         if found then i else -1
+    
+    member this.Exists(predicate : 'K -> 'V -> bool) : bool =
+        let mutable i = 0
+        let mutable found = false
+        
+        while not found && i < this.list.Count do
+            let currElem = this.list.[i]
+            if predicate currElem.Key currElem.Value then
+                found <- true
+            else
+                i <- i + 1
+        
+        found
 
     interface IDictionary<'K, 'V> with
         member this.Add(item: KeyValuePair<'K,'V>): unit = 
@@ -150,3 +163,23 @@ type NumberRange = struct
     member this.By(step : float32) =
         seq { this.Min .. step .. this.Max }
 end
+
+
+/// Data structure that contains either on or two objects of certain type
+[<Struct>]
+type OneOrTwo<'T> =
+    | One of one: 'T
+    | Two of two: struct ('T * 'T)
+
+
+module OneOrTwo =
+    let inline map (mapper : 'T -> 'U) (container : OneOrTwo<'T>) =
+        match container with
+        | One(x) -> One(mapper x)
+        | Two(struct(x, y)) -> Two(struct(mapper x, mapper y))
+    
+    let inline exists2 (predicate : 'T1 ->'T2 -> bool) (source1 : OneOrTwo<'T1>) (source2 : OneOrTwo<'T2>) : bool =
+        match struct(source1, source2) with
+        | struct(One(x), One(y)) -> predicate x y
+        | struct(Two(struct(x1, x2)), Two(struct(y1, y2))) -> predicate x1 y1 || predicate x2 y2
+        | _ -> failwith "Size mismatch"

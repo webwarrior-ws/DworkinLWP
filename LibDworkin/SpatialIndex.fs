@@ -58,17 +58,20 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
     /// Proceed only if predicate returns false.
     /// Return true only if predicate gets called and returns true, false otherwise
     member this.Query(rectangle: Rectangle, predicate: 'T -> bool) : bool =
-        let inline processItems() : bool =
-            let mutable i = 0
-            let mutable fired = false
-            while not fired && i < objectsCount do
-                let candidate = &objectBounds.[i]
-                if rectangle.IntersectsWith &candidate then
-                    fired <- predicate objects.[i]
-                i <- i + 1
-            fired
+        let thereAreObjectsInRootToTry = objectsCount >= 1 && (allObjectsBounds.IntersectsWith rectangle)
+        let predicateMatchedOneOfObjects =
+            if not thereAreObjectsInRootToTry then false
+            else
+                let mutable i = 0
+                let mutable fired = false
+                while not fired && i < objectsCount do
+                    let candidate = &objectBounds.[i]
+                    if rectangle.IntersectsWith &candidate then
+                        fired <- predicate objects.[i]
+                    i <- i + 1
+                fired
         
-        (objectsCount >= 1 && (allObjectsBounds.IntersectsWith rectangle) && processItems()) ||
+        predicateMatchedOneOfObjects ||
         match nodes with
         | Some(treeNodes) ->
             match struct (center.QuadrantOf(rectangle.Left, rectangle.Top), 

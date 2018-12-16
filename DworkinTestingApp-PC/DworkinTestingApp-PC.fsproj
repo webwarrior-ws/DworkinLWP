@@ -7,6 +7,11 @@
 	<ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Optimize>false</Optimize>
+    <Tailcalls>false</Tailcalls>
+  </PropertyGroup>
+
   <ItemGroup>
 	<None Include="app.manifest" />
 	<Content Include="DefaultSkin.png">
