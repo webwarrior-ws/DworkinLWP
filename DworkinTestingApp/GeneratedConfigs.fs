@@ -582,7 +582,7 @@ module SpawnConfig =
             agent.GenerationLimit <- this.GenLimit
             this.LengthRange.By(this.LengthRange.Extent / float32(this.LengthSteps))
                 |> Seq.rev
-                |> Seq.tryFind
+                |> Seq.exists
                 (fun length -> 
                     let config = agent.Config|> Optic.set totalDistance_ length
                     let probeData = 
