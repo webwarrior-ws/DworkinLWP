@@ -19,7 +19,7 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
     <Name>DworkinTestingApp</Name>
-    <SelectedDevice>android_5_phone</SelectedDevice>
+    <SelectedDevice>Samsung GT-I9500</SelectedDevice>
     <DefaultDevice>android_5_phone</DefaultDevice>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

@@ -33,7 +33,8 @@ type MainActivity () =
             || Build.Model.Contains("Android SDK built for x86")))
         
         let platform = LibDworkin.Renderer.AndroidPlatform(this)
-        let renderer = new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.PCB_RandomPosChips())
+        let renderer = new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.SpiralsProbesBranching1())
+            //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.PCB_RandomPosChips())
             //new TestRenderers.CollidersTestRenderer(platform, TestConfigs.circleAdvancedTest)
             //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.circleAdvancedTest)
             //new TestRenderers.AdvancedShapesTestRenderer(platform)

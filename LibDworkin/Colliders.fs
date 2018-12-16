@@ -86,7 +86,15 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
         base.FlushCache();
         r1 <- Point.Zero
         r2 <- Point.Zero
-         
+    
+    member inline private this.IncludesAngle (alpha : float32) =
+        let mutable alpha = alpha 
+        if alpha < 0.0f then
+            alpha <- alpha + Single.TwoPi
+        elif alpha > Single.TwoPi then
+            alpha <- alpha - Single.TwoPi
+        alpha <= centralAngle
+
     override this.CalculateBoundingBox() =
         //Highly optimized code.
         //Start with center (it is always within bounds). 
@@ -96,27 +104,20 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
         let mutable ptsCount = 0
 
         let angleShift = (centralAngle * 0.5f) - bearing
-        let inline includesAngle angle =
-            let mutable alpha = angle + angleShift
-            if alpha < 0.0f then
-                alpha <- alpha + Single.TwoPi
-            elif alpha > Single.TwoPi then
-                alpha <- alpha - Single.TwoPi
-            alpha <= centralAngle
         
-        if includesAngle 0.0f then
+        if this.IncludesAngle(0.0f + angleShift) then
             result.Right <- this.Center.X + this.Radius
             ptsCount <- ptsCount + 1
         
-        if includesAngle 1.5707963267948966f then
+        if this.IncludesAngle(1.5707963267948966f + angleShift) then
             result.Bottom <- this.Center.Y + this.Radius
             ptsCount <- ptsCount + 1
         
-        if includesAngle 3.141592653589793f then
+        if this.IncludesAngle(3.141592653589793f + angleShift) then
             result.Left <- this.Center.X - this.Radius
             ptsCount <- ptsCount + 1
         
-        if includesAngle 4.71238898038469f then
+        if this.IncludesAngle(4.71238898038469f + angleShift) then
             result.Top <- this.Center.Y - this.Radius
             ptsCount <- ptsCount + 1
         

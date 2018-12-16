@@ -231,15 +231,15 @@ type TerminationConditionCollision() =
         if agent.DistanceCovered < this.MinDistance then
             false
         else
-            let detectorConfigs : CollisionDetectorConfig[] = 
+            let detectorConfigs : OneOrTwo<CollisionDetectorConfig> = 
                 match this.SecondaryDetector with 
-                | Some(sp) -> [| this.PrimaryDetector; sp; |] 
-                | None -> [| this.PrimaryDetector; |]
+                | Some(sp) -> Two(struct(this.PrimaryDetector, sp))
+                | None -> One(this.PrimaryDetector)
             
-            let detectors : CircleSectorCollider[] = 
-                let detectorsAccessor : AttributeAccessor<CircleSectorCollider[]> = agent.Attributes.Detectors
+            let detectors : OneOrTwo<CircleSectorCollider> = 
+                let detectorsAccessor : AttributeAccessor<OneOrTwo<CircleSectorCollider>> = agent.Attributes.Detectors
                 detectorsAccessor.GetOrSetIfAbsent(fun () -> 
-                    detectorConfigs |> Array.map (fun each -> 
+                    detectorConfigs |> OneOrTwo.map (fun each -> 
                         let collider = each.GetCollider()
                         collider.Parent <- Some(agent.GetFootprint())
                         collider))
@@ -249,7 +249,7 @@ type TerminationConditionCollision() =
                 | Relative -> max agent.Thickness agent.Speed
                 | Absolute -> agent.LengthFactor
             
-            let predicate detector layer collider = 
+            let inline predicate detector layer collider = 
                 (collide detector collider) &&
                 (if not <| this.IgnoresCollisionOfAgentWith(agent, collider) then
                     let collision = { Subject=detector; Obstacle=collider; Layer=layer }
@@ -263,7 +263,7 @@ type TerminationConditionCollision() =
                     else false
                  else false) 
             
-            Seq.exists2 (
+            OneOrTwo.exists2 (
                 fun (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) -> 
                     detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
                     agent.DworkinEnvironment.QueryColliders((detector :> IHasBounds).Bounds, this.Layers, predicate detector) )
@@ -481,7 +481,7 @@ type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
 
 type AttributesStore() =
     member val BranchMarks = Dictionary<int, IDictionary<int, BranchMarkList>>()
-    member val Detectors = Dictionary<int, CircleSectorCollider[]>()
+    member val Detectors = Dictionary<int, OneOrTwo<CircleSectorCollider>>()
     member val LastCollider = Dictionary<int, Collider>()
     member val DrawJoint = Dictionary<int, bool>()
     member val CanBranch = Dictionary<int, bool>()
@@ -735,7 +735,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     let position = agent.Position
     let direction = agent.Direction
     let distanceCovered = agent.DistanceCovered
-    let mutable id = 0 // not needed? TODO: revise
+    let mutable id = 0
     
     member this.Id 
         with get() = if id = 0 then agent.Id else id
@@ -772,7 +772,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     inherit Environment(bounds)
     let mutable numDelayAgents = 0
     let initialQuadTreeBounds = Rectangle.FromTLRB(bounds.Top - 10.0f, bounds.Left - 10.0f, bounds.Right + 15.0f, bounds.Bottom + 15.0f)
-    let colliders : Collections.Generic.IDictionary<CollisionLayer, QuadTree<Collider>> = SmallDictionary.Create()
+    let colliders : System.Collections.Generic.IDictionary<CollisionLayer, QuadTree<Collider>> = SmallDictionary.Create()
     let mutable shapes = ResizeArray<struct (Shape * ShapePaint)>()
     let mutable random = Random(randomSeed)
     do 
@@ -842,14 +842,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     /// Stop when predicate returns true or all colliders are processed.
     /// If all colliders are processed but predicate never returned true, return false
     member this.QueryColliders(rect : Rectangle, layers: CollisionLayers, predicate : CollisionLayer -> Collider -> bool) =
-        let mutable fired = false
-        let enumerator = colliders.GetEnumerator()
-        while not fired && enumerator.MoveNext() do
-            let layer = enumerator.Current.Key
-            let tree = enumerator.Current.Value
-            if layers.Contains layer then
-                fired <- tree.Query(rect, predicate layer)
-        fired
+        (colliders :?> SmallDictionary<_, _>).Exists(fun layer tree -> if layers.Contains layer then tree.Query(rect, predicate layer) else false)
     
     /// Return true if given collider collides with any colliders in given layers
     member this.TestForCollision(layers: CollisionLayers, collider : Collider) : bool =
