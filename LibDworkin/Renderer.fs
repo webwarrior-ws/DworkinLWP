@@ -129,6 +129,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable canUseAA = glVersion >= (3, 1)
 
     member this.UsesAA = canUseAA
+    member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     member internal this.MaskTexture = maskTexture
@@ -451,8 +452,19 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
     
     override this.OnDrawFrame() =
+        let delay = 1000.0 / float(this.FPS)
+        let startTime = System.DateTime.Now
+
         match environment with
         | Some(env) -> env.Step(this)
         | None -> ()
         this.RenderShapes()
         this.DrawMaskedImage()
+
+        let dt = System.DateTime.Now - startTime
+        if dt.TotalMilliseconds < delay then
+            System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt.TotalMilliseconds))
+#if __ANDROID__
+        else
+            Android.Util.Log.Debug("frameTime", sprintf "Large frame time: %fms" dt.TotalMilliseconds) |> ignore
+#endif
