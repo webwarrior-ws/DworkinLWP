@@ -80,8 +80,8 @@ and DworkinProbeAgent(config, randomSeed, speedFactor : float32, stepsBetweenCol
                 | Some(cond) -> cond.Evaluate(this) 
                 | None -> false) ||
             (match this.Config.TerminationConditions.Collision with 
-                | Some(cond) -> this.Age % stepsBetweenCollisionCheck <> 0 && cond.Evaluate(this) 
-                | None -> false) ||
+                | Some(cond) when this.Age % stepsBetweenCollisionCheck = 0 -> cond.Evaluate(this) 
+                | _ -> false) ||
             (match this.Config.TerminationConditions.Curvature with 
                 | Some(cond) -> cond.Evaluate(this) 
                 | None -> false)
