@@ -69,7 +69,8 @@ let configGui  =
 
 [<EntryPoint>]
 let main _argv =
-    let window = new MainWindow<_>(renderer, [configGui])
+    //let window = new MainWindow<_>(renderer, [configGui])
+    let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.SpiralsProbesBranching1()))
     window.Run(30.0)
 
     0 // return an integer exit code

@@ -239,37 +239,37 @@ type TerminationConditionCollision() =
             let detectors : OneOrTwo<CircleSectorCollider> = 
                 let detectorsAccessor : AttributeAccessor<OneOrTwo<CircleSectorCollider>> = agent.Attributes.Detectors
                 detectorsAccessor.GetOrSetIfAbsent(fun () -> 
-                    detectorConfigs |> OneOrTwo.map (fun each -> 
-                        let collider = each.GetCollider()
-                        collider.Parent <- Some(agent.GetFootprint())
-                        collider))
+                    detectorConfigs |> OneOrTwo.map (fun each -> each.GetCollider()))
             
             let sizeFactor = 
                 match this.DetectorSize with
                 | Relative -> max agent.Thickness agent.Speed
                 | Absolute -> agent.LengthFactor
             
-            let inline predicate detector layer collider = 
+            let predicate detector layer collider = 
                 (collide detector collider) &&
                 (if not <| this.IgnoresCollisionOfAgentWith(agent, collider) then
                     let collision = { Subject=detector; Obstacle=collider; Layer=layer }
                     let handlerNotAborted =
                         match this.Handler with
                         | None -> true
-                        | Some(handler) -> handler.Evaluate(agent, collision)
+                        | Some(handler) -> 
+                            detector.Parent <- Some(agent.GetFootprint())
+                            handler.Evaluate(agent, collision)
                     if handlerNotAborted then
                         agent.Collision <- Some(collision)
-                        true (*return*)
+                        true
                     else false
                  else false) 
             
-            OneOrTwo.exists2 (
-                fun (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) -> 
-                    detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
-                    agent.DworkinEnvironment.QueryColliders((detector :> IHasBounds).Bounds, this.Layers, predicate detector) )
+            let inline outerPredicate (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) = 
+                detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
+                agent.DworkinEnvironment.QueryColliders((detector :> IHasBounds).Bounds, this.Layers, predicate detector)
+            
+            OneOrTwo.exists2 
+                outerPredicate
                 detectors 
-                detectorConfigs
-    
+                detectorConfigs 
 
     member this.IgnoresCollisionOfAgentWith(agent : DworkinAgent, collider : Collider) =
         let colliderAccessor : AttributeAccessor<Collider> = agent.Attributes.LastCollider
@@ -535,7 +535,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     let mutable brush : Brush = null
     let mutable attributes : Attributes = null
     let mutable parent : DworkinAgent option = None
-
+    
     let mutable random = Random(randomSeed)
 
     member val ThicknessFactor = 1.0f with get, set
@@ -731,7 +731,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         member this.Direction = this.Direction
 
    
- type DworkinAgentFootprint(agent : DworkinAgent) =
+type DworkinAgentFootprint(agent : DworkinAgent) =
     let position = agent.Position
     let direction = agent.Direction
     let distanceCovered = agent.DistanceCovered
