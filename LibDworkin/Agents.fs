@@ -226,7 +226,6 @@ type TerminationConditionCollision() =
     static member SelfIntersection_ : Lens<TerminationConditionCollision, bool> = 
         (fun x -> x.SelfIntersection),(fun value x -> let y = x.Clone() in y.SelfIntersection <- value; y)    
     
-
     member this.Evaluate(agent : DworkinAgent) =
         if agent.DistanceCovered < this.MinDistance then
             false
@@ -246,30 +245,31 @@ type TerminationConditionCollision() =
                 | Relative -> max agent.Thickness agent.Speed
                 | Absolute -> agent.LengthFactor
             
-            let predicate detector layer collider = 
-                (collide detector collider) &&
-                (if not <| this.IgnoresCollisionOfAgentWith(agent, collider) then
-                    let collision = { Subject=detector; Obstacle=collider; Layer=layer }
-                    let handlerNotAborted =
-                        match this.Handler with
-                        | None -> true
-                        | Some(handler) -> 
-                            detector.Parent <- Some(agent.GetFootprint())
-                            handler.Evaluate(agent, collision)
-                    if handlerNotAborted then
-                        agent.Collision <- Some(collision)
-                        true
-                    else false
-                 else false) 
+            match detectors, detectorConfigs with
+                | One(x), One(y) -> this.Matches (sizeFactor * y.Distance) agent x
+                | Two(struct(x1, x2)), Two(struct(y1, y2)) -> 
+                    this.Matches (sizeFactor * y1.Distance) agent x1 || this.Matches (sizeFactor * y2.Distance) agent x2
+                | _ -> failwith "Size mismatch"
+    
+    member private this.Matches size agent detector =
+        let predicate layer collider = 
+            (collide detector collider) &&
+            (if not <| this.IgnoresCollisionOfAgentWith(agent, collider) then
+                let collision = { Subject=detector; Obstacle=collider; Layer=layer }
+                let handlerNotAborted =
+                    match this.Handler with
+                    | None -> true
+                    | Some(handler) -> 
+                        detector.Parent <- Some(agent.GetFootprint())
+                        handler.Evaluate(agent, collision)
+                if handlerNotAborted then
+                    agent.Collision <- Some(collision)
+                    true
+                else false
+            else false) 
             
-            let inline outerPredicate (detector : CircleSectorCollider) (detectorConfig : CollisionDetectorConfig) = 
-                detector.SetParameters(agent.Position, sizeFactor * detectorConfig.Distance, agent.Direction.Theta)
-                agent.DworkinEnvironment.QueryColliders((detector :> IHasBounds).Bounds, this.Layers, predicate detector)
-            
-            OneOrTwo.exists2 
-                outerPredicate
-                detectors 
-                detectorConfigs 
+        detector.SetParameters(agent.Position, size, agent.Direction.Theta)
+        agent.DworkinEnvironment.QueryColliders((detector :> IHasBounds).Bounds, this.Layers, predicate)
 
     member this.IgnoresCollisionOfAgentWith(agent : DworkinAgent, collider : Collider) =
         let colliderAccessor : AttributeAccessor<Collider> = agent.Attributes.LastCollider
@@ -827,8 +827,15 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         this.AddColliderToLayer(aCollider, CollisionLayer.Default)
 
     member this.AddColliderToLayer(aCollider, layer) =
+        let tree = 
+            match colliders.TryGetValue(layer) with
+            | (true, res) -> res
+            | (false, _) -> 
+                let res = QuadTree(initialQuadTreeBounds)
+                colliders.[layer] <- res
+                res
         try
-            colliders.GetOrSetIfAbsent(layer, fun () -> QuadTree(initialQuadTreeBounds)).Insert(aCollider)
+            tree.Insert(aCollider)
         with
         | :? OutOfBounds as ex ->
 #if __ANDROID__       
@@ -842,7 +849,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     /// Stop when predicate returns true or all colliders are processed.
     /// If all colliders are processed but predicate never returned true, return false
     member this.QueryColliders(rect : Rectangle, layers: CollisionLayers, predicate : CollisionLayer -> Collider -> bool) =
-        (colliders :?> SmallDictionary<_, _>).Exists(fun layer tree -> if layers.Contains layer then tree.Query(rect, predicate layer) else false)
+        (colliders :?> SmallDictionary<_, _>).Exists(fun layer tree -> layers.Contains layer && tree.Query(rect, predicate layer))
     
     /// Return true if given collider collides with any colliders in given layers
     member this.TestForCollision(layers: CollisionLayers, collider : Collider) : bool =
