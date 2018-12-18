@@ -183,3 +183,43 @@ module OneOrTwo =
         | struct(One(x), One(y)) -> predicate x y
         | struct(Two(struct(x1, x2)), Two(struct(y1, y2))) -> predicate x1 y1 || predicate x2 y2
         | _ -> failwith "Size mismatch"
+
+// Backport of ValueOption for F# 4.0 (used in Xamarin Android)
+#if __ANDROID__
+let inline private anyToString nullStr x = 
+    match box x with 
+    | null -> nullStr
+    | :? System.IFormattable as f -> f.ToString(null,System.Globalization.CultureInfo.InvariantCulture)
+    | obj ->  obj.ToString()
+
+let private anyToStringShowingNull x = anyToString "null" x
+
+[<StructuralEquality; StructuralComparison>]
+[<Struct>]
+[<CompiledName("FSharpValueOption`1")>]
+[<System.Diagnostics.DebuggerDisplay("ValueSome({Value})")>]
+type ValueOption<'T> =
+    | ValueNone : 'T voption
+    | ValueSome : 'T -> 'T voption
+
+    member x.Value = match x with ValueSome x -> x | ValueNone -> raise (new System.InvalidOperationException("ValueOption.Value"))
+
+    [<System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)>]
+    static member None : 'T voption = ValueNone
+
+    static member Some (value) : 'T voption = ValueSome(value)
+
+    [<System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)>]
+    member x.IsNone = match x with ValueNone -> true | _ -> false
+
+    [<System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.Never)>]
+    member x.IsSome = match x with ValueSome _ -> true | _ -> false
+
+    static member op_Implicit (value) : 'T option = Some(value)
+
+    override x.ToString() = 
+        // x is non-null, hence ValueSome
+        "ValueSome("^anyToStringShowingNull x.Value^")"
+
+and 'T voption = ValueOption<'T>
+#endif

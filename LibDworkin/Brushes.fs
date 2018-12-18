@@ -3,6 +3,7 @@
 open Agents
 open PharoCompatibility
 open Geometry
+open SpecializedCollections
 
 open System
 
@@ -32,7 +33,7 @@ type BrushCircles() =
 type BrushSolidBase() =
     inherit Brush()
 
-    let mutable prevPoints : ValueOption<struct(Point * Point)> = ValueNone
+    let mutable prevPoints : struct(Point * Point) voption = ValueNone
 
     abstract member GetAngle : DworkinAgent -> float32
     default this.GetAngle(_) = 0.0f
