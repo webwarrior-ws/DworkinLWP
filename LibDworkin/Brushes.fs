@@ -32,7 +32,7 @@ type BrushCircles() =
 type BrushSolidBase() =
     inherit Brush()
 
-    let mutable prevPoints : (Point * Point) option = None
+    let mutable prevPoints : ValueOption<struct(Point * Point)> = ValueNone
 
     abstract member GetAngle : DworkinAgent -> float32
     default this.GetAngle(_) = 0.0f
@@ -45,10 +45,10 @@ type BrushSolidBase() =
         let lhs = agent.Position + perpendicular
         let rhs = agent.Position - perpendicular
         match prevPoints with
-        | Some(prevLhs, prevRhs) -> 
+        | ValueSome(struct (prevLhs, prevRhs)) -> 
             canvas.DrawQuad(prevLhs, lhs, rhs, prevRhs)
-        | None -> ()
-        prevPoints <- Some(lhs, rhs)
+        | ValueNone -> ()
+        prevPoints <- ValueSome(struct(lhs, rhs))
 
 
 type BrushSolid() =
