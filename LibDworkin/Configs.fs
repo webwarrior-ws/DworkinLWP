@@ -10,6 +10,7 @@ open AgentAbstractions
 open Colliders
 open Agents
 open Brushes
+open SpecializedCollections
 
 open System
 
@@ -116,8 +117,8 @@ type ColliderStrategyCircles() =
 
     override this.Evaluate(agent, attributes) =
         if agent.DistanceCovered >= this.Offset then
-            match attributes.LastCollider.Get() with
-            | Some(collider) -> 
+            match attributes.LastCollider.GetValue() with
+            | ValueSome(collider) -> 
                 let r = agent.Thickness * 0.5f
                 let minR = agent.ThicknessFactor * 0.01f
                 if r < minR then
@@ -138,7 +139,7 @@ type ColliderStrategyCircles() =
                     if not <| List.isEmpty result then
                         attributes.LastCollider.Set(lastCollider)
                     result
-            | None -> 
+            | ValueNone -> 
                 let collider = CircleCollider(Some(agent.GetFootprint()), agent.Position, 0.0f)
                 attributes.LastCollider.Set(collider)
                 [ collider ]

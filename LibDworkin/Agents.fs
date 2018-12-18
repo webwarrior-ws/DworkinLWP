@@ -444,6 +444,7 @@ type IAttributeAccessor<'T> =
     interface
         abstract member Get : unit -> 'T option
         abstract member Get : (unit -> 'T) -> 'T
+        abstract member GetValue : unit -> 'T voption
         abstract member Set : 'T -> unit
         abstract member GetOrSetIfAbsent : (unit -> 'T) -> 'T
     end
@@ -460,6 +461,11 @@ type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
         match dictionary.TryGetValue(id) with
         | (true, v) -> v
         | (false, _) -> value()
+    
+    member this.GetValue() : 'T voption = 
+        match dictionary.TryGetValue(id) with
+        | (true, v) -> ValueSome(v)
+        | (false, _) -> ValueNone
         
     member this.Set(value : 'T) : unit =
         dictionary.[id] <- value
@@ -475,6 +481,7 @@ type AttributeAccessor<'T>(dictionary: IDictionary<int, 'T>, id: int) =
     interface IAttributeAccessor<'T> with
         member this.Get() = this.Get()
         member this.Get(value) = this.Get(value)
+        member this.GetValue() = this.GetValue()
         member this.Set(value) = this.Set(value)
         member this.GetOrSetIfAbsent(value) = this.GetOrSetIfAbsent(value)
 
@@ -522,7 +529,7 @@ let performAction (action : DworkinAgent -> unit) (agent : Agent) : unit =
                     Some(a :> Agent)
                 | _ -> None
     | _ -> failwith "Unsupported agent type"
-
+    
 
 type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     inherit MovingAgent()
@@ -606,7 +613,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     
     member this.DworkinEnvironment : DworkinEnvironment =
         this.Environment.Value :?> DworkinEnvironment
-    
+
     member this.BranchMarks =
         this.Attributes.BranchMarks.GetOrSetIfAbsent(SmallDictionary.Create)
     
@@ -614,7 +621,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.BranchMarks.Values |> Seq.sumBy (fun x -> x.Length)
 
     member this.AddBranchMarkFor(aMark, tag) =
-        this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList()).Add(aMark)
+        this.BranchMarks.GetOrSetIfAbsent(tag, BranchMarkList).Add(aMark)
 
     member this.Branch(anAgentConfig, options) =
         this.Branch(anAgentConfig, options, ignore)
@@ -637,10 +644,10 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             Seq.maxBy (fun mark -> mark.S) (marks.Values |> Seq.map (fun s -> s.Last))
 
     member this.LastBranchMarkFor(tag) =
-        (this.BranchMarks.GetOrSetIfAbsent(tag, fun () -> BranchMarkList())).Last
+        (this.BranchMarks.GetOrSetIfAbsent(tag, BranchMarkList)).Last
 
     member this.NumBranchesFor(tag) =
-        this.BranchMarks.GetTransformed(tag, fun marks -> marks.Length, fun () -> 0)
+        this.BranchMarks.GetTransformed(tag, (fun marks -> marks.Length), fun () -> 0)
 
     member this.Copy() : DworkinAgent =
         let copy = this.MemberwiseClone() :?> DworkinAgent

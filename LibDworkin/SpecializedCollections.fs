@@ -38,7 +38,10 @@ type Buffer<'T> = struct
 end
 
 
-type SmallDictionary<'K, 'V when 'K : equality> = struct
+let inline fastEquals<'a when 'a :> System.IEquatable<'a>> (x:'a) (y:'a) = x.Equals y
+
+
+type SmallDictionary<'K, 'V when 'K : equality and 'K :> System.IEquatable<'K>> = struct
     val private list : ResizeArray<KeyValuePair<'K, 'V>>
 
     private new(initialCapacity : int) = { list = ResizeArray(initialCapacity) }
@@ -53,7 +56,7 @@ type SmallDictionary<'K, 'V when 'K : equality> = struct
         let mutable found = false
         
         while not found && i < this.list.Count do
-            if this.list.[i].Key = key then
+            if fastEquals this.list.[i].Key key then
                 found <- true
             else
                 i <- i + 1
@@ -186,6 +189,9 @@ module OneOrTwo =
 
 // Backport of ValueOption for F# 4.0 (used in Xamarin Android)
 #if __ANDROID__
+#nowarn "42"
+#nowarn "62"
+
 let inline private anyToString nullStr x = 
     match box x with 
     | null -> nullStr

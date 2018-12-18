@@ -4,29 +4,35 @@ open Agents
 open Colliders
 open PharoCompatibility
 open AgentAbstractions
+open SpecializedCollections
 
 
 
 type internal SingleAttributeStore<'T>() =
-    let mutable storedValue : 'T option = None
+    let mutable storedValue : 'T voption = ValueNone
     interface IAttributeAccessor<'T> with
-        member this.Get() = storedValue
+        member this.Get() = 
+            match storedValue with
+            | ValueSome(value) -> Some(value)
+            | ValueNone -> None
 
         member this.Get(value) = 
             match storedValue with 
-            | Some(x) -> x 
-            | None -> value()
+            | ValueSome(x) -> x 
+            | ValueNone -> value()
+        
+        member this.GetValue() = storedValue
 
         member this.GetOrSetIfAbsent(value) = 
             match storedValue with 
-            | Some(x) -> x 
-            | None -> 
+            | ValueSome(x) -> x 
+            | ValueNone -> 
                 let res = value()
-                storedValue <- Some(res)
+                storedValue <- ValueSome(res)
                 res
         
         member this.Set(value) =
-            storedValue <- Some(value)
+            storedValue <- ValueSome(value)
 
 
 type internal ProbeColliderAttributes() =
@@ -132,7 +138,6 @@ type DworkinEnvironment with
 type DworkinAgent with
     member this.LaunchProbe(probeConfig : DworkinAgentConfig, options : ProbeSpawnOptions, agentBlock : DworkinProbeAgent -> unit) =
         options.Parent <- Some(this)
-        options.Config <- Some(probeConfig)
         this.DworkinEnvironment.LaunchProbe(
             probeConfig, 
             options,
