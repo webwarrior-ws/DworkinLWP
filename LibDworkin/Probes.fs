@@ -126,7 +126,7 @@ type DworkinEnvironment with
         probe.Run()
     
     member this.LaunchProbe(probeConfig, options) =
-        this.LaunchProbe(probeConfig, options, fun _ -> ())
+        this.LaunchProbe(probeConfig, options, ignore)
 
 
 type DworkinAgent with
@@ -144,4 +144,4 @@ type DworkinAgent with
                 agentBlock(probe))
     
     member this.LaunchProbe(probeConfig, options) =
-        this.LaunchProbe(probeConfig, options, fun _ -> ())
+        this.LaunchProbe(probeConfig, options, ignore)
