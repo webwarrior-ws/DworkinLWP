@@ -42,6 +42,16 @@ type IDictionary<'K, 'V> with
         this.GetTransformed(key, transform, fun () -> raise (KeyNotFoundException(key.ToString())) )
 
 
+/// inline version of IDictionary.GetOrSetIfAbsent()
+let inline getOrSetIfAbsent (dict : System.Collections.Generic.IDictionary<'K, 'V>) (key : 'K) (value : unit -> 'V) =
+    match dict.TryGetValue(key) with
+    | (true, v) -> v
+    | (false, _) -> 
+        let computedValue = value()
+        dict.[key] <- computedValue
+        computedValue
+
+
 /// Equivalent of Smalltalk's #ifEmpty:ifNotEmpty:
 let (|Empty|NotEmpty|) (sequence : #seq<'T>) =
     if Seq.isEmpty sequence then

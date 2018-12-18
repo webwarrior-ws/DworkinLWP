@@ -237,8 +237,13 @@ type TerminationConditionCollision() =
             
             let detectors : OneOrTwo<CircleSectorCollider> = 
                 let detectorsAccessor : AttributeAccessor<OneOrTwo<CircleSectorCollider>> = agent.Attributes.Detectors
-                detectorsAccessor.GetOrSetIfAbsent(fun () -> 
-                    detectorConfigs |> OneOrTwo.map (fun each -> each.GetCollider()))
+                // manually inlined GetOrSetIfAbsent for performance
+                match detectorsAccessor.GetValue() with
+                | ValueSome(res) -> res
+                | ValueNone ->
+                    let res = detectorConfigs |> OneOrTwo.map (fun each -> each.GetCollider())
+                    detectorsAccessor.Set(res)
+                    res
             
             let sizeFactor = 
                 match this.DetectorSize with
@@ -615,13 +620,20 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         this.Environment.Value :?> DworkinEnvironment
 
     member this.BranchMarks =
-        this.Attributes.BranchMarks.GetOrSetIfAbsent(SmallDictionary.Create)
+        // manually inlined GetOrSetIfAbsent for performance
+        let accessor = this.Attributes.BranchMarks
+        match accessor.GetValue() with
+        | ValueSome(marks) -> marks
+        | ValueNone -> 
+            let marks = SmallDictionary<int, BranchMarkList>.Create()
+            accessor.Set(marks)
+            marks
     
     member this.TotalNumBranches =
         this.BranchMarks.Values |> Seq.sumBy (fun x -> x.Length)
 
     member this.AddBranchMarkFor(aMark, tag) =
-        this.BranchMarks.GetOrSetIfAbsent(tag, BranchMarkList).Add(aMark)
+        (getOrSetIfAbsent this.BranchMarks tag BranchMarkList).Add(aMark)
 
     member this.Branch(anAgentConfig, options) =
         this.Branch(anAgentConfig, options, ignore)
@@ -644,7 +656,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
             Seq.maxBy (fun mark -> mark.S) (marks.Values |> Seq.map (fun s -> s.Last))
 
     member this.LastBranchMarkFor(tag) =
-        (this.BranchMarks.GetOrSetIfAbsent(tag, BranchMarkList)).Last
+        (getOrSetIfAbsent this.BranchMarks tag BranchMarkList).Last
 
     member this.NumBranchesFor(tag) =
         this.BranchMarks.GetTransformed(tag, (fun marks -> marks.Length), fun () -> 0)

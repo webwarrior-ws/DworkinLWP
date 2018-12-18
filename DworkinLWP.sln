@@ -11,7 +11,7 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DworkinTestingApp", "Dworki
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "LibDworkin-PC", "LibDworkin-PC\LibDworkin-PC.fsproj", "{C248EF0D-99E1-4345-AC48-8D9270BC4EBD}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DworkinTestingApp-PC", "DworkinTestingApp-PC\DworkinTestingApp-PC.fsproj", "{5240D1AE-E4AD-449A-BEA5-A8855F08FCCA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "DworkinTestingApp-PC", "DworkinTestingApp-PC\DworkinTestingApp-PC.fsproj", "{5240D1AE-E4AD-449A-BEA5-A8855F08FCCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -32,14 +32,7 @@ module Helpers =
          1.0f;  1.0f; 
         -1.0f;  1.0f;
         -1.0f; -1.0f;|]
-    
-    let getOrSetIfAbsent (dict : System.Collections.Generic.IDictionary<'K, 'V>) (key : 'K) (value : unit -> 'V) =
-        match dict.TryGetValue(key) with
-        | (true, v) -> v
-        | (false, _) -> 
-            let computedValue = value()
-            dict.[key] <- computedValue
-            computedValue
+
  
 /// Platform-independent facade used by renderers to load shaders and other stuff
 [<AbstractClass>]
