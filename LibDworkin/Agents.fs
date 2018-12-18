@@ -167,7 +167,7 @@ type TerminationConditions =
         member this.AnySatisfy(agent : DworkinAgent) =
             (match this.Distance  with | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
             (match this.Curvature with | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
-            (match this.Collision with | Some(cond) -> not agent.NoCollisions && cond.Evaluate(agent) | None -> false)
+            (match this.Collision with | Some(cond) when not agent.NoCollisions -> cond.Evaluate(agent) | _ -> false)
 
 type TerminationConditionDistance() = 
     static member val Instance = TerminationConditionDistance()
@@ -846,13 +846,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         this.AddColliderToLayer(aCollider, CollisionLayer.Default)
 
     member this.AddColliderToLayer(aCollider, layer) =
-        let tree = 
-            match colliders.TryGetValue(layer) with
-            | (true, res) -> res
-            | (false, _) -> 
-                let res = QuadTree(initialQuadTreeBounds)
-                colliders.[layer] <- res
-                res
+        let tree = getOrSetIfAbsent colliders layer (fun () -> QuadTree(initialQuadTreeBounds))
         try
             tree.Insert(aCollider)
         with
