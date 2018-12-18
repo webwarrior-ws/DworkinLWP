@@ -167,7 +167,7 @@ type TerminationConditions =
         member this.AnySatisfy(agent : DworkinAgent) =
             (match this.Distance  with | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
             (match this.Curvature with | Some(cond) -> cond.Evaluate(agent) | None -> false) ||
-            (match this.Collision with | Some(cond) -> not agent.NoCollisions && cond.Evaluate(agent) | None -> false)
+            (match this.Collision with | Some(cond) when not agent.NoCollisions -> cond.Evaluate(agent) | _ -> false)
 
 type TerminationConditionDistance() = 
     static member val Instance = TerminationConditionDistance()
