@@ -168,6 +168,37 @@ type NumberRange = struct
 end
 
 
+/// Interval that can be compared and value of which can be accessed
+[<CustomEquality; NoComparison>]
+type Interval = struct
+    val Start: float32
+    val Stop: float32
+    val Step: float32
+
+    val private Sequence : seq<float32>
+
+    new (start, stop, step) = { Start=start; Stop=stop; Step=step; Sequence=seq { start .. step .. stop } }
+
+    override this.Equals(other) =
+        match other with
+        | :? Interval as otherInterval -> (this :> System.IEquatable<Interval>).Equals(otherInterval)
+        | _ -> false
+    
+    override this.GetHashCode() =
+        this.Start.GetHashCode() ^^^ this.Stop.GetHashCode() ^^^ this.Step.GetHashCode()
+
+    interface IEnumerable<float32> with
+        member this.GetEnumerator() : IEnumerator<float32> = 
+            this.Sequence.GetEnumerator()
+        member this.GetEnumerator() : System.Collections.IEnumerator = 
+            this.Sequence.GetEnumerator() :> System.Collections.IEnumerator
+    
+    interface System.IEquatable<Interval> with
+        member this.Equals(other : Interval) =
+            this.Start = other.Start && this.Stop = other.Stop && this.Step = other.Step
+end
+
+
 /// Data structure that contains either on or two objects of certain type
 [<Struct>]
 type OneOrTwo<'T> =
