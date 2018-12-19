@@ -32,6 +32,11 @@ module Helpers =
          1.0f;  1.0f; 
         -1.0f;  1.0f;
         -1.0f; -1.0f;|]
+    
+    let measureTime (action : unit -> unit) =
+        let startTime = System.DateTime.Now
+        action()
+        System.DateTime.Now - startTime
 
  
 /// Platform-independent facade used by renderers to load shaders and other stuff
@@ -446,18 +451,27 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)
-        let startTime = System.DateTime.Now
 
-        match environment with
-        | Some(env) -> env.Step(this)
-        | None -> ()
-        this.RenderShapes()
-        this.DrawMaskedImage()
+        let mutable agentsCount = 0
+        let envStepTime = 
+            measureTime (fun () -> 
+                match environment with
+                | Some(env) -> 
+                    agentsCount <- env.AgentsCount
+                    env.Step(this)
+                | None -> () )
+        let renderShapesTime = measureTime this.RenderShapes
+        let drawImageTime = measureTime this.DrawMaskedImage
 
-        let dt = System.DateTime.Now - startTime
+        let dt = envStepTime + renderShapesTime + drawImageTime
         if dt.TotalMilliseconds < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt.TotalMilliseconds))
 #if __ANDROID__
-        else
-            Android.Util.Log.Debug("frameTime", sprintf "Large frame time: %fms" dt.TotalMilliseconds) |> ignore
+        //else
+        //Android.Util.Log.Debug("frameTime", 
+        //    sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
+        //        agentsCount
+        //        envStepTime.TotalMilliseconds 
+        //        renderShapesTime.TotalMilliseconds
+        //        drawImageTime.TotalMilliseconds ) |> ignore
 #endif
