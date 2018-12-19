@@ -38,6 +38,7 @@ type IDworkinAgentState =
         abstract member DistanceCovered : float32
         abstract member ThicknessFactor : float32
         abstract member LengthFactor : float32
+        abstract member Parent : IDworkinAgentState option
 
         abstract member GetFootprint : unit -> IDworkinAgentState
     end
