@@ -98,7 +98,11 @@ type DworkinAgentFormula() =
     abstract Evaluate : float32 * float32 -> float32
     member this.Evaluate(agent : DworkinAgent) =
         let s = agent.DistanceCovered
-        this.Evaluate(s * DworkinAgentFormula.Factor, min (s / agent.TotalDistance) 1.0f)
+        let result = this.Evaluate(s * DworkinAgentFormula.Factor, min (s / agent.TotalDistance) 1.0f)
+        if Single.IsNaN result || Single.IsInfinity result then
+            0.0f // fallback value
+        else
+            result
 
     static member Factor = 0.01f
 
@@ -567,12 +571,12 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
 
     member this.Curvature = 
         if not curvature.HasValue then
-           curvature <- Nullable(config.Curvature.Evaluate(this) * this.FlipFactor / this.LengthFactor)
+            curvature <- Nullable(config.Curvature.Evaluate(this) * this.FlipFactor / this.LengthFactor)
         curvature.Value
     
     member this.Thickness = 
         if not thickness.HasValue then
-           thickness <- Nullable(config.Thickness.Evaluate(this) * this.ThicknessFactor)
+            thickness <- Nullable(config.Thickness.Evaluate(this) * this.ThicknessFactor)
         thickness.Value
     
     override this.Speed
@@ -748,6 +752,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         member this.Thickness = this.Thickness
         member this.ThicknessFactor = this.ThicknessFactor
         member this.Direction = this.Direction
+        member this.Parent = this.Parent |> Option.map (fun p -> p :> IDworkinAgentState)
 
    
 type DworkinAgentFootprint(agent : DworkinAgent) =
@@ -775,6 +780,7 @@ type DworkinAgentFootprint(agent : DworkinAgent) =
         member this.ThicknessFactor = agent.ThicknessFactor
         member this.Id = this.Id
         member this.Direction = direction
+        member this.Parent = agent.Parent |> Option.map (fun p -> p :> IDworkinAgentState)
     
     interface IEquatable<IUnique> with
         override this.Equals(other) =

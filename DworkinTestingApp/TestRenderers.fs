@@ -119,7 +119,8 @@ type CollidingAgent() =
               member this.LengthFactor = raise (System.NotImplementedException())
               member this.Position = raise (System.NotImplementedException())
               member this.Thickness = raise (System.NotImplementedException())
-              member this.ThicknessFactor = raise (System.NotImplementedException()) }
+              member this.ThicknessFactor = raise (System.NotImplementedException())
+              member this.Parent = raise (System.NotImplementedException()) }
 
 
 type CollidingAgentsTestRenderer(context) =
