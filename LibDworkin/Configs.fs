@@ -142,7 +142,7 @@ type ColliderStrategyCircles() =
             | ValueNone -> 
                 let collider = CircleCollider(Some(agent.GetFootprint()), agent.Position, 0.0f)
                 attributes.LastCollider.Set(collider)
-                [ collider ]
+                [] // adding collider with radius=0 will break things
         else
             []
     
