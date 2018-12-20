@@ -78,7 +78,11 @@ type OpenTK.Vector2 with
        
     member this.NearestPointOnLineFromTo(p1, p2) =
         let p = this.NearestPointAlongLineFromTo(p1, p2)
-        Point(min (max p.X p1.X) p2.X, min (max p.Y p1.Y) p2.Y)
+        let rect = Rectangle(min p1.X p2.X, min p1.Y p2.Y, max p1.X p2.X, max p1.Y p2.Y)
+        if rect.Left <= p.X && rect.Top <= p.Y && rect.Right > p.X && rect.Bottom > p.Y then
+            p
+        else
+            Point(min (max p.X rect.Left) rect.Right, min (max p.Y rect.Top) rect.Bottom)
     
     member inline this.LeftRotated =
         Point(this.Y, -this.X)
@@ -152,6 +156,9 @@ type OpenTK.Box2 with
     
     member this.Corners =
         [| this.Origin; Point(this.Left, this.Bottom); Point(this.Right, this.Bottom); Point(this.Right, this.Top) |]
+    
+    member this.BottomCenter =
+        Point((this.Left + this.Right) * 0.5f, this.Bottom)
 
     static member FromExtentCenteredAtOrigin(extent : Point) =
         Rectangle.FromTLRB(-extent.Y*0.5f, -extent.X*0.5f, extent.X*0.5f, extent.Y*0.5f)
