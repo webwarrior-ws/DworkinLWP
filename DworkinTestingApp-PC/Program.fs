@@ -3,6 +3,7 @@
 open OpenTK
 open OpenTK.Graphics.ES20
 
+open LibDworkin.Aether.Operators
 open LibDworkin.Renderer
 open GUI
 
@@ -64,13 +65,22 @@ let configGui  =
                     Builders.intSliderEditor "N" GeneratedConfigs.SpiralsProbesBranching1.N_ 1 8 1;
                     Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.SpiralsProbesBranching1>;
                 ];
+            Builders.environmentEditor
+                "MagneticSpiralsBunch"
+                (GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
+                [ 
+                    Builders.floatSliderEditor "Scale" GeneratedConfigs.MagneticSpiralsBunchBranching2_3.Scale_ 1.0f 2.0f 0.1f;
+                    Builders.intSliderEditor "MaxInitialAgents" 
+                        (LibDworkin.Lenses.config_ >-> GeneratedConfigs.SpawnConfig.ProbeBunchMagneticSpirals2Branch3.MaxInitialAgents_) 3 15 1;
+                    Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.MagneticSpiralsBunchBranching2_3>;
+                ];
         ]
 
 
 [<EntryPoint>]
 let main _argv =
-    //let window = new MainWindow<_>(renderer, [configGui])
-    let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.SpiralsProbesBranching1()))
+    let window = new MainWindow<_>(renderer, [configGui])
+    //let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.MagneticSpiralsBunchBranching2_3()))
     window.Run(30.0)
 
     0 // return an integer exit code

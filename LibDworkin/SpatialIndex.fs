@@ -49,6 +49,7 @@ type QuadTree<'T when 'T :> IHasBounds>(bounds: Rectangle, maxObjects: int) =
 
     member this.Insert(obj : 'T) =
         let objBounds = obj.Bounds
+        assert (not objBounds.IsEmpty)
           
         if not (bounds.Contains objBounds) then
             raise (OutOfBounds(objBounds, bounds))

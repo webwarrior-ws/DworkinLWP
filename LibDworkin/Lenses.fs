@@ -216,6 +216,17 @@ let inline lengthRange_< ^U , ^V when ^U : (static member LengthRange_ : Lens< ^
 let inline lengthSteps_< ^U , ^V when ^U : (static member LengthSteps_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member LengthSteps_ : Lens< ^U, ^V>) ()))
 
+let inline base_< ^U , ^V when ^U : (static member Base_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Base_ : Lens< ^U, ^V>) ()))
+
+let inline minT_< ^U , ^V when ^U : (static member MinT_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member MinT_ : Lens< ^U, ^V>) ()))
+
+let inline intervalRange_< ^U , ^V when ^U : (static member IntervalRange_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member IntervalRange_ : Lens< ^U, ^V>) ()))
+
+let inline midpoint_< ^U , ^V when ^U : (static member Midpoint_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Midpoint_ : Lens< ^U, ^V>) ()))
 
 // compound lenses
 let termination_spawnConfig_ = termination_ >-> cast<TerminationStrategy, TerminationSpawn> >-> spawnConfig_
