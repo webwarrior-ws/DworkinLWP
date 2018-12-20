@@ -161,3 +161,11 @@ let pcurve x a b =
 let inline isOdd n = n &&& 1 = 1
 
 let inline isEven n = n &&& 1 = 0
+
+/// Equivalent to Smalltalk's \\ operator (and different from % when dealing with negative numbers)
+let inline (%%) a b =
+    let result = a % b
+    if sign b = sign result then
+        result
+    else
+        result + b

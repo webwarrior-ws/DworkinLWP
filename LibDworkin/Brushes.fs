@@ -72,12 +72,12 @@ type BrushSolid() =
                         lastBrushAngle <- angle
                         angle
                 else
-                    let mutable angle = ((agent.Direction.Angle - parent.Direction.Angle) - Single.HalfPi) % Single.Pi
+                    let mutable angle = ((agent.Direction.Angle - parent.Direction.Angle) - Single.HalfPi) %% Single.Pi
                     if angle < (-Single.HalfPi) then
                         angle <- Single.Pi + angle
                     if angle > Single.HalfPi then
                         angle <- angle - Single.Pi
-                    if (abs ((angle % Single.Pi) - Single.HalfPi)) < (Single.HalfPi / 6.0f) then
+                    if (abs ((angle %% Single.Pi) - Single.HalfPi)) < (Single.HalfPi / 6.0f) then
                         angle <- 0.0f
                     lastBrushAngle <- angle
                     angle
