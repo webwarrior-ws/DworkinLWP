@@ -5,6 +5,7 @@ open OpenTK
 
 open Geometry
 open AgentAbstractions
+open PharoCompatibility
 
 
 
@@ -169,7 +170,7 @@ module CollisionTests =
     
     let circlesectorCircle (sector : CircleSectorCollider) (center : Point) (radius : float32) =
         if circleCircle sector.Center sector.Radius center radius then
-            let gamma = ((center - sector.Center).Theta - sector.Bearing + (sector.CentralAngle * 0.5f)) % Single.TwoPi
+            let gamma = ((center - sector.Center).Theta - sector.Bearing + (sector.CentralAngle * 0.5f)) %% Single.TwoPi
             (gamma >= 0.0f && gamma <= sector.CentralAngle) 
             || (circleSegment center radius sector.Center sector.R1) 
             || (circleSegment center radius sector.Center sector.R2)
@@ -182,7 +183,7 @@ module CollisionTests =
         if Point.Dot(p, p) > (sector.Radius * sector.Radius) then
             false
         else
-            let angle = ((p.Theta - sector.Bearing) + (sector.CentralAngle * 0.5f)) % Single.TwoPi
+            let angle = ((p.Theta - sector.Bearing) + (sector.CentralAngle * 0.5f)) %% Single.TwoPi
             (angle >= 0.0f && angle <= sector.CentralAngle) ||
             (segmentSegment sector.Center sector.R1 p1 p2) || 
             (segmentSegment sector.Center sector.R2 p1 p2)
