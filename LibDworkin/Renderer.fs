@@ -435,8 +435,13 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
     
     member this.ResetEnvironment(dimensions : Point) =
         this.ClearMask()
+        let startTime = System.DateTime.Now
         let env = environmentConfig.GetEnvironment(dimensions)
         environment <- Some(env)
+        let dt = System.DateTime.Now - startTime
+#if __ANDROID__
+        Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
+#endif
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
             env.Step(this)
@@ -468,10 +473,10 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt.TotalMilliseconds))
 #if __ANDROID__
         //else
-        //Android.Util.Log.Debug("frameTime", 
-        //    sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
-        //        agentsCount
-        //        envStepTime.TotalMilliseconds 
-        //        renderShapesTime.TotalMilliseconds
-        //        drawImageTime.TotalMilliseconds ) |> ignore
+        Android.Util.Log.Debug("frameTime", 
+            sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
+                agentsCount
+                envStepTime.TotalMilliseconds 
+                renderShapesTime.TotalMilliseconds
+                drawImageTime.TotalMilliseconds ) |> ignore
 #endif
