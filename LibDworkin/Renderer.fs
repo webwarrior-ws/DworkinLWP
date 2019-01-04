@@ -109,8 +109,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable shapesVertices = Buffer<Vector2>(128)
     let mutable shapesVertexIndices = Buffer<int>(128)
 
-    let mutable maskTexture = 0
-    let mutable maskFrameBuffer = 0
+    let mutable sdfTexture = 0
+    let mutable sdfFrameBuffer = 0
     let mutable quadVBO = 0
     let mutable maskedImageShader = lazy(Shader(platform.TextFromAsset "shaders/DrawMaskedImage.vert", platform.TextFromAsset "shaders/DrawMaskedImage.frag"))
     let mutable shapesDrawingShader = lazy(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
@@ -123,15 +123,15 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
-    member internal this.MaskTexture = maskTexture
-    /// Use this to draw to mask
-    member internal this.MaskFrameBuffer = maskFrameBuffer
+    member internal this.SDFTexture = sdfTexture
+    /// Use this to draw to sdf
+    member internal this.SDFFrameBuffer = sdfFrameBuffer
     member internal this.QuadVBO = quadVBO
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
-            GL.DeleteTexture maskTexture
-            GL.DeleteFramebuffers(1, [| maskFrameBuffer |])
+            GL.DeleteTexture sdfTexture
+            GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
             GL.DeleteBuffers(2, [| quadVBO; shapesVBO |])
             base.Dispose()
 
@@ -209,23 +209,23 @@ type BaseRenderer(platform : AbstractPlatform) =
         // account for DPI?
         max 6 ( min (int (size * 4.0f)) 120)
     
-    /// initialize mask texture and framebuffer
-    member private this.InitializeMask() =
-        if maskTexture <> 0 then
-            GL.DeleteTexture maskTexture 
-        maskTexture <- gen1 GL.GenTextures
-        GL.BindTexture(TextureTarget.Texture2D, maskTexture)
+    /// initialize sdf texture and framebuffer
+    member private this.InitializeSDF() =
+        if sdfTexture <> 0 then
+            GL.DeleteTexture sdfTexture 
+        sdfTexture <- gen1 GL.GenTextures
+        GL.BindTexture(TextureTarget.Texture2D, sdfTexture)
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
-                      PixelFormat.Rgb, PixelType.UnsignedShort565, nativeint 0)
+                      PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
 
-        maskFrameBuffer <- gen1 GL.GenFramebuffers
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBuffer)
+        sdfFrameBuffer <- gen1 GL.GenFramebuffers
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer)
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, maskTexture, 0)      
+                                TextureTarget.Texture2D, sdfTexture, 0)      
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
@@ -236,7 +236,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         wallpaperWidth <- width
         wallpaperHeight <- height
 
-        this.InitializeMask()
+        this.InitializeSDF()
         
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
@@ -266,16 +266,16 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Clear the rendering surface. 
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
-    member this.ClearMask() =
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.MaskFrameBuffer)
-        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+    member this.ClearSDF() =
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+        GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
-    member this.DrawMaskedImage() =
+    member this.DrawImage() =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
         GL.UseProgram(maskedImageShader.Value.Program)
         GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, maskTexture)
+        GL.BindTexture(TextureTarget.Texture2D, sdfTexture)
         GL.Uniform1(maskedImageShader.Value.GetUniformLocation("mask"), 0)
         GL.Uniform2(maskedImageShader.Value.GetUniformLocation("screenDimensions"), float32 wallpaperWidth, float32 wallpaperHeight)
         let aTexCoords = maskedImageShader.Value.GetAttributeLocation("texCoords")
@@ -301,7 +301,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         if shapesVertexIndices.Size > 0 then
             assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
             
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.MaskFrameBuffer)
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
             GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
             GL.UseProgram(shapesDrawingShader.Value.Program)
             let aPos = shapesDrawingShader.Value.GetAttributeLocation("pos")
@@ -362,7 +362,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
     member this.ResetEnvironment(dimensions : Point) =
-        this.ClearMask()
+        this.ClearSDF()
         let startTime = System.DateTime.Now
         let env = environmentConfig.GetEnvironment(dimensions)
         environment <- Some(env)
@@ -395,7 +395,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
                     shapes <- env.Step()
                 | None -> () )
         let renderShapesTime = measureTime (fun () -> this.RenderShapes(shapes))
-        let drawImageTime = measureTime this.DrawMaskedImage
+        let drawImageTime = measureTime this.DrawImage
 
         let dt = envStepTime + renderShapesTime + drawImageTime
         if dt.TotalMilliseconds < delay then
