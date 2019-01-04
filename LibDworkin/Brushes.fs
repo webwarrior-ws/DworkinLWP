@@ -1,5 +1,6 @@
 ﻿module LibDworkin.Brushes
 
+open AgentAbstractions
 open Agents
 open PharoCompatibility
 open Geometry
@@ -20,13 +21,13 @@ type BrushJoint =
 
 type BrushNone() =
     inherit Brush()
-    override this.Evaluate(agent, canvas) = ()
+    override this.Evaluate(agent) = ()
 
 
 type BrushCircles() =
     inherit Brush()
-    override this.Evaluate(agent, canvas) =
-        canvas.DrawCircle(agent.Position, agent.Thickness * 0.5f)
+    override this.Evaluate(agent) =
+        agent.DworkinEnvironment.AddShape(Shape.Circle(agent.Position, agent.Thickness * 0.5f), ShapePaint.Default)
  
 
 [<AbstractClass>]
@@ -38,7 +39,7 @@ type BrushSolidBase() =
     abstract member GetAngle : DworkinAgent -> float32
     default this.GetAngle(_) = 0.0f
 
-    override this.Evaluate(agent, canvas) =
+    override this.Evaluate(agent) =
         let mutable perpendicular = agent.Direction.LeftRotated * (agent.Thickness * 0.5f)
         let angle = this.GetAngle(agent)
         if angle <> 0.0f then
@@ -47,7 +48,7 @@ type BrushSolidBase() =
         let rhs = agent.Position - perpendicular
         match prevPoints with
         | ValueSome(struct (prevLhs, prevRhs)) -> 
-            canvas.DrawQuad(prevLhs, lhs, rhs, prevRhs)
+            agent.DworkinEnvironment.AddShape(Shape.Quad(prevLhs, lhs, rhs, prevRhs), ShapePaint.Default)
         | ValueNone -> ()
         prevPoints <- ValueSome(struct(lhs, rhs))
 
@@ -83,13 +84,13 @@ type BrushSolid() =
                     angle
             | None -> 0.0f
     
-    override this.Evaluate(agent, canvas) =
-        base.Evaluate(agent, canvas)
+    override this.Evaluate(agent) =
+        base.Evaluate(agent)
         match this.Cap with
         | NoCap -> ()
         | Round -> 
             // TODO: draw half-circle
-            canvas.DrawCircle(agent.Position, agent.Thickness * 0.5f)
+            agent.DworkinEnvironment.AddShape(Shape.Circle(agent.Position, agent.Thickness * 0.5f), ShapePaint.Default)
 
 
 type BrushSolidJoint() =
@@ -97,9 +98,9 @@ type BrushSolidJoint() =
     let mutable jointDrawn = false
     member val JointType = BrushJoint.Miter with get, set
 
-    override this.Evaluate(agent, canvas) =
+    override this.Evaluate(agent) =
         if jointDrawn then
-            base.Evaluate(agent, canvas)
+            base.Evaluate(agent)
         else
             match agent.Parent with
             | None -> ()
@@ -115,12 +116,12 @@ type BrushSolidJoint() =
 
                     match this.JointType with
                     | Miter -> 
-                        canvas.DrawTriangle(a, b, p)
+                        agent.DworkinEnvironment.AddShape(Shape.Triangle(a, b, p), ShapePaint.Default)
                     | Bevel ->
                         let angle = agentPerp.AngleWith(parentPerp)
                         let c = p + (parentPerp + agentPerp) * (0.5f / abs (tan ((angle + Single.Pi) * 0.5f)) + 0.5f)
-                        canvas.DrawQuad(a, c, b, p)
+                        agent.DworkinEnvironment.AddShape(Shape.Quad(a, c, b, p), ShapePaint.Default)
                     
             jointDrawn <- true
-            base.Evaluate(agent, canvas)
+            base.Evaluate(agent)
 
