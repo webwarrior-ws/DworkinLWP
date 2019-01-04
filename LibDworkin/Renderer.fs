@@ -115,10 +115,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable maskTextureMultisample = 0
     let mutable maskFrameBuffer = 0
     let mutable maskFrameBufferMultisample = 0
-    let mutable maskRenderBuffer = 0
     let mutable quadVBO = 0
-    let mutable maskedImageShader : Shader option = None
-    let mutable shapesDrawingShader : Shader option = None
+    let mutable maskedImageShader = lazy(Shader(platform.TextFromAsset "shaders/DrawMaskedImage.vert", platform.TextFromAsset "shaders/DrawMaskedImage.frag"))
+    let mutable shapesDrawingShader = lazy(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
     let mutable shapesVBO = 0
 
     let mutable wallpaperWidth = 0
@@ -143,7 +142,6 @@ type BaseRenderer(platform : AbstractPlatform) =
                 GL.DeleteTexture maskTextureMultisample
                 GL.DeleteFramebuffers(1, [| maskFrameBufferMultisample |])
             GL.DeleteBuffers(2, [| quadVBO; shapesVBO |])
-            GL.DeleteRenderbuffers(1, [| maskRenderBuffer |])
             base.Dispose()
 
         member this.Handle: nativeint = 
@@ -289,8 +287,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     default this.OnSurfaceCreated() = 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         
-        maskedImageShader <- Some(Shader(platform.TextFromAsset "shaders/DrawMaskedImage.vert", platform.TextFromAsset "shaders/DrawMaskedImage.frag"))
-        shapesDrawingShader <- Some(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
+        maskedImageShader.Force() |> ignore
+        shapesDrawingShader.Force() |> ignore
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
