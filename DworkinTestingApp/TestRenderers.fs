@@ -33,7 +33,7 @@ type ShapesTestRenderer(context) =
         this.DrawCircle(Point(1.0f, 1.0f), 0.5f)
         
         this.RenderShapes([||])
-        this.DrawMaskedImage()
+        this.DrawImage()
  
 
  type AdvancedShapesTestRenderer(context) =
@@ -47,7 +47,7 @@ type ShapesTestRenderer(context) =
         this.DrawPolygonContour(points, 0.1f)
         
         this.RenderShapes([||])
-        this.DrawMaskedImage()
+        this.DrawImage()
 
 
 
@@ -157,7 +157,7 @@ type CollidingAgentsTestRenderer(context) =
         match environment with
         | Some(env) -> 
             this.RenderShapes(env.Step())
-            this.DrawMaskedImage()
+            this.DrawImage()
         | None -> ()
 
 
@@ -204,4 +204,4 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
         | None -> ()
         
         this.RenderShapes(shapes.ToArray())
-        this.DrawMaskedImage()
+        this.DrawImage()
