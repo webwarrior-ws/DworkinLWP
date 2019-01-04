@@ -147,8 +147,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         member this.OnDrawFrame(gl : Opengles.IGL10) =
             this.OnDrawFrame()
 #endif   
-    // shapes drawing
-    member this.DrawCircle(center, radius) =
+    // shapes buliding (adding data to VBOs)
+    member this.BuildCircle(center, radius) =
         let numSteps = this.GetNumCircleSegments(radius)
         let firstIndex = shapesVertices.Size
         shapesVertices.Add center
@@ -160,7 +160,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             shapesVertexIndices.Add (firstIndex + i)
             shapesVertexIndices.Add (firstIndex + (i % numSteps + 1))
         
-    member this.DrawCircleContour(center, radius, width) =
+    member this.BuildCircleContour(center, radius, width) =
         let numSteps = this.GetNumCircleSegments(radius)
         let angleStep = Single.TwoPi / (float32 numSteps)
         let r1 = radius - width*0.5f
@@ -169,10 +169,10 @@ type BaseRenderer(platform : AbstractPlatform) =
         for i=1 to numSteps+1 do
             let angle = angleStep * (float32 i)
             let p2 = Point(cos angle, sin angle)
-            this.DrawPolygon([| center + p1*r1; center + p1*r2; center + p2*r2; center + p2*r1 |])
+            this.BuildPolygon([| center + p1*r1; center + p1*r2; center + p2*r2; center + p2*r1 |])
             p1 <- p2
         
-    member this.DrawPolygon(points : Point[]) =
+    member this.BuildPolygon(points : Point[]) =
         let fisrtVertexIndex = shapesVertices.Size
         for p in points do shapesVertices.Add p
         for i=fisrtVertexIndex+1 to fisrtVertexIndex+points.Length-2 do
@@ -180,7 +180,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             shapesVertexIndices.Add i
             shapesVertexIndices.Add (i + 1)
         
-    member this.DrawPolygonContour(points : Point[], width : float32) =
+    member this.BuildPolygonContour(points : Point[], width : float32) =
         let n = points.Length
 
         let inline segment p1 p2 = Point.Normalize(p1 - p2)
@@ -197,9 +197,9 @@ type BaseRenderer(platform : AbstractPlatform) =
             let s2 = segment p2 (points.[(i+2)%n])
             let offset2 = offset s1 s2
             if offset1.Angle > offset2.Angle then
-                this.DrawPolygon([| p1 - offset1; p1 + offset1; p2 + offset2; p2 - offset2 |])
+                this.BuildPolygon([| p1 - offset1; p1 + offset1; p2 + offset2; p2 - offset2 |])
             else
-                this.DrawPolygon([| p1 - offset1; p1 + offset1; p2 - offset2; p2 + offset2 |])
+                this.BuildPolygon([| p1 - offset1; p1 + offset1; p2 - offset2; p2 + offset2 |])
             s1 <- s2
             offset1 <- offset2
     
@@ -288,16 +288,17 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindTexture(TextureTarget.Texture2D, 0)
     
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
-        for struct (shape, paint) in shapes do
-            match shape with
-            | Circle(center, radius) ->
-                if paint.Fill then this.DrawCircle(center, radius)
-                if paint.StrokeWidth > 0.0f then this.DrawCircleContour(center, radius, paint.StrokeWidth)
-            | Polygon(points) ->
-                if paint.Fill then this.DrawPolygon(points)
-                if paint.StrokeWidth > 0.0f then this.DrawPolygonContour(points, paint.StrokeWidth)
+        if not (Array.isEmpty shapes) then
+            // build shapes
+            for struct (shape, paint) in shapes do
+                match shape with
+                | Circle(center, radius) ->
+                    if paint.Fill then this.BuildCircle(center, radius)
+                    if paint.StrokeWidth > 0.0f then this.BuildCircleContour(center, radius, paint.StrokeWidth)
+                | Polygon(points) ->
+                    if paint.Fill then this.BuildPolygon(points)
+                    if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
 
-        if shapesVertexIndices.Size > 0 then
             assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
             
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
@@ -322,6 +323,9 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             shapesVertices.Reset()
             shapesVertexIndices.Reset()
+
+            // build outer shell and area of influence
+            //...
     
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =

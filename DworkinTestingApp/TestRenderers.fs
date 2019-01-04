@@ -30,7 +30,7 @@ type ShapesTestRenderer(context) =
     override this.OnDrawFrame() =
         //this.DrawQuad(Point(1.0f, 1.0f), Point(1.0f, 2.0f), Point(2.0f, 2.0f), Point(2.0f, 1.0f))
         //this.DrawQuad(Point(0.0f, 0.0f), Point(0.0f, 1.0f), Point(1.0f, 1.0f), Point(1.0f, 0.0f))
-        this.DrawCircle(Point(1.0f, 1.0f), 0.5f)
+        this.BuildCircle(Point(1.0f, 1.0f), 0.5f)
         
         this.RenderShapes([||])
         this.DrawImage()
@@ -44,7 +44,7 @@ type ShapesTestRenderer(context) =
         //this.DrawCircleContour(Point(0.5f, 1.0f), 0.25f, 0.025f)
         let points = [| Point(0.5f, 0.5f); Point(0.5f, 1.5f); Point(1.5f, 1.5f); Point(1.0f, 1.0f); Point(1.5f, 0.5f) |]
         //this.DrawPolygon(points)
-        this.DrawPolygonContour(points, 0.1f)
+        this.BuildPolygonContour(points, 0.1f)
         
         this.RenderShapes([||])
         this.DrawImage()
