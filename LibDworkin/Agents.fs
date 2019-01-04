@@ -36,14 +36,15 @@ type BranchMarkList() =
 /// Represents shape that can be added to environment to be drawn
 type Shape =
     | Circle of center: Point * radius: float32
-    | Triangle of Point * Point * Point
-    | Quad of Point * Point * Point * Point
     | Polygon of Point[]
     with
+        // constructors for some frequently used polygons
+        static member Triangle(a, b, c) = Polygon([| a; b; c |])
+        static member Quad(a, b, c, d) = Polygon([| a; b; c; d |])
         // some basic shapes with size of 1
         static member PrimitiveCircle = Circle(Point(), 0.5f)
-        static member PrimitiveTriangle = Triangle(Point(0.0f, 0.5f), Point(-0.866f, -0.5f), Point(0.866f, -0.5f))
-        static member PrimitiveSquare = Quad(Point(-0.5f, -0.5f), Point(0.5f, -0.5f), Point(0.5f, 0.5f), Point(-0.5f, 0.5f))
+        static member PrimitiveTriangle = Shape.Triangle(Point(0.0f, 0.5f), Point(-0.866f, -0.5f), Point(0.866f, -0.5f))
+        static member PrimitiveSquare = Shape.Quad(Point(-0.5f, -0.5f), Point(0.5f, -0.5f), Point(0.5f, 0.5f), Point(-0.5f, 0.5f))
 
 [<Struct>]
 type ShapePaint =
@@ -438,8 +439,6 @@ type ShapeSpawnOptions() =
         
             match this.Shape with
             | Circle(center, radius) -> Circle(transform center, radius * scale)
-            | Triangle(a, b, c) -> Triangle(transform a, transform b, transform c)
-            | Quad(a, b, c, d) -> Quad(transform a, transform b, transform c, transform d)
             | Polygon(points) -> Polygon(points |> Array.map transform)
     
     member this.TransformedPaint =
@@ -837,12 +836,6 @@ type DworkinEnvironment(bounds, randomSeed : int) =
             | Circle(center, radius) ->
                 if paint.Fill then canvas.DrawCircle(center, radius)
                 if paint.StrokeWidth > 0.0f then canvas.DrawCircleContour(center, radius, paint.StrokeWidth)
-            | Triangle(a, b, c) ->
-                if paint.Fill then canvas.DrawTriangle(a, b, c)
-                if paint.StrokeWidth > 0.0f then canvas.DrawPolygonContour([| a; b; c |], paint.StrokeWidth)
-            | Quad(a, b, c, d) -> 
-                if paint.Fill then canvas.DrawQuad(a, b, c, d)
-                if paint.StrokeWidth > 0.0f then canvas.DrawPolygonContour([| a; b; c; d |], paint.StrokeWidth)
             | Polygon(points) ->
                 if paint.Fill then canvas.DrawPolygon(points)
                 if paint.StrokeWidth > 0.0f then canvas.DrawPolygonContour(points, paint.StrokeWidth)
