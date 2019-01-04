@@ -112,9 +112,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable sdfTexture = 0
     let mutable sdfFrameBuffer = 0
     let mutable quadVBO = 0
-    let mutable maskedImageShader = lazy(Shader(platform.TextFromAsset "shaders/DrawMaskedImage.vert", platform.TextFromAsset "shaders/DrawMaskedImage.frag"))
-    let mutable shapesDrawingShader = lazy(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
     let mutable shapesVBO = 0
+    let sdfVisualizerShader = lazy(Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
+    let shapesDrawingShader = lazy(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
@@ -245,7 +245,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     default this.OnSurfaceCreated() = 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         
-        maskedImageShader.Force() |> ignore
+        sdfVisualizerShader.Force() |> ignore
         shapesDrawingShader.Force() |> ignore
         
         quadVBO <- gen1 GL.GenBuffers
@@ -273,12 +273,11 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member this.DrawImage() =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
-        GL.UseProgram(maskedImageShader.Value.Program)
+        GL.UseProgram(sdfVisualizerShader.Value.Program)
         GL.ActiveTexture(TextureUnit.Texture0)
         GL.BindTexture(TextureTarget.Texture2D, sdfTexture)
-        GL.Uniform1(maskedImageShader.Value.GetUniformLocation("mask"), 0)
-        GL.Uniform2(maskedImageShader.Value.GetUniformLocation("screenDimensions"), float32 wallpaperWidth, float32 wallpaperHeight)
-        let aTexCoords = maskedImageShader.Value.GetAttributeLocation("texCoords")
+        GL.Uniform1(sdfVisualizerShader.Value.GetUniformLocation("sdf"), 0)
+        let aTexCoords = sdfVisualizerShader.Value.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
         GL.EnableVertexAttribArray(aTexCoords)
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
