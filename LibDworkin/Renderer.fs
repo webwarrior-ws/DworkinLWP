@@ -105,16 +105,12 @@ type BaseRenderer(platform : AbstractPlatform) =
 #if __ANDROID__
     inherit Java.Lang.Object()
 #endif
-    let glVersion = platform.GLVersion
-
     // fields
     let mutable shapesVertices = Buffer<Vector2>(128)
     let mutable shapesVertexIndices = Buffer<int>(128)
 
     let mutable maskTexture = 0
-    let mutable maskTextureMultisample = 0
     let mutable maskFrameBuffer = 0
-    let mutable maskFrameBufferMultisample = 0
     let mutable quadVBO = 0
     let mutable maskedImageShader = lazy(Shader(platform.TextFromAsset "shaders/DrawMaskedImage.vert", platform.TextFromAsset "shaders/DrawMaskedImage.frag"))
     let mutable shapesDrawingShader = lazy(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
@@ -123,24 +119,19 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
     let mutable scale = Point(1.0f, 1.0f)
-    let mutable canUseAA = glVersion >= (3, 1)
 
-    member this.UsesAA = canUseAA
     member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     member internal this.MaskTexture = maskTexture
     /// Use this to draw to mask
-    member internal this.MaskFrameBuffer = if this.UsesAA then maskFrameBufferMultisample else maskFrameBuffer
+    member internal this.MaskFrameBuffer = maskFrameBuffer
     member internal this.QuadVBO = quadVBO
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
             GL.DeleteTexture maskTexture
             GL.DeleteFramebuffers(1, [| maskFrameBuffer |])
-            if this.UsesAA then
-                GL.DeleteTexture maskTextureMultisample
-                GL.DeleteFramebuffers(1, [| maskFrameBufferMultisample |])
             GL.DeleteBuffers(2, [| quadVBO; shapesVBO |])
             base.Dispose()
 
@@ -246,40 +237,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         wallpaperHeight <- height
 
         this.InitializeMask()
-
-        if this.UsesAA then
-            try
-                if maskTextureMultisample <> 0 then
-                    GL.DeleteTexture maskTextureMultisample
-                maskTextureMultisample <- gen1 GL.GenTextures
-                maskFrameBufferMultisample <- gen1 GL.GenFramebuffers
-                let sampleCount = 4
-#if __ANDROID__
-                Graphics.ES31.GL.BindTexture(Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample)
-                
-                Graphics.ES31.GL.TexStorage2DMultisample(Graphics.ES31.All.Texture2DMultisample, sampleCount, Graphics.ES31.All.Rgb8, 
-                                                         wallpaperWidth, wallpaperHeight, true)                
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBufferMultisample)
-                Graphics.ES31.GL.FramebufferTexture2D(Graphics.ES31.All.Framebuffer, Graphics.ES31.All.ColorAttachment0, 
-                                                      Graphics.ES31.All.Texture2DMultisample, maskTextureMultisample, 0)
-#else
-                Graphics.OpenGL.GL.BindTexture(Graphics.OpenGL.TextureTarget.Texture2DMultisample, maskTextureMultisample)
-                
-                Graphics.OpenGL.GL.TexStorage2DMultisample(Graphics.OpenGL.TextureTargetMultisample2d.Texture2DMultisample, sampleCount, 
-                                                           Graphics.OpenGL.SizedInternalFormat.Rgba8,  wallpaperWidth, wallpaperHeight, true)                
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, maskFrameBufferMultisample)
-                Graphics.OpenGL.GL.FramebufferTexture2D(Graphics.OpenGL.FramebufferTarget.Framebuffer, Graphics.OpenGL.FramebufferAttachment.ColorAttachment0, 
-                                                      Graphics.OpenGL.TextureTarget.Texture2DMultisample, maskTextureMultisample, 0)
-#endif
-                GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-                GL.Clear(ClearBufferMask.ColorBufferBit)
-            with 
-                | :? System.EntryPointNotFoundException -> // no OpenGL ES 3.1 support
-                    canUseAA <- false
-                    GL.DeleteTexture maskTextureMultisample
-                    if maskFrameBufferMultisample <> 0 then
-                        GL.DeleteFramebuffers(1, [| maskFrameBufferMultisample |])
-
+        
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
     
@@ -365,19 +323,6 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             shapesVertices.Reset()
             shapesVertexIndices.Reset()
-
-            if this.UsesAA then
-#if __ANDROID__            
-                Graphics.ES31.GL.BindFramebuffer(Graphics.ES31.FramebufferTarget.ReadFramebuffer, maskFrameBufferMultisample)
-                Graphics.ES31.GL.BindFramebuffer(Graphics.ES31.FramebufferTarget.DrawFramebuffer, maskFrameBuffer)
-                Graphics.ES31.GL.BlitFramebuffer(0, 0, wallpaperWidth, wallpaperHeight, 0, 0, wallpaperWidth, wallpaperHeight, 
-                                                 Graphics.ES31.ClearBufferMask.ColorBufferBit, Graphics.ES31.BlitFramebufferFilter.Nearest)
-#else
-                Graphics.OpenGL.GL.BindFramebuffer(Graphics.OpenGL.FramebufferTarget.ReadFramebuffer, maskFrameBufferMultisample)
-                Graphics.OpenGL.GL.BindFramebuffer(Graphics.OpenGL.FramebufferTarget.DrawFramebuffer, maskFrameBuffer)
-                Graphics.OpenGL.GL.BlitFramebuffer(0, 0, wallpaperWidth, wallpaperHeight, 0, 0, wallpaperWidth, wallpaperHeight, 
-                                                 Graphics.OpenGL.ClearBufferMask.ColorBufferBit, Graphics.OpenGL.BlitFramebufferFilter.Nearest)
-#endif
     
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
