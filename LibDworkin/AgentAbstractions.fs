@@ -11,6 +11,7 @@ open System
 
 
 /// Represents shape that can be added to environment to be drawn
+[<Struct>]
 type Shape =
     | Circle of center: Point * radius: float32
     | Polygon of Point[]
