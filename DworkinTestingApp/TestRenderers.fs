@@ -28,27 +28,25 @@ type ShapesTestRenderer(context) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
 
     override this.OnDrawFrame() =
-        let canvas = this :> ICanvas
-        //canvas.DrawQuad(Point(1.0f, 1.0f), Point(1.0f, 2.0f), Point(2.0f, 2.0f), Point(2.0f, 1.0f))
-        //canvas.DrawQuad(Point(0.0f, 0.0f), Point(0.0f, 1.0f), Point(1.0f, 1.0f), Point(1.0f, 0.0f))
-        canvas.DrawCircle(Point(1.0f, 1.0f), 0.5f)
+        //this.DrawQuad(Point(1.0f, 1.0f), Point(1.0f, 2.0f), Point(2.0f, 2.0f), Point(2.0f, 1.0f))
+        //this.DrawQuad(Point(0.0f, 0.0f), Point(0.0f, 1.0f), Point(1.0f, 1.0f), Point(1.0f, 0.0f))
+        this.DrawCircle(Point(1.0f, 1.0f), 0.5f)
         
-        this.RenderShapes()
+        this.RenderShapes([||])
         this.DrawMaskedImage()
  
 
  type AdvancedShapesTestRenderer(context) =
     inherit ShapesTestRenderer(context)                
     override this.OnDrawFrame() =
-        let canvas = this :> ICanvas
         
-        //canvas.DrawCircleContour(Point(1.0f, 1.0f), 0.95f, 0.1f)
-        //canvas.DrawCircleContour(Point(0.5f, 1.0f), 0.25f, 0.025f)
+        //this.DrawCircleContour(Point(1.0f, 1.0f), 0.95f, 0.1f)
+        //this.DrawCircleContour(Point(0.5f, 1.0f), 0.25f, 0.025f)
         let points = [| Point(0.5f, 0.5f); Point(0.5f, 1.5f); Point(1.5f, 1.5f); Point(1.0f, 1.0f); Point(1.5f, 0.5f) |]
-        //canvas.DrawPolygon(points)
-        canvas.DrawPolygonContour(points, 0.1f)
+        //this.DrawPolygon(points)
+        this.DrawPolygonContour(points, 0.1f)
         
-        this.RenderShapes()
+        this.RenderShapes([||])
         this.DrawMaskedImage()
 
 
@@ -58,6 +56,7 @@ type CollidingAgentsEnvironment(bounds) =
 
     let random = System.Random(42)
     let quadTree = QuadTree<Collider>(bounds, 8)
+    let shapes = ResizeArray<ShapeAndPaint>()
 
     override this.Paint = Color4.White
     override this.Random = random
@@ -73,6 +72,15 @@ type CollidingAgentsEnvironment(bounds) =
         let criterion (c : Collider) = 
             (match c.Parent with | Some(p) -> (p :> IUnique) <> (parent :> IUnique) | None -> true) && collide collider c
         quadTree.Query((collider :> IHasBounds).Bounds, criterion)
+    
+    member this.AddShape(shape : Shape, fillType: ShapePaint) =
+        shapes.Add(struct (shape, fillType))
+    
+    override this.Step() =
+        this.StepAgents()
+        let result = shapes.ToArray()
+        shapes.Clear()
+        result
  
 
 type CollidingAgent() =
@@ -80,7 +88,7 @@ type CollidingAgent() =
 
     let mutable lastStop = 0.0f
     
-    override this.Step(canvas) =
+    override this.Step() =
         let prevPos = this.Position
         let prevDir = this.Direction
 
@@ -88,7 +96,7 @@ type CollidingAgent() =
             float32((this.Environment.Value.Random.NextDouble() - 0.5) * 0.1), 
             float32((this.Environment.Value.Random.NextDouble() - 0.5) * 0.1))
 
-        base.Step(canvas)
+        base.Step()
         
         let r = 1.0f
         let collider = CircleCollider(Some(this.GetFootprint()), this.Position + this.Direction * r, r-0.1f)
@@ -107,7 +115,9 @@ type CollidingAgent() =
         let prevPerp = prevDir.LeftRotated * r //* (this.Thickness * 0.5f)
         let currPerp = this.Direction.LeftRotated * r //* (this.Thickness * 0.5f)
         
-        canvas.DrawQuad(prevPos + prevPerp, prevPos - prevPerp, this.Position - currPerp, this.Position + currPerp)
+        (this.Environment.Value :?> CollidingAgentsEnvironment).AddShape(
+            Shape.Polygon([| prevPos + prevPerp; prevPos - prevPerp; this.Position - currPerp; this.Position + currPerp |]), 
+            ShapePaint.Default)
 
     member this.GetFootprint() =
         // stub
@@ -144,9 +154,11 @@ type CollidingAgentsTestRenderer(context) =
         this.SetScale(1.0f / float32 width, 1.0f / float32 height)
 
     override this.OnDrawFrame() =
-        environment |> Option.iter (fun env -> env.Step(this))
-        this.RenderShapes()
-        this.DrawMaskedImage()
+        match environment with
+        | Some(env) -> 
+            this.RenderShapes(env.Step())
+            this.DrawMaskedImage()
+        | None -> ()
 
 
 /// renderer that shows all colliders in environment
@@ -168,24 +180,28 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
         environment <- Some(environmentConfig.GetEnvironment(Point(float32 width, float32 height)))        
         this.SetScale(1.0f / float32 width, 1.0f / float32 height)
 
-    member this.DrawCollider(collider : Collider) =
+    member this.ShapeForCollider(collider : Collider) : ShapeAndPaint option =
         if drawnColliders.Add collider then
             match collider with
-            | :? CircleCollider as circle -> (this :> ICanvas).DrawCircle(circle.Center, circle.Radius)
+            | :? CircleCollider as circle -> 
+                Some(struct (Shape.Circle(circle.Center, circle.Radius), ShapePaint.Default))
             | :? SegmentCollider as segment -> 
                 let mutable perp = (segment.End - segment.Start).PerpendicularLeft
                 perp.Normalize()
                 perp <- perp * 0.5f
-                (this :> ICanvas).DrawQuad(segment.Start + perp, segment.Start - perp, segment.End - perp, segment.End + perp)
-            | _ -> ()
+                Some(struct (Shape.Polygon([| segment.Start + perp; segment.Start - perp; segment.End - perp; segment.End + perp |]), ShapePaint.Default))
+            | _ -> None
+        else
+            None
 
     override this.OnDrawFrame() =
+        let shapes = ResizeArray()
         match environment with
         | Some(env) -> 
-            env.Step(this)
-            env.QueryColliders(env.Bounds, CollisionLayers.All, fun _ collider -> this.DrawCollider(collider); false) 
+            shapes.AddRange(env.Step())
+            env.QueryColliders(env.Bounds, CollisionLayers.All, fun _ collider -> this.ShapeForCollider(collider) |> Option.iter shapes.Add; false) 
                 |> ignore
         | None -> ()
         
-        this.RenderShapes()
+        this.RenderShapes(shapes.ToArray())
         this.DrawMaskedImage()

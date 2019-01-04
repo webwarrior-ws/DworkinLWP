@@ -158,85 +158,61 @@ type BaseRenderer(platform : AbstractPlatform) =
         member this.OnDrawFrame(gl : Opengles.IGL10) =
             this.OnDrawFrame()
 #endif   
-    interface ICanvas with
-        member this.DrawTriangle(a, b, c) =
-            let currIndex = shapesVertices.Size
-            shapesVertices.Add a
-            shapesVertices.Add b
-            shapesVertices.Add c
-            shapesVertexIndices.Add currIndex
-            shapesVertexIndices.Add (currIndex + 1)
-            shapesVertexIndices.Add (currIndex + 2)
+    // shapes drawing
+    member this.DrawCircle(center, radius) =
+        let numSteps = this.GetNumCircleSegments(radius)
+        let firstIndex = shapesVertices.Size
+        shapesVertices.Add center
+        let angleStep = Single.TwoPi / (float32 numSteps)
+        for i=1 to numSteps+1 do
+            let angle = angleStep * (float32 i)
+            shapesVertices.Add(center + Point(radius * cos angle, radius * sin angle))
+            shapesVertexIndices.Add firstIndex
+            shapesVertexIndices.Add (firstIndex + i)
+            shapesVertexIndices.Add (firstIndex + (i % numSteps + 1))
         
-        member this.DrawQuad(a, b, c, d) =
-            let currIndex = shapesVertices.Size
-            shapesVertices.Add a
-            shapesVertices.Add b
-            shapesVertices.Add c
-            shapesVertices.Add d
-            // triangle a b c
-            shapesVertexIndices.Add currIndex
-            shapesVertexIndices.Add (currIndex + 1)
-            shapesVertexIndices.Add (currIndex + 2)
-            // triangle c a d
-            shapesVertexIndices.Add (currIndex + 2)
-            shapesVertexIndices.Add currIndex
-            shapesVertexIndices.Add (currIndex + 3)
+    member this.DrawCircleContour(center, radius, width) =
+        let numSteps = this.GetNumCircleSegments(radius)
+        let angleStep = Single.TwoPi / (float32 numSteps)
+        let r1 = radius - width*0.5f
+        let r2 = radius + width*0.5f
+        let mutable p1 = Point(1.0f, 0.0f)
+        for i=1 to numSteps+1 do
+            let angle = angleStep * (float32 i)
+            let p2 = Point(cos angle, sin angle)
+            this.DrawPolygon([| center + p1*r1; center + p1*r2; center + p2*r2; center + p2*r1 |])
+            p1 <- p2
         
-        member this.DrawCircle(center, radius) =
-            let numSteps = this.GetNumCircleSegments(radius)
-            let firstIndex = shapesVertices.Size
-            shapesVertices.Add center
-            let angleStep = Single.TwoPi / (float32 numSteps)
-            for i=1 to numSteps+1 do
-                let angle = angleStep * (float32 i)
-                shapesVertices.Add(center + Point(radius * cos angle, radius * sin angle))
-                shapesVertexIndices.Add firstIndex
-                shapesVertexIndices.Add (firstIndex + i)
-                shapesVertexIndices.Add (firstIndex + (i % numSteps + 1))
+    member this.DrawPolygon(points : Point[]) =
+        let fisrtVertexIndex = shapesVertices.Size
+        for p in points do shapesVertices.Add p
+        for i=fisrtVertexIndex+1 to fisrtVertexIndex+points.Length-2 do
+            shapesVertexIndices.Add fisrtVertexIndex
+            shapesVertexIndices.Add i
+            shapesVertexIndices.Add (i + 1)
         
-        member this.DrawCircleContour(center, radius, width) =
-            let numSteps = this.GetNumCircleSegments(radius)
-            let angleStep = Single.TwoPi / (float32 numSteps)
-            let r1 = radius - width*0.5f
-            let r2 = radius + width*0.5f
-            let mutable p1 = Point(1.0f, 0.0f)
-            for i=1 to numSteps+1 do
-                let angle = angleStep * (float32 i)
-                let p2 = Point(cos angle, sin angle)
-                (this :> ICanvas).DrawQuad(center + p1*r1, center + p1*r2, center + p2*r2, center + p2*r1)
-                p1 <- p2
-        
-        member this.DrawPolygon(points) =
-            let fisrtVertexIndex = shapesVertices.Size
-            for p in points do shapesVertices.Add p
-            for i=fisrtVertexIndex+1 to fisrtVertexIndex+points.Length-2 do
-                shapesVertexIndices.Add fisrtVertexIndex
-                shapesVertexIndices.Add i
-                shapesVertexIndices.Add (i + 1)
-        
-        member this.DrawPolygonContour(points, width) =
-            let n = points.Length
+    member this.DrawPolygonContour(points : Point[], width : float32) =
+        let n = points.Length
 
-            let inline segment p1 p2 = Point.Normalize(p1 - p2)
-            let offset (s1 : Point) (s2 : Point) =
-                let offset = s1 - s2
-                let factor = offset.NearestPointAlongLineFromTo(Point.Zero, s1.PerpendicularLeft).Length
-                offset / factor * width * 0.5f 
+        let inline segment p1 p2 = Point.Normalize(p1 - p2)
+        let offset (s1 : Point) (s2 : Point) : Point =
+            let offset = s1 - s2
+            let factor = offset.NearestPointAlongLineFromTo(Point.Zero, s1.PerpendicularLeft).Length
+            offset / factor * width * 0.5f 
 
-            let mutable s1 = segment points.[0] points.[1]
-            let mutable offset1 = offset s1 (segment points.[1] points.[2])
-            for i=0 to points.Length do
-                let p1 = points.[i%n]
-                let p2 = points.[(i+1)%n]
-                let s2 = segment p2 (points.[(i+2)%n])
-                let offset2 = offset s1 s2
-                if offset1.Angle > offset2.Angle then
-                    (this :> ICanvas).DrawQuad(p1 - offset1, p1 + offset1, p2 + offset2, p2 - offset2)
-                else
-                    (this :> ICanvas).DrawQuad(p1 - offset1, p1 + offset1, p2 - offset2, p2 + offset2)
-                s1 <- s2
-                offset1 <- offset2
+        let mutable s1 = segment points.[0] points.[1]
+        let mutable offset1 = offset s1 (segment points.[1] points.[2])
+        for i=0 to points.Length do
+            let p1 = points.[i%n]
+            let p2 = points.[(i+1)%n]
+            let s2 = segment p2 (points.[(i+2)%n])
+            let offset2 = offset s1 s2
+            if offset1.Angle > offset2.Angle then
+                this.DrawPolygon([| p1 - offset1; p1 + offset1; p2 + offset2; p2 - offset2 |])
+            else
+                this.DrawPolygon([| p1 - offset1; p1 + offset1; p2 - offset2; p2 + offset2 |])
+            s1 <- s2
+            offset1 <- offset2
     
     
     member this.GetNumCircleSegments(radius: float32) =
@@ -356,7 +332,16 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.DisableVertexAttribArray(aTexCoords)
         GL.BindTexture(TextureTarget.Texture2D, 0)
     
-    member this.RenderShapes() =
+    member this.RenderShapes(shapes : ShapeAndPaint[]) =
+        for struct (shape, paint) in shapes do
+            match shape with
+            | Circle(center, radius) ->
+                if paint.Fill then this.DrawCircle(center, radius)
+                if paint.StrokeWidth > 0.0f then this.DrawCircleContour(center, radius, paint.StrokeWidth)
+            | Polygon(points) ->
+                if paint.Fill then this.DrawPolygon(points)
+                if paint.StrokeWidth > 0.0f then this.DrawPolygonContour(points, paint.StrokeWidth)
+
         if shapesVertexIndices.Size > 0 then
             assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
             
@@ -444,7 +429,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
 #endif
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
-            env.Step(this)
+            env.Step() |> ignore
 
     override this.OnSurfaceChanged(width, height) =
         base.OnSurfaceChanged(width, height)
@@ -458,14 +443,15 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         let delay = 1000.0 / float(this.FPS)
 
         let mutable agentsCount = 0
+        let mutable shapes = [||]
         let envStepTime = 
             measureTime (fun () -> 
                 match environment with
                 | Some(env) -> 
                     agentsCount <- env.AgentsCount
-                    env.Step(this)
+                    shapes <- env.Step()
                 | None -> () )
-        let renderShapesTime = measureTime this.RenderShapes
+        let renderShapesTime = measureTime (fun () -> this.RenderShapes(shapes))
         let drawImageTime = measureTime this.DrawMaskedImage
 
         let dt = envStepTime + renderShapesTime + drawImageTime

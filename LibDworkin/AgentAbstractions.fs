@@ -9,16 +9,31 @@ open SpatialIndex
 open System
 
 
-/// Interface that defines methods for drawing shapes such as triangle, quad, or circle
-type ICanvas = 
-    interface
-        abstract member DrawTriangle : Point * Point * Point -> unit
-        abstract member DrawQuad : Point * Point * Point * Point -> unit
-        abstract member DrawCircle : Point * float32 -> unit
-        abstract member DrawCircleContour : Point * float32 * float32 -> unit
-        abstract member DrawPolygon : Point[] -> unit
-        abstract member DrawPolygonContour : Point[] * float32 -> unit
-    end
+
+/// Represents shape that can be added to environment to be drawn
+type Shape =
+    | Circle of center: Point * radius: float32
+    | Polygon of Point[]
+    with
+        // constructors for some frequently used polygons
+        static member Triangle(a, b, c) = Polygon([| a; b; c |])
+        static member Quad(a, b, c, d) = Polygon([| a; b; c; d |])
+        // some basic shapes with size of 1
+        static member PrimitiveCircle = Circle(Point(), 0.5f)
+        static member PrimitiveTriangle = Shape.Triangle(Point(0.0f, 0.5f), Point(-0.866f, -0.5f), Point(0.866f, -0.5f))
+        static member PrimitiveSquare = Shape.Quad(Point(-0.5f, -0.5f), Point(0.5f, -0.5f), Point(0.5f, 0.5f), Point(-0.5f, 0.5f))
+
+[<Struct>]
+type ShapePaint =
+    {
+        Fill : bool
+        StrokeWidth: float32
+    }
+    with
+        static member Default = { Fill=true; StrokeWidth=0.0f }
+ 
+
+type ShapeAndPaint = (struct (Shape * ShapePaint))
 
 
 type IUnique =
@@ -100,10 +115,6 @@ type Agent() =
     override this.GetHashCode() = hash this.Id
     
     abstract member LiesWithinBounds : Rectangle -> bool
-
-    abstract member Step : ICanvas -> unit
-    default this.Step(canvas) =
-        this.Step()
     
     abstract member Step : unit -> unit
     default this.Step() =
@@ -184,10 +195,11 @@ type Environment(bounds : Rectangle) =
         currId <- currId + 1
         currId
     
-    abstract member Step : ICanvas -> unit
-    default this.Step(canvas : ICanvas) : unit =
+    abstract member Step : unit -> ShapeAndPaint[]
+    
+    member this.StepAgents() : unit =
         for agent in agents do
-            agent.Step(canvas)
+            agent.Step()
         age <- age + 1
 
         agents.RemoveAll(fun agent -> (agent.LiesWithinBounds(bounds) |> not) || agentsToRemove.Contains(agent)) 
