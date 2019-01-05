@@ -1,6 +1,6 @@
 ﻿precision mediump float;
 
-in vec2 pos;
+attribute vec2 pos;
 
 uniform vec2 scale;
 
