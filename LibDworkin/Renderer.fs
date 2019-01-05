@@ -341,7 +341,8 @@ type BaseRenderer(platform : AbstractPlatform) =
             let OA = (O - Oprev).LeftRotated.Normalized() * h
             let OB = (O2 - O).LeftRotated.Normalized() * h
             let OC = (OA + OB).Normalized() * h
-            let cosAOD = abs(cos(OA.AngleWith(OC) * 0.5f))
+            let cosAOC = Point.Dot(OA, OC) / (h*h) // we know that both OA and OC have length=h by construction
+            let cosAOD = sqrt((1.0f + cosAOC) * 0.5f)
             let OD = (OA + OC).Normalized() * (h / cosAOD)
             let OE = (OB + OC).Normalized() * (h / cosAOD)
 
