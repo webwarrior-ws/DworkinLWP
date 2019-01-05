@@ -1,6 +1,6 @@
 precision mediump float;
 
-varying in vec2 p;
+varying vec2 p;
 
 uniform sampler2D sdf;
 
