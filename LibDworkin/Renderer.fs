@@ -115,18 +115,26 @@ type BaseRenderer(platform : AbstractPlatform) =
 #endif
     // fields
     let mutable shapesVertices = Buffer<Vector2>(128)
+    let mutable shapesSegmentsVertices = Buffer<Vector2>(256)
     let mutable shapesVertexIndices = Buffer<int>(128)
+    let mutable aoiVertexIndices = Buffer<int>(128)
 
     let mutable sdfTexture = 0
     let mutable sdfFrameBuffer = 0
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
+    let mutable segmentsVBO = 0
     let sdfVisualizerShader = lazy(new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
     let shapesDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
+    let calcPositiveDistShader = lazy(new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/positiveDist.frag"))
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
     let mutable scale = Point(1.0f, 1.0f)
+
+    // maximal absolute values of distances in signed distance field
+    let maxPositiveDistance = 32.0f
+    let maxNegativeDistance = maxPositiveDistance
 
     member this.FPS = 30
 
@@ -135,12 +143,13 @@ type BaseRenderer(platform : AbstractPlatform) =
     /// Use this to draw to sdf
     member internal this.SDFFrameBuffer = sdfFrameBuffer
     member internal this.QuadVBO = quadVBO
+    member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
             GL.DeleteTexture sdfTexture
             GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
-            GL.DeleteBuffers(2, [| quadVBO; shapesVBO |])
+            GL.DeleteBuffers(2, [| quadVBO; shapesVBO; segmentsVBO |])
             let disposeShader (shader : Lazy<Shader>) =
                 if shader.IsValueCreated then
                     (shader.Value :> System.IDisposable).Dispose()
@@ -159,7 +168,20 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         member this.OnDrawFrame(gl : Opengles.IGL10) =
             this.OnDrawFrame()
-#endif   
+#endif 
+    // Methods that perform some OpenGL-specific tasks
+    member this.PerformDrawElements(indicesBuffer : Buffer<int>) =
+#if __ANDROID__            
+            GL.DrawElements(BeginMode.Triangles, indicesBuffer.Size, DrawElementsType.UnsignedInt, indicesBuffer.Array)
+#else       
+            Graphics.ES30.GL.DrawElements(Graphics.ES30.PrimitiveType.Triangles, indicesBuffer.Size, 
+                                          Graphics.ES30.DrawElementsType.UnsignedInt, indicesBuffer.Array)
+#endif
+    /// Transfer data from buffer to VBO
+    member this.TransferBufferData(buffer : Buffer<'T>, vbo : int, bufferTarget : BufferTarget) = 
+        GL.BindBuffer(bufferTarget, vbo)
+        GL.BufferData(bufferTarget, nativeint (buffer.Size * sizeof<'T>), buffer.Array, BufferUsage.StreamDraw)
+
     // shapes buliding (adding data to VBOs)
     member this.BuildCircle(center, radius) =
         let numSteps = this.GetNumCircleSegments(radius)
@@ -192,8 +214,8 @@ type BaseRenderer(platform : AbstractPlatform) =
             shapesVertexIndices.Add fisrtVertexIndex
             shapesVertexIndices.Add i
             shapesVertexIndices.Add (i + 1)
-        
-    member this.BuildPolygonContour(points : Point[], width : float32) =
+    
+    member this.GetQuadsForPolygonContour(points : Point[], width : float32) : Point[][] =
         let n = points.Length
 
         let inline segment p1 p2 = Point.Normalize(p1 - p2)
@@ -204,17 +226,22 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         let mutable s1 = segment points.[0] points.[1]
         let mutable offset1 = offset s1 (segment points.[1] points.[2])
-        for i=0 to points.Length do
-            let p1 = points.[i%n]
+        points |> Array.mapi (fun i p1 ->
             let p2 = points.[(i+1)%n]
             let s2 = segment p2 (points.[(i+2)%n])
             let offset2 = offset s1 s2
-            if offset1.Angle > offset2.Angle then
-                this.BuildPolygon([| p1 - offset1; p1 + offset1; p2 + offset2; p2 - offset2 |])
-            else
-                this.BuildPolygon([| p1 - offset1; p1 + offset1; p2 - offset2; p2 + offset2 |])
+            let quad = 
+                if offset1.Angle > offset2.Angle then
+                    [| p1 - offset1; p1 + offset1; p2 + offset2; p2 - offset2 |]
+                else
+                    [| p1 - offset1; p1 + offset1; p2 - offset2; p2 + offset2 |]
             s1 <- s2
             offset1 <- offset2
+            quad)
+
+    member this.BuildPolygonContour(points : Point[], width : float32) =
+        for quadPoints in this.GetQuadsForPolygonContour(points, width) do
+            this.BuildPolygon(quadPoints)
     
     
     member this.GetNumCircleSegments(radius: float32) =
@@ -260,6 +287,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         sdfVisualizerShader.Force() |> ignore
         shapesDrawingShader.Force() |> ignore
+        GL.UseProgram(calcPositiveDistShader.Value.Program)
+        GL.Uniform1(calcPositiveDistShader.Value.GetUniformLocation("h"), maxPositiveDistance)
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
@@ -269,6 +298,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                       BufferUsage.StaticDraw)
         
         shapesVBO <- gen1 GL.GenBuffers 
+        segmentsVBO <- gen1 GL.GenBuffers 
 
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
@@ -300,51 +330,115 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.DisableVertexAttribArray(aTexCoords)
         GL.BindTexture(TextureTarget.Texture2D, 0)
     
+    member this.BuildOuterShellAndAOI(points : Point[]) =
+        let n = points.Length
+        let baseIndex = shapesVertices.Size
+        let h = maxPositiveDistance
+
+        points |> Array.iteri (fun i O ->
+            let Oprev = points.[(i-1+n)%n]
+            let O2 = points.[(i+1)%n]
+            let OA = (O - Oprev).LeftRotated.Normalized() * h
+            let OB = (O2 - O).LeftRotated.Normalized() * h
+            let OC = (OA + OB).Normalized() * h
+            let cosAOD = abs(cos(OA.AngleWith(OC) * 0.5f))
+            let OD = (OA + OC).Normalized() * (h / cosAOD)
+            let OE = (OB + OC).Normalized() * (h / cosAOD)
+
+            let vertices = [| O; O + OA; O + OD; O + OE; O + OB |]
+            let currIndex = shapesVertices.Size
+            this.BuildPolygon(vertices)
+            for _j=1 to 3 do
+                shapesSegmentsVertices.Add O
+                shapesSegmentsVertices.Add Oprev
+            for _j=1 to 2 do
+                shapesSegmentsVertices.Add O
+                shapesSegmentsVertices.Add O2
+            
+            for j=1 to vertices.Length do
+                aoiVertexIndices.Add(baseIndex + 1)
+                aoiVertexIndices.Add(currIndex + j)
+                aoiVertexIndices.Add(currIndex + j + 1)
+            
+            let currIndex = shapesVertices.Size // not a duplicate definition, more like update
+            this.BuildPolygon([| O; O + OB; O2 + OB; O2 |])
+            for _j=1 to 4 do
+                shapesSegmentsVertices.Add O
+                shapesSegmentsVertices.Add O2
+
+            aoiVertexIndices.Add(baseIndex + 1)
+            aoiVertexIndices.Add(currIndex + 1)
+            aoiVertexIndices.Add(currIndex + 2) )
+
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
         if not (Array.isEmpty shapes) then
+            let polygons, circles = 
+                shapes 
+                |> Array.partition (function | struct (Polygon(_), _) -> true | struct (Circle(_), _) -> false)
             // step 0: build and draw shapes
-            for struct (shape, paint) in shapes do
-                match shape with
-                | Circle(center, radius) ->
-                    if paint.Fill then this.BuildCircle(center, radius)
-                    if paint.StrokeWidth > 0.0f then this.BuildCircleContour(center, radius, paint.StrokeWidth)
-                | Polygon(points) ->
-                    if paint.Fill then this.BuildPolygon(points)
-                    if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
+            for struct (Polygon(points), paint) in polygons do
+                if paint.Fill then this.BuildPolygon(points)
+                if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
 
             assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
+
+            this.TransferBufferData(shapesVertices, shapesVBO, BufferTarget.ArrayBuffer)
             
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
             GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
             GL.UseProgram(shapesDrawingShader.Value.Program)
             let aPos = shapesDrawingShader.Value.GetAttributeLocation("pos")
-            GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
-            GL.BufferData(BufferTarget.ArrayBuffer, 
-                          nativeint (shapesVertices.Size * sizeof<Vector2>), 
-                          shapesVertices.Array, 
-                          BufferUsage.StreamDraw)
             GL.EnableVertexAttribArray(aPos)
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-#if __ANDROID__            
-            GL.DrawElements(BeginMode.Triangles, shapesVertexIndices.Size, DrawElementsType.UnsignedInt, shapesVertexIndices.Array)
-#else       
-            Graphics.ES30.GL.DrawElements(Graphics.ES30.PrimitiveType.Triangles, shapesVertexIndices.Size, 
-                                          Graphics.ES30.DrawElementsType.UnsignedInt, shapesVertexIndices.Array)
-#endif
 
-            GL.DisableVertexAttribArray(aPos)
+            this.PerformDrawElements(shapesVertexIndices)
             
             shapesVertices.Reset()
             shapesVertexIndices.Reset()
 
             // build outer shell and area of influence for each shape
-            //...
-    
+            for struct (Polygon(points), paint) in polygons do
+                if paint.Fill then 
+                    this.BuildOuterShellAndAOI(points)
+                if paint.StrokeWidth > 0.0f then 
+                    // for now build  outer shell and aoi for each contour segment individually - not optimal, but works
+                    let contourSegmentQuads = this.GetQuadsForPolygonContour(points, paint.StrokeWidth)
+                    for quadPoints in contourSegmentQuads do
+                        this.BuildOuterShellAndAOI(quadPoints)
+            
+            // step 1: calculate [positive] distances outside of shapes
+            this.TransferBufferData(shapesSegmentsVertices, segmentsVBO, BufferTarget.ArrayBuffer)
+            GL.UseProgram(calcPositiveDistShader.Value.Program)
+            let aSegment = calcPositiveDistShader.Value.GetAttributeLocation("inSegment")
+            GL.EnableVertexAttribArray(aSegment)
+            GL.VertexAttribPointer(aSegment, 4, VertexAttribPointerType.Float, false, 0, 0)
+
+            this.TransferBufferData(shapesVertices, shapesVBO, BufferTarget.ArrayBuffer)
+            let aPos = calcPositiveDistShader.Value.GetAttributeLocation("pos")
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+            
+            GL.Enable(EnableCap.Blend)
+            GL.BlendEquation(All.Min)
+            this.PerformDrawElements(shapesVertexIndices)
+            GL.BlendEquation(BlendEquationMode.FuncAdd)
+            GL.Disable(EnableCap.Blend)
+                       
+            this.ClearBuffers()
+
+    member this.ClearBuffers() =
+        shapesVertices.Reset()
+        shapesVertexIndices.Reset()
+        shapesSegmentsVertices.Reset()
+        aoiVertexIndices.Reset()
+
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
         scale <- Point(xs, ys)
         GL.UseProgram(shapesDrawingShader.Value.Program)
         GL.Uniform2(shapesDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
+        GL.UseProgram(calcPositiveDistShader.Value.Program)
+        GL.Uniform2(calcPositiveDistShader.Value.GetUniformLocation("scale"), xs, ys)
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:
@@ -397,6 +491,8 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         this.ResetEnvironment(dimensions)
         
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
+        GL.UseProgram(this.CalcPositiveDistShader.Program)
+        GL.Uniform2(this.CalcPositiveDistShader.GetUniformLocation("screenDimensions"), width, height)
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)
