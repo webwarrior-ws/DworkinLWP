@@ -527,8 +527,7 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     let mutable brush : Brush = null
     let mutable attributes : Attributes = null
     let mutable parent : DworkinAgent option = None
-    
-    let mutable random = Random(randomSeed)
+    let mutable random : Random = null
 
     member val ThicknessFactor = 1.0f with get, set
     member val LengthFactor : float32 = 1.0f with get, set
@@ -537,7 +536,10 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     member val NoCollisions = false with get, set
     member val Collision : Collision option = None with get, set
     
-    member this.Random = random
+    member this.Random = 
+        if isNull random then
+            random <- Random(randomSeed)
+        random
     member this.FlipFactor = flipFactor
     member this.Config = config
     member this.Attributes : Attributes = 
