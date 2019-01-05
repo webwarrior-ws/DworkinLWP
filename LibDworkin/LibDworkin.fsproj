@@ -52,10 +52,10 @@
   <ItemGroup>
     <AndroidAsset Include="Assets\shaders\sdfVisualizer.vert" />
     <AndroidAsset Include="Assets\shaders\sdfVisualizer.frag" />
+    <AndroidAsset Include="Assets\shaders\DrawShapes.frag" />
+    <AndroidAsset Include="Assets\shaders\DrawShapes.vert" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
-    <AndroidAsset Include="Assets\shaders\DrawShapes.vert" />
-    <AndroidAsset Include="Assets\shaders\DrawShapes.frag" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="packages.config" />
     <Compile Include="Aether.fs" />

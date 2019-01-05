@@ -81,9 +81,13 @@ type Shader(vertexShader : string, fragmentShader : string) =
     
     let program = GL.CreateProgram()
     do
-        GL.AttachShader(program, compile ShaderType.FragmentShader fragmentShader)
-        GL.AttachShader(program, compile ShaderType.VertexShader vertexShader)
+        let vs = compile ShaderType.VertexShader vertexShader
+        let fs = compile ShaderType.FragmentShader fragmentShader
+        GL.AttachShader(program, vs)
+        GL.AttachShader(program, fs)
         GL.LinkProgram(program)
+        GL.DeleteShader(vs)
+        GL.DeleteShader(fs)
         GL.GetProgramInfoLog(program, info)
         GL.GetProgram(program, ProgramParameter.LinkStatus, status_code)
 
@@ -99,6 +103,10 @@ type Shader(vertexShader : string, fragmentShader : string) =
     
     member this.GetAttributeLocation(name : string) =
         getOrSetIfAbsent attributeLocations name (fun () -> GL.GetAttribLocation(this.Program, name))
+    
+    interface System.IDisposable with
+        member this.Dispose() = 
+            GL.DeleteProgram(program)
  
 
 type BaseRenderer(platform : AbstractPlatform) =
@@ -113,8 +121,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable sdfFrameBuffer = 0
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
-    let sdfVisualizerShader = lazy(Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
-    let shapesDrawingShader = lazy(Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
+    let sdfVisualizerShader = lazy(new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
+    let shapesDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
@@ -133,6 +141,11 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.DeleteTexture sdfTexture
             GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
             GL.DeleteBuffers(2, [| quadVBO; shapesVBO |])
+            let disposeShader (shader : Lazy<Shader>) =
+                if shader.IsValueCreated then
+                    (shader.Value :> System.IDisposable).Dispose()
+            [| sdfVisualizerShader; shapesDrawingShader |] 
+                |> Array.iter disposeShader
             base.Dispose()
 
         member this.Handle: nativeint = 
@@ -289,7 +302,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
         if not (Array.isEmpty shapes) then
-            // build shapes
+            // step 0: build and draw shapes
             for struct (shape, paint) in shapes do
                 match shape with
                 | Circle(center, radius) ->
@@ -324,7 +337,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             shapesVertices.Reset()
             shapesVertexIndices.Reset()
 
-            // build outer shell and area of influence
+            // build outer shell and area of influence for each shape
             //...
     
     /// Set scale used in vertex shader for drawing shapes
