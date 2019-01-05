@@ -112,6 +112,11 @@ type OpenTK.Vector2 with
     
     member this.Abs() = 
         Point(abs this.X, abs this.Y)
+    
+    member this.Normalized() =
+        let mutable result = Point(this.X, this.Y)
+        result.Normalize()
+        result
  
 
 
