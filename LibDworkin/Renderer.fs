@@ -34,9 +34,10 @@ module Helpers =
         -1.0f; -1.0f;|]
     
     let measureTime (action : unit -> unit) =
-        let startTime = System.DateTime.Now
+        let stopwatch = System.Diagnostics.Stopwatch.StartNew()
         action()
-        System.DateTime.Now - startTime
+        stopwatch.Stop()
+        stopwatch.Elapsed
 
  
 /// Platform-independent facade used by renderers to load shaders and other stuff
