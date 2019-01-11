@@ -120,10 +120,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable shapesVertexIndices = Buffer<int>(128)
     let mutable aoiVertexIndices = Buffer<int>(128)
 
-    let mutable sdfTexture = 0
-    let mutable sdfTexture2 = 0
-    let mutable sdfFrameBuffer = 0
-    let mutable sdfFrameBuffer2 = 0
+    let mutable sdfTextures = (0, 0)
+    let mutable sdfFrameBuffers = (0, 0)
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
     let mutable segmentsVBO = 0
@@ -137,22 +135,22 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable scale = Point(1.0f, 1.0f)
 
     // maximal absolute values of distances in signed distance field
-    let maxDistance = 16.0f
+    member this.MaxDistance = 16.0f
 
     member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
-    member internal this.SDFTexture = sdfTexture
     /// Use this to draw to sdf
-    member internal this.SDFFrameBuffer = sdfFrameBuffer
+    member internal this.SDFFrameBuffer = fst sdfFrameBuffers
+    member internal this.SDFTexture = fst sdfTextures
     member internal this.QuadVBO = quadVBO
     member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
     member internal this.CalcNegativeDistShader = calcNegativeDistShader.Value
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
-            GL.DeleteTexture sdfTexture
-            GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
+            GL.DeleteTextures(2, [| fst sdfTextures; snd sdfTextures |])
+            GL.DeleteFramebuffers(2, [| fst sdfFrameBuffers; snd sdfFrameBuffers |])
             GL.DeleteBuffers(2, [| quadVBO; shapesVBO; segmentsVBO |])
             let disposeShader (shader : Lazy<Shader>) =
                 if shader.IsValueCreated then
@@ -251,16 +249,12 @@ type BaseRenderer(platform : AbstractPlatform) =
     
     /// initialize sdf texture and framebuffer
     member private this.InitializeSDF() =
-        let textures = [| sdfTexture; sdfTexture2 |]
-        let frameBuffers = [| sdfFrameBuffer; sdfFrameBuffer2 |]
-        if textures.[0] <> 0 then GL.DeleteTextures(textures.Length, textures) 
-        if frameBuffers.[0] <> 0 then GL.DeleteFramebuffers(frameBuffers.Length, frameBuffers) 
+        let textures = [| fst sdfTextures; snd sdfTextures |]
+        let frameBuffers = [| fst sdfFrameBuffers; snd sdfFrameBuffers |]
+        if sdfTextures <> (0, 0) then GL.DeleteTextures(textures.Length, textures) 
+        if sdfFrameBuffers <> (0, 0) then GL.DeleteFramebuffers(frameBuffers.Length, frameBuffers) 
         GL.GenTextures(textures.Length, textures)
         GL.GenFramebuffers(frameBuffers.Length, frameBuffers)
-        sdfTexture <- textures.[0]
-        sdfTexture2 <- textures.[1]
-        sdfFrameBuffer <- frameBuffers.[0]
-        sdfFrameBuffer2 <- frameBuffers.[1]
 
         Array.iter2 
             (fun (texture : int) (frameBuffer : int) -> 
@@ -279,6 +273,9 @@ type BaseRenderer(platform : AbstractPlatform) =
                 GL.Clear(ClearBufferMask.ColorBufferBit))
             textures
             frameBuffers
+        
+        sdfTextures <- (textures.[0], textures.[1])
+        sdfFrameBuffers <- (frameBuffers.[0], frameBuffers.[1])
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
@@ -303,10 +300,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         sdfVisualizerShader.Force() |> ignore
         shapesDrawingShader.Force() |> ignore
-        GL.UseProgram(calcPositiveDistShader.Value.Program)
-        GL.Uniform1(calcPositiveDistShader.Value.GetUniformLocation("h"), maxDistance)
-        GL.UseProgram(calcNegativeDistShader.Value.Program)
-        GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("h"), maxDistance)
+        GL.UseProgram(this.CalcPositiveDistShader.Program)
+        GL.Uniform1(this.CalcPositiveDistShader.GetUniformLocation("h"), this.MaxDistance)
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
@@ -328,7 +323,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
     member this.ClearSDF() =
-        for frameBuffer in [| sdfFrameBuffer; sdfFrameBuffer2 |] do
+        for frameBuffer in [| fst sdfFrameBuffers; snd sdfFrameBuffers |] do
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBuffer)
             GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f)
             GL.Clear(ClearBufferMask.ColorBufferBit)
@@ -337,7 +332,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
         GL.UseProgram(sdfVisualizerShader.Value.Program)
         GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, sdfTexture)
+        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
         GL.Uniform1(sdfVisualizerShader.Value.GetUniformLocation("sdf"), 0)
         let aTexCoords = sdfVisualizerShader.Value.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
@@ -352,7 +347,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.BuildOuterShellAndAOI(points : Point[]) =
         let n = points.Length
         let baseIndex = shapesVertices.Size
-        let h = maxDistance
+        let h = this.MaxDistance
         let clockwise = (points.[1] - points.[n-1]).Cross(points.[0] - points.[1]) < 0.0f // maybe counterclockwise, but it doesn't matter
 
         points |> Array.iteri (fun i O ->
@@ -393,11 +388,15 @@ type BaseRenderer(platform : AbstractPlatform) =
             aoiVertexIndices.Add(currIndex + 2) )
 
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
+        // Update sdf (signed distance field) texture.
+        // Distances >= 0 are stored in R channel; [absolute values of] distances < 0 are stored in B channel.
+        // Distances are in range [-maxDistance; maxDistance]. 
+        // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
         if not (Array.isEmpty shapes) then
             let polygons, circles = 
                 shapes 
                 |> Array.partition (function | struct (Polygon(_), _) -> true | struct (Circle(_), _) -> false)
-            // step 0: build and draw shapes
+            // Step 0: build and draw shapes.
             for struct (Polygon(points), paint) in polygons do
                 if paint.Fill then this.BuildPolygon(points)
                 if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
@@ -418,7 +417,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             shapesVertices.Reset()
             shapesVertexIndices.Reset()
 
-            // build outer shell and area of influence for each shape
+            // Build outer shell and area of influence for each shape.
             for struct (Polygon(points), paint) in polygons do
                 if paint.Fill then 
                     this.BuildOuterShellAndAOI(points)
@@ -428,7 +427,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                     for quadPoints in contourSegmentQuads do
                         this.BuildOuterShellAndAOI(quadPoints)
             
-            // step 1: calculate [positive] distances outside of shapes
+            // Step 1: calculate [positive] distances outside of shapes.
             this.TransferBufferData(shapesSegmentsVertices, segmentsVBO, BufferTarget.ArrayBuffer)
             GL.UseProgram(calcPositiveDistShader.Value.Program)
             let aSegment = calcPositiveDistShader.Value.GetAttributeLocation("inSegment")
@@ -446,10 +445,12 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.BlendEquation(BlendEquationMode.FuncAdd)
             GL.Disable(EnableCap.Blend)
             
-            // step 2: calculate [negative] distances inside of shapes in area of influence
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer2)
+            // Step 2: calculate [negative] distances inside of shapes in area of influence.
+            // Since one cannot read from and write to the same texture, 
+            // two pairs of FBO and texture are used and are swapped between horizontal and vertical passes.
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, snd sdfFrameBuffers)
             GL.ActiveTexture(TextureUnit.Texture0)
-            GL.BindTexture(TextureTarget.Texture2D, sdfTexture)
+            GL.BindTexture(TextureTarget.Texture2D, fst sdfTextures)
             GL.UseProgram(calcNegativeDistShader.Value.Program)
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
             let aPos = calcNegativeDistShader.Value.GetAttributeLocation("pos")
@@ -459,10 +460,10 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 1) // horizontal=true
             this.PerformDrawElements(aoiVertexIndices)
 
-            // swap framebuffers
-            GL.BindTexture(TextureTarget.Texture2D, sdfTexture2)
+            // swap framebuffers and textures
+            GL.BindTexture(TextureTarget.Texture2D, snd sdfTextures)
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer)
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, fst sdfFrameBuffers)
             
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 0) // horizontal=false
             this.PerformDrawElements(aoiVertexIndices)
@@ -536,6 +537,9 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         this.ResetEnvironment(dimensions)
         
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
+
+        GL.UseProgram(this.CalcNegativeDistShader.Program)
+        GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("h"), this.MaxDistance * float32(width) / dimensions.X) // account for scale
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)

@@ -7,8 +7,8 @@ uniform bool horizontal;
 uniform sampler2D sdf;
 
 
-float len(float h, float v) {
-	return sqrt(h*h + v*v);
+float len(float x, float y) {
+	return sqrt(x*x + y*y);
 }
 
 
@@ -22,44 +22,43 @@ void main() {
 		return;
 	}
 	
-	float maxDist = h * (screenDimensions.x * scale.x);
-	float d = maxDist;
+	float d = h;
 	if(horizontal) {
-		for(float x=1.0; x<maxDist; x+=1.0) {
+		for(float x=1.0; x<h; x+=1.0) {
 			vec2 leftPos = texCoords + vec2(-x/screenDimensions.x, 0.0);
 			vec2 rightPos = texCoords + vec2(x/screenDimensions.x, 0.0);
 			vec4 neighbourLeft = texture2D(sdf, leftPos);
 			vec4 neighbourRight = texture2D(sdf, rightPos);
 			if(neighbourLeft.r > 0.0 || neighbourRight.r > 0.0) {
-				d = x - max(neighbourLeft.r, neighbourRight.r)*maxDist;
+				d = x - max(neighbourLeft.r, neighbourRight.r)*h;
 				break;
 			};
 		};
 	}
 	else {
-		d = rawPixel.g*maxDist;
-		for(float y=1.0; y<maxDist; y+=1.0) {
+		d = rawPixel.g*h;
+		for(float y=1.0; y<h; y+=1.0) {
 			vec2 shift = vec2(0.0, y/screenDimensions.y);
 			vec4 neighbourUp = texture2D(sdf, texCoords - shift);
 			vec4 neighbourDown = texture2D(sdf, texCoords + shift);
 			bool exit = false;
 			if(neighbourUp.r == 0.0) {
-				d = min(d, len(neighbourUp.g*maxDist, y));
+				d = min(d, len(neighbourUp.g*h, y));
 			}
 			else {
-				d = min(d, max(0.0, y-neighbourUp.r*maxDist));
+				d = min(d, max(0.0, y-neighbourUp.r*h));
 				exit = true;
 			};
 			if (neighbourDown.r == 0.0) {
-				d = min(d, len(neighbourDown.g*maxDist, y));
+				d = min(d, len(neighbourDown.g*h, y));
 			}
 			else {
-				d = min(d, max(0.0, y-neighbourDown.r*maxDist));
+				d = min(d, max(0.0, y-neighbourDown.r*h));
 				exit = true;
 			}
 			if(exit) break;
 		};
 	};
 
-	gl_FragColor = vec4(rawPixel.r, clamp(d/maxDist, 0.0, 1.0), 0.0, 1.0);
+	gl_FragColor = vec4(rawPixel.r, clamp(d/h, 0.0, 1.0), 0.0, 1.0);
 }
