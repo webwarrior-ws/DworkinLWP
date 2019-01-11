@@ -1,7 +1,6 @@
 precision highp float;
 
 uniform vec2 screenDimensions;
-uniform vec2 scale;
 uniform float h;
 uniform bool horizontal;
 uniform sampler2D sdf;
@@ -13,8 +12,7 @@ float len(float x, float y) {
 
 
 void main() {
-	vec2 pos = gl_FragCoord.xy;
-	vec2 texCoords = pos / screenDimensions;
+	vec2 texCoords = gl_FragCoord.xy / screenDimensions;
 	vec4 rawPixel = texture2D(sdf, texCoords);
 	
 	if(rawPixel.r > 0.0) {
@@ -41,22 +39,18 @@ void main() {
 			vec2 shift = vec2(0.0, y/screenDimensions.y);
 			vec4 neighbourUp = texture2D(sdf, texCoords - shift);
 			vec4 neighbourDown = texture2D(sdf, texCoords + shift);
-			bool exit = false;
 			if(neighbourUp.r == 0.0) {
 				d = min(d, len(neighbourUp.g*h, y));
 			}
 			else {
 				d = min(d, max(0.0, y-neighbourUp.r*h));
-				exit = true;
 			};
 			if (neighbourDown.r == 0.0) {
 				d = min(d, len(neighbourDown.g*h, y));
 			}
 			else {
 				d = min(d, max(0.0, y-neighbourDown.r*h));
-				exit = true;
 			}
-			if(exit) break;
 		};
 	};
 
