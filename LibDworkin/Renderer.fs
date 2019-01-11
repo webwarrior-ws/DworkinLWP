@@ -483,8 +483,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Uniform2(shapesDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
         GL.UseProgram(calcPositiveDistShader.Value.Program)
         GL.Uniform2(calcPositiveDistShader.Value.GetUniformLocation("scale"), xs, ys)
-        GL.UseProgram(calcNegativeDistShader.Value.Program)
+        GL.UseProgram(this.CalcNegativeDistShader.Program)
         GL.Uniform2(calcNegativeDistShader.Value.GetUniformLocation("scale"), xs, ys)
+        GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("h"), this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:
@@ -537,9 +538,6 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         this.ResetEnvironment(dimensions)
         
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
-
-        GL.UseProgram(this.CalcNegativeDistShader.Program)
-        GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("h"), this.MaxDistance * float32(width) / dimensions.X) // account for scale
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)
