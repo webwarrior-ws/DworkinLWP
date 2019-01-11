@@ -121,21 +121,23 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable aoiVertexIndices = Buffer<int>(128)
 
     let mutable sdfTexture = 0
+    let mutable sdfTexture2 = 0
     let mutable sdfFrameBuffer = 0
+    let mutable sdfFrameBuffer2 = 0
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
     let mutable segmentsVBO = 0
     let sdfVisualizerShader = lazy(new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
     let shapesDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
     let calcPositiveDistShader = lazy(new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/positiveDist.frag"))
+    let calcNegativeDistShader = lazy(new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/negativeDist.frag"))
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
     let mutable scale = Point(1.0f, 1.0f)
 
     // maximal absolute values of distances in signed distance field
-    let maxPositiveDistance = 32.0f
-    let maxNegativeDistance = maxPositiveDistance
+    let maxDistance = 16.0f
 
     member this.FPS = 30
 
@@ -145,6 +147,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     member internal this.SDFFrameBuffer = sdfFrameBuffer
     member internal this.QuadVBO = quadVBO
     member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
+    member internal this.CalcNegativeDistShader = calcNegativeDistShader.Value
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
@@ -231,11 +234,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             let p2 = points.[(i+1)%n]
             let s2 = segment p2 (points.[(i+2)%n])
             let offset2 = offset s1 s2
-            let quad = 
-                if offset1.Angle > offset2.Angle then
-                    [| p1 - offset1; p1 + offset1; p2 + offset2; p2 - offset2 |]
-                else
-                    [| p1 - offset1; p1 + offset1; p2 - offset2; p2 + offset2 |]
+            let quad = [| p1 - offset1; p1 + offset1; p2 + offset2; p2 - offset2 |]
             s1 <- s2
             offset1 <- offset2
             quad)
@@ -252,23 +251,34 @@ type BaseRenderer(platform : AbstractPlatform) =
     
     /// initialize sdf texture and framebuffer
     member private this.InitializeSDF() =
-        if sdfTexture <> 0 then
-            GL.DeleteTexture sdfTexture 
-        sdfTexture <- gen1 GL.GenTextures
-        GL.BindTexture(TextureTarget.Texture2D, sdfTexture)
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
-                      PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+        let textures = [| sdfTexture; sdfTexture2 |]
+        let frameBuffers = [| sdfFrameBuffer; sdfFrameBuffer2 |]
+        if textures.[0] <> 0 then GL.DeleteTextures(textures.Length, textures) 
+        if frameBuffers.[0] <> 0 then GL.DeleteFramebuffers(frameBuffers.Length, frameBuffers) 
+        GL.GenTextures(textures.Length, textures)
+        GL.GenFramebuffers(frameBuffers.Length, frameBuffers)
+        sdfTexture <- textures.[0]
+        sdfTexture2 <- textures.[1]
+        sdfFrameBuffer <- frameBuffers.[0]
+        sdfFrameBuffer2 <- frameBuffers.[1]
 
-        sdfFrameBuffer <- gen1 GL.GenFramebuffers
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer)
-        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, sdfTexture, 0)      
-        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-        GL.Clear(ClearBufferMask.ColorBufferBit)
+        Array.iter2 
+            (fun (texture : int) (frameBuffer : int) -> 
+                GL.BindTexture(TextureTarget.Texture2D, texture)
+                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
+                              PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBuffer)
+                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                        TextureTarget.Texture2D, texture, 0)      
+                GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+                GL.Clear(ClearBufferMask.ColorBufferBit))
+            textures
+            frameBuffers
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
@@ -281,6 +291,11 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+
+        GL.UseProgram(this.CalcPositiveDistShader.Program)
+        GL.Uniform2(this.CalcPositiveDistShader.GetUniformLocation("screenDimensions"), float32 width, float32 height)
+        GL.UseProgram(this.CalcNegativeDistShader.Program)
+        GL.Uniform2(this.CalcNegativeDistShader.GetUniformLocation("screenDimensions"), float32 width, float32 height)
     
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
@@ -289,7 +304,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         sdfVisualizerShader.Force() |> ignore
         shapesDrawingShader.Force() |> ignore
         GL.UseProgram(calcPositiveDistShader.Value.Program)
-        GL.Uniform1(calcPositiveDistShader.Value.GetUniformLocation("h"), maxPositiveDistance)
+        GL.Uniform1(calcPositiveDistShader.Value.GetUniformLocation("h"), maxDistance)
+        GL.UseProgram(calcNegativeDistShader.Value.Program)
+        GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("h"), maxDistance)
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
@@ -311,9 +328,10 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
     member this.ClearSDF() =
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
-        GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f)
-        GL.Clear(ClearBufferMask.ColorBufferBit)
+        for frameBuffer in [| sdfFrameBuffer; sdfFrameBuffer2 |] do
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBuffer)
+            GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f)
+            GL.Clear(ClearBufferMask.ColorBufferBit)
 
     member this.DrawImage() =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
@@ -334,11 +352,13 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.BuildOuterShellAndAOI(points : Point[]) =
         let n = points.Length
         let baseIndex = shapesVertices.Size
-        let h = maxPositiveDistance
+        let h = maxDistance
+        let clockwise = (points.[1] - points.[n-1]).Cross(points.[0] - points.[1]) < 0.0f // maybe counterclockwise, but it doesn't matter
 
         points |> Array.iteri (fun i O ->
-            let Oprev = points.[(i-1+n)%n]
-            let O2 = points.[(i+1)%n]
+            let Oprev, O2 = 
+                if clockwise then points.[(i-1+n)%n], points.[(i+1)%n]
+                else points.[(i+1)%n], points.[(i-1+n)%n]
             let OA = (O - Oprev).LeftRotated.Normalized() * h
             let OB = (O2 - O).LeftRotated.Normalized() * h
             let OC = (OA + OB).Normalized() * h
@@ -421,10 +441,31 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
             
             GL.Enable(EnableCap.Blend)
-            GL.BlendEquation(All.Min)
+            GL.BlendEquation(All.Min) // Min blend equation is not specified by ES 2.0 standard - need ES 3.0 or extension
             this.PerformDrawElements(shapesVertexIndices)
             GL.BlendEquation(BlendEquationMode.FuncAdd)
             GL.Disable(EnableCap.Blend)
+            
+            // step 2: calculate [negative] distances inside of shapes in area of influence
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer2)
+            GL.ActiveTexture(TextureUnit.Texture0)
+            GL.BindTexture(TextureTarget.Texture2D, sdfTexture)
+            GL.UseProgram(calcNegativeDistShader.Value.Program)
+            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
+            let aPos = calcNegativeDistShader.Value.GetAttributeLocation("pos")
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+
+            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 1) // horizontal=true
+            this.PerformDrawElements(aoiVertexIndices)
+
+            // swap framebuffers
+            GL.BindTexture(TextureTarget.Texture2D, sdfTexture2)
+            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer)
+            
+            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 0) // horizontal=false
+            this.PerformDrawElements(aoiVertexIndices)
                        
             this.ClearBuffers()
 
@@ -441,6 +482,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Uniform2(shapesDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
         GL.UseProgram(calcPositiveDistShader.Value.Program)
         GL.Uniform2(calcPositiveDistShader.Value.GetUniformLocation("scale"), xs, ys)
+        GL.UseProgram(calcNegativeDistShader.Value.Program)
+        GL.Uniform2(calcNegativeDistShader.Value.GetUniformLocation("scale"), xs, ys)
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:
@@ -493,8 +536,6 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         this.ResetEnvironment(dimensions)
         
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
-        GL.UseProgram(this.CalcPositiveDistShader.Program)
-        GL.Uniform2(this.CalcPositiveDistShader.GetUniformLocation("screenDimensions"), width, height)
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)
