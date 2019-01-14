@@ -28,7 +28,7 @@ void main() {
 			vec4 neighbourLeft = texture2D(sdf, leftPos);
 			vec4 neighbourRight = texture2D(sdf, rightPos);
 			if(neighbourLeft.r > 0.0 || neighbourRight.r > 0.0) {
-				d = x - max(neighbourLeft.r, neighbourRight.r)*h;
+				d = x /*- max(neighbourLeft.r, neighbourRight.r)*h*/;
 				break;
 			};
 		};
@@ -43,13 +43,13 @@ void main() {
 				d = min(d, len(neighbourUp.g*h, y));
 			}
 			else {
-				d = min(d, max(0.0, y-neighbourUp.r*h));
+				d = min(d, max(0.0, y/*-neighbourUp.r*h*/));
 			};
 			if (neighbourDown.r == 0.0) {
 				d = min(d, len(neighbourDown.g*h, y));
 			}
 			else {
-				d = min(d, max(0.0, y-neighbourDown.r*h));
+				d = min(d, max(0.0, y/*-neighbourDown.r*h*/));
 			}
 		};
 	};
