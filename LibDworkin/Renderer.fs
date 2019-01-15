@@ -120,8 +120,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable shapesVertexIndices = Buffer<int>(128)
     let mutable aoiVertexIndices = Buffer<int>(128)
 
-    let mutable sdfTextures = (0, 0)
-    let mutable sdfFrameBuffers = (0, 0)
+    let sdfTextures = [| 0; 0 |]
+    let mutable sdfFrameBuffer = 0
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
     let mutable segmentsVBO = 0
@@ -141,16 +141,17 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     /// Use this to draw to sdf
-    member internal this.SDFFrameBuffer = fst sdfFrameBuffers
-    member internal this.SDFTexture = fst sdfTextures
+    member internal this.SDFFrameBuffer = sdfFrameBuffer
+    member internal this.SDFTexture = sdfTextures.[0]
+    member internal this.SDFTexture2 = sdfTextures.[1]
     member internal this.QuadVBO = quadVBO
     member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
     member internal this.CalcNegativeDistShader = calcNegativeDistShader.Value
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
-            GL.DeleteTextures(2, [| fst sdfTextures; snd sdfTextures |])
-            GL.DeleteFramebuffers(2, [| fst sdfFrameBuffers; snd sdfFrameBuffers |])
+            GL.DeleteTextures(2, sdfTextures)
+            GL.DeleteFramebuffers(1, [| this.SDFFrameBuffer |])
             GL.DeleteBuffers(2, [| quadVBO; shapesVBO; segmentsVBO |])
             let disposeShader (shader : Lazy<Shader>) =
                 if shader.IsValueCreated then
@@ -249,33 +250,26 @@ type BaseRenderer(platform : AbstractPlatform) =
     
     /// initialize sdf texture and framebuffer
     member private this.InitializeSDF() =
-        let textures = [| fst sdfTextures; snd sdfTextures |]
-        let frameBuffers = [| fst sdfFrameBuffers; snd sdfFrameBuffers |]
-        if sdfTextures <> (0, 0) then GL.DeleteTextures(textures.Length, textures) 
-        if sdfFrameBuffers <> (0, 0) then GL.DeleteFramebuffers(frameBuffers.Length, frameBuffers) 
-        GL.GenTextures(textures.Length, textures)
-        GL.GenFramebuffers(frameBuffers.Length, frameBuffers)
+        if sdfTextures <> [| 0; 0 |] then GL.DeleteTextures(sdfTextures.Length, sdfTextures) 
+        GL.GenTextures(sdfTextures.Length, sdfTextures)
+        if sdfFrameBuffer = 0 then 
+            sdfFrameBuffer <- gen1 GL.GenFramebuffers
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer)
 
-        Array.iter2 
-            (fun (texture : int) (frameBuffer : int) -> 
-                GL.BindTexture(TextureTarget.Texture2D, texture)
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
-                              PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+        for texture in sdfTextures do
+            GL.BindTexture(TextureTarget.Texture2D, texture)
+            // NOTE: UnsignedShort565 may be the only supported pixel type
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
+                            PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
 
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBuffer)
-                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                        TextureTarget.Texture2D, texture, 0)      
-                GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-                GL.Clear(ClearBufferMask.ColorBufferBit))
-            textures
-            frameBuffers
-        
-        sdfTextures <- (textures.[0], textures.[1])
-        sdfFrameBuffers <- (frameBuffers.[0], frameBuffers.[1])
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                    TextureTarget.Texture2D, texture, 0)      
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+            GL.Clear(ClearBufferMask.ColorBufferBit)
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
@@ -323,8 +317,10 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
     member this.ClearSDF() =
-        for frameBuffer in [| fst sdfFrameBuffers; snd sdfFrameBuffers |] do
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBuffer)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+        for texture in sdfTextures do
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                    TextureTarget.Texture2D, texture, 0) 
             GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f)
             GL.Clear(ClearBufferMask.ColorBufferBit)
 
@@ -440,17 +436,19 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
             
             GL.Enable(EnableCap.Blend)
-            GL.BlendEquation(All.Min) // Min blend equation is not specified by ES 2.0 standard - need ES 3.0 or extension
+            // Min blend equation is not specified by OpenGL ES 2.0 standard - need OpenGL ES 3.0 or GL_EXT_blend_minmax extension
+            GL.BlendEquation(All.Min) 
             this.PerformDrawElements(shapesVertexIndices)
             GL.BlendEquation(BlendEquationMode.FuncAdd)
             GL.Disable(EnableCap.Blend)
             
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
             // Since one cannot read from and write to the same texture, 
-            // two pairs of FBO and texture are used and are swapped between horizontal and vertical passes.
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, snd sdfFrameBuffers)
+            // two textures are used and are swapped between horizontal and vertical passes.
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                    TextureTarget.Texture2D, this.SDFTexture2, 0) 
             GL.ActiveTexture(TextureUnit.Texture0)
-            GL.BindTexture(TextureTarget.Texture2D, fst sdfTextures)
+            GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
             GL.UseProgram(calcNegativeDistShader.Value.Program)
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
             let aPos = calcNegativeDistShader.Value.GetAttributeLocation("pos")
@@ -461,9 +459,10 @@ type BaseRenderer(platform : AbstractPlatform) =
             this.PerformDrawElements(aoiVertexIndices)
 
             // swap framebuffers and textures
-            GL.BindTexture(TextureTarget.Texture2D, snd sdfTextures)
+            GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2)
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, fst sdfFrameBuffers)
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                    TextureTarget.Texture2D, this.SDFTexture, 0)
             
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 0) // horizontal=false
             this.PerformDrawElements(aoiVertexIndices)
