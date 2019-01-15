@@ -6,7 +6,6 @@ open OpenTK.Graphics.ES20
 open LibDworkin.Aether.Operators
 open LibDworkin.Renderer
 open GUI
-open LibDworkin
 
 
 
@@ -78,37 +77,10 @@ let configGui  =
         ]
 
 
-type ShapesTestRenderer(context) =
-    inherit BaseRenderer(context)                
-    
-    override this.OnSurfaceChanged(w, h) =
-        base.OnSurfaceChanged( w, h)
-        this.SetScale(2.0f / float32 w, 2.0f / float32 h)
-        this.ClearSDF()
-        //GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f)
-        //GL.Clear(ClearBufferMask.ColorBufferBit)
-
-    override this.OnDrawFrame() =
-        let shape1 = 
-            AgentAbstractions.Shape.Polygon(
-                [|Vector2(10.0f, 10.0f); Vector2(10.0f, 20.0f); Vector2(20.0f, 20.0f); Vector2(20.0f, 10.0f)|] 
-                |> Array.map ((+) (Vector2(50.0f, 50.0f))) )
-        let shape2 = AgentAbstractions.Shape.Polygon(
-            [|Vector2(0.0f, 0.0f); Vector2(0.0f, 10.0f); Vector2(10.0f, 15.0f); Vector2(10.0f, 0.0f)|]
-            |> Array.map ((+) (Vector2(100.0f, 100.0f)))
-            |> Array.rev)
-        //this.BuildCircle(Vector2(1.0f, 1.0f), 0.5f)
-        
-        this.RenderShapes([| 
-            AgentAbstractions.ShapeAndPaint(shape1, AgentAbstractions.ShapePaint.Default); 
-            AgentAbstractions.ShapeAndPaint(shape2, AgentAbstractions.ShapePaint.Default) |])
-        this.DrawImage()
-
 [<EntryPoint>]
 let main _argv =
     let window = new MainWindow<_>(renderer, [configGui])
     //let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.MagneticSpiralsBunchBranching2_3()))
-    //let window = new MainWindow<_>(ShapesTestRenderer(NETCorePlatform()))
     window.Run(30.0)
 
     0 // return an integer exit code

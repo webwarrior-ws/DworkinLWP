@@ -57,7 +57,6 @@
     <AndroidAsset Include="Assets\shaders\negativeDist.frag" />
     <AndroidAsset Include="Assets\shaders\outerShell.vert" />
     <AndroidAsset Include="Assets\shaders\positiveDist.frag" />
-    <AndroidAsset Include="Assets\shaders\areaOfInfluence.vert" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />

@@ -171,8 +171,6 @@ type OpenTK.Box2 with
 
 
 
-let inline vec3 (point : Point, z : float32) = 
-    OpenTK.Vector3(point.X, point.Y, z)
 
 let inline deg2rad degrees =
     degrees * Single.radiansInDegree
