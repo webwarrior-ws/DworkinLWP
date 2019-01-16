@@ -115,16 +115,22 @@ type BaseRenderer(platform : AbstractPlatform) =
     inherit Java.Lang.Object()
 #endif
     // fields
-    let mutable shapesVertices = Buffer<Vector2>(128)
-    let mutable shapesSegmentsVertices = Buffer<Vector2>(256)
-    let mutable shapesVertexIndices = Buffer<int>(128)
+    let mutable shapeVertices = Buffer<Vector2>(128)
+    let mutable polygonSegmentsVertices = Buffer<Vector2>(256)
+    let mutable polygonVertexIndices = Buffer<int>(128)
     let mutable aoiVertexIndices = Buffer<int>(128)
+
+    let mutable circleVertices = Buffer<Vector2>(128)
+    let mutable circleVertexData = Buffer<struct(Point * float32 * float32)>(128) // center, radius, innerRadius
+    let mutable circleVertexIndices = Buffer<int>(128) 
 
     let sdfTextures = [| 0; 0 |]
     let mutable sdfFrameBuffer = 0
+
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
-    let mutable segmentsVBO = 0
+    let mutable polygonSegmentsVBO = 0
+
     let sdfVisualizerShader = lazy(new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
     let shapesDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
     let calcPositiveDistShader = lazy(new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/positiveDist.frag"))
@@ -186,37 +192,33 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BufferData(bufferTarget, nativeint (buffer.Size * sizeof<'T>), buffer.Array, BufferUsage.StreamDraw)
 
     // shapes buliding (adding data to VBOs)
+    member private this.BuildCircle(center, radius, innerRadius) =
+        let numSteps = this.GetNumCircleSegments(radius)
+        let firstIndex = circleVertices.Size
+        circleVertices.Add center
+        let angleStep = Single.TwoPi / (float32 numSteps)
+        let r = radius / cos(angleStep * 0.5f)
+        for i=1 to numSteps+1 do
+            let angle = angleStep * (float32 i)
+            circleVertices.Add(center + Point(r * cos angle, r * sin angle))
+            circleVertexData.Add(struct(center, radius, innerRadius))
+            circleVertexIndices.Add firstIndex
+            circleVertexIndices.Add (firstIndex + i)
+            circleVertexIndices.Add (firstIndex + (i % numSteps + 1))
+    
     member this.BuildCircle(center, radius) =
-        let numSteps = this.GetNumCircleSegments(radius)
-        let firstIndex = shapesVertices.Size
-        shapesVertices.Add center
-        let angleStep = Single.TwoPi / (float32 numSteps)
-        for i=1 to numSteps+1 do
-            let angle = angleStep * (float32 i)
-            shapesVertices.Add(center + Point(radius * cos angle, radius * sin angle))
-            shapesVertexIndices.Add firstIndex
-            shapesVertexIndices.Add (firstIndex + i)
-            shapesVertexIndices.Add (firstIndex + (i % numSteps + 1))
-        
+        this.BuildCircle(center, radius, 0.0f)
+
     member this.BuildCircleContour(center, radius, width) =
-        let numSteps = this.GetNumCircleSegments(radius)
-        let angleStep = Single.TwoPi / (float32 numSteps)
-        let r1 = radius - width*0.5f
-        let r2 = radius + width*0.5f
-        let mutable p1 = Point(1.0f, 0.0f)
-        for i=1 to numSteps+1 do
-            let angle = angleStep * (float32 i)
-            let p2 = Point(cos angle, sin angle)
-            this.BuildPolygon([| center + p1*r1; center + p1*r2; center + p2*r2; center + p2*r1 |])
-            p1 <- p2
+        this.BuildCircle(center, radius + width*0.5f,  max 0.0f (radius - width*0.5f))
         
     member this.BuildPolygon(points : Point[]) =
-        let fisrtVertexIndex = shapesVertices.Size
-        for p in points do shapesVertices.Add p
+        let fisrtVertexIndex = shapeVertices.Size
+        for p in points do shapeVertices.Add p
         for i=fisrtVertexIndex+1 to fisrtVertexIndex+points.Length-2 do
-            shapesVertexIndices.Add fisrtVertexIndex
-            shapesVertexIndices.Add i
-            shapesVertexIndices.Add (i + 1)
+            polygonVertexIndices.Add fisrtVertexIndex
+            polygonVertexIndices.Add i
+            polygonVertexIndices.Add (i + 1)
     
     member this.GetQuadsForPolygonContour(points : Point[], width : float32) : Point[][] =
         let n = points.Length
@@ -305,7 +307,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                       BufferUsage.StaticDraw)
         
         shapesVBO <- gen1 GL.GenBuffers 
-        segmentsVBO <- gen1 GL.GenBuffers 
+        polygonSegmentsVBO <- gen1 GL.GenBuffers 
 
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
@@ -340,9 +342,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.DisableVertexAttribArray(aTexCoords)
         GL.BindTexture(TextureTarget.Texture2D, 0)
     
-    member this.BuildOuterShellAndAOI(points : Point[]) =
+    member this.BuildOuterShellAndAOIForPolygon(points : Point[]) =
         let n = points.Length
-        let baseIndex = shapesVertices.Size
+        let baseIndex = shapeVertices.Size
         let h = this.MaxDistance
         let clockwise = (points.[1] - points.[n-1]).Cross(points.[0] - points.[1]) < 0.0f // maybe counterclockwise, but it doesn't matter
 
@@ -359,29 +361,42 @@ type BaseRenderer(platform : AbstractPlatform) =
             let OE = (OB + OC).Normalized() * (h / cosAOD)
 
             let vertices = [| O; O + OA; O + OD; O + OE; O + OB |]
-            let currIndex = shapesVertices.Size
+            let currIndex = shapeVertices.Size
             this.BuildPolygon(vertices)
             for _j=1 to 3 do
-                shapesSegmentsVertices.Add O
-                shapesSegmentsVertices.Add Oprev
+                polygonSegmentsVertices.Add O
+                polygonSegmentsVertices.Add Oprev
             for _j=1 to 2 do
-                shapesSegmentsVertices.Add O
-                shapesSegmentsVertices.Add O2
+                polygonSegmentsVertices.Add O
+                polygonSegmentsVertices.Add O2
             
             for j=1 to vertices.Length do
                 aoiVertexIndices.Add(baseIndex + 1)
                 aoiVertexIndices.Add(currIndex + j)
                 aoiVertexIndices.Add(currIndex + j + 1)
             
-            let currIndex = shapesVertices.Size // not a duplicate definition, more like update
+            let currIndex = shapeVertices.Size // not a duplicate definition, more like update
             this.BuildPolygon([| O; O + OB; O2 + OB; O2 |])
             for _j=1 to 4 do
-                shapesSegmentsVertices.Add O
-                shapesSegmentsVertices.Add O2
+                polygonSegmentsVertices.Add O
+                polygonSegmentsVertices.Add O2
 
             aoiVertexIndices.Add(baseIndex + 1)
             aoiVertexIndices.Add(currIndex + 1)
             aoiVertexIndices.Add(currIndex + 2) )
+    
+    member this.BuildAOIForCircle(center : Point, radius : float32) =
+        let numSteps = this.GetNumCircleSegments(radius)
+        let firstIndex = shapeVertices.Size
+        shapeVertices.Add center
+        let angleStep = Single.TwoPi / (float32 numSteps)
+        let r = radius / cos(angleStep * 0.5f) + this.MaxDistance
+        for i=1 to numSteps+1 do
+            let angle = angleStep * (float32 i)
+            shapeVertices.Add(center + Point(r * cos angle, r * sin angle))
+            aoiVertexIndices.Add firstIndex
+            aoiVertexIndices.Add (firstIndex + i)
+            aoiVertexIndices.Add (firstIndex + (i % numSteps + 1))
 
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
         // Update sdf (signed distance field) texture.
@@ -397,51 +412,71 @@ type BaseRenderer(platform : AbstractPlatform) =
                 if paint.Fill then this.BuildPolygon(points)
                 if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
 
-            assert (shapesVertexIndices.Array |> Seq.take shapesVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapesVertices.Size))
+            assert (polygonVertexIndices.Array |> Seq.take polygonVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapeVertices.Size))
 
-            this.TransferBufferData(shapesVertices, shapesVBO, BufferTarget.ArrayBuffer)
+            if polygonVertexIndices.Size > 0 then
+                // draw polygons
+                this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
             
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
-            GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
-            GL.UseProgram(shapesDrawingShader.Value.Program)
-            let aPos = shapesDrawingShader.Value.GetAttributeLocation("pos")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+                GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
+                GL.UseProgram(shapesDrawingShader.Value.Program)
+                let aPos = shapesDrawingShader.Value.GetAttributeLocation("pos")
+                GL.EnableVertexAttribArray(aPos)
+                GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
-            this.PerformDrawElements(shapesVertexIndices)
+                this.PerformDrawElements(polygonVertexIndices)
             
-            shapesVertices.Reset()
-            shapesVertexIndices.Reset()
+            shapeVertices.Reset()
+            polygonVertexIndices.Reset()
+
+            for struct (Circle(center, radius), paint) in circles do
+                if paint.Fill then this.BuildCircle(center, radius + paint.StrokeWidth * 0.5f)
+                elif paint.StrokeWidth > 0.0f then this.BuildCircleContour(center, radius + paint.StrokeWidth, paint.StrokeWidth)
 
             // Build outer shell and area of influence for each shape.
             for struct (Polygon(points), paint) in polygons do
                 if paint.Fill then 
-                    this.BuildOuterShellAndAOI(points)
+                    this.BuildOuterShellAndAOIForPolygon(points)
                 if paint.StrokeWidth > 0.0f then 
                     // for now build  outer shell and aoi for each contour segment individually - not optimal, but works
                     let contourSegmentQuads = this.GetQuadsForPolygonContour(points, paint.StrokeWidth)
                     for quadPoints in contourSegmentQuads do
-                        this.BuildOuterShellAndAOI(quadPoints)
+                        this.BuildOuterShellAndAOIForPolygon(quadPoints)
             
-            // Step 1: calculate [positive] distances outside of shapes.
-            this.TransferBufferData(shapesSegmentsVertices, segmentsVBO, BufferTarget.ArrayBuffer)
-            GL.UseProgram(calcPositiveDistShader.Value.Program)
-            let aSegment = calcPositiveDistShader.Value.GetAttributeLocation("inSegment")
-            GL.EnableVertexAttribArray(aSegment)
-            GL.VertexAttribPointer(aSegment, 4, VertexAttribPointerType.Float, false, 0, 0)
+            for struct (Circle(center, radius), paint) in circles do
+                this.BuildAOIForCircle(center, radius + paint.StrokeWidth * 0.5f)
+            
+            this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
 
-            this.TransferBufferData(shapesVertices, shapesVBO, BufferTarget.ArrayBuffer)
-            let aPos = calcPositiveDistShader.Value.GetAttributeLocation("pos")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-            
             GL.Enable(EnableCap.Blend)
             // Min blend equation is not specified by OpenGL ES 2.0 standard - need OpenGL ES 3.0 or GL_EXT_blend_minmax extension
             GL.BlendEquation(All.Min) 
-            this.PerformDrawElements(shapesVertexIndices)
+            
+            // Step 1(polygons): calculate [positive] distances outside of shapes.
+            if polygonVertexIndices.Size > 0 then
+                this.TransferBufferData(polygonSegmentsVertices, polygonSegmentsVBO, BufferTarget.ArrayBuffer)
+                GL.UseProgram(this.CalcPositiveDistShader.Program)
+                let aSegment = this.CalcPositiveDistShader.GetAttributeLocation("inSegment")
+                GL.EnableVertexAttribArray(aSegment)
+                GL.VertexAttribPointer(aSegment, 4, VertexAttribPointerType.Float, false, 0, 0)
+                
+                GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
+                let aPos = this.CalcPositiveDistShader.GetAttributeLocation("pos")
+                GL.EnableVertexAttribArray(aPos)
+                GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+
+                this.PerformDrawElements(polygonVertexIndices)
+            
+            // Step 1 (circles): calculate [positive] distances outside of circles and draw circles.
+            if circleVertexIndices.Size > 0 then
+                //...
+                ()
+
             GL.BlendEquation(BlendEquationMode.FuncAdd)
             GL.Disable(EnableCap.Blend)
             
+            assert (aoiVertexIndices.Array |> Seq.take aoiVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapeVertices.Size))
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
             // Since one cannot read from and write to the same texture, 
             // two textures are used and are swapped between horizontal and vertical passes.
@@ -466,14 +501,17 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 0) // horizontal=false
             this.PerformDrawElements(aoiVertexIndices)
-                       
+                  
             this.ClearBuffers()
 
     member this.ClearBuffers() =
-        shapesVertices.Reset()
-        shapesVertexIndices.Reset()
-        shapesSegmentsVertices.Reset()
+        shapeVertices.Reset()
+        polygonVertexIndices.Reset()
+        polygonSegmentsVertices.Reset()
         aoiVertexIndices.Reset()
+        circleVertices.Reset()
+        circleVertexData.Reset()
+        circleVertexIndices.Reset()
 
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
