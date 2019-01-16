@@ -121,7 +121,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable aoiVertexIndices = Buffer<int>(128)
 
     let mutable circleVertices = Buffer<Vector2>(128)
-    let mutable circleVertexData = Buffer<struct(Point * float32 * float32)>(128) // center, radius, innerRadius
+    let mutable circleVertexData = Buffer<Vector4>(128) // center, radius, innerRadius
     let mutable circleVertexIndices = Buffer<int>(128) 
 
     let sdfTextures = [| 0; 0 |]
@@ -130,9 +130,12 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
     let mutable polygonSegmentsVBO = 0
+    let mutable circlesVBO = 0
+    let mutable circleDataVBO = 0
 
     let sdfVisualizerShader = lazy(new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
-    let shapesDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/DrawShapes.vert", platform.TextFromAsset "shaders/DrawShapes.frag"))
+    let polygonDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/drawPolygons.vert", platform.TextFromAsset "shaders/drawPolygons.frag"))
+    let circleDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/drawCircles.vert", platform.TextFromAsset "shaders/drawCircles.frag"))
     let calcPositiveDistShader = lazy(new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/positiveDist.frag"))
     let calcNegativeDistShader = lazy(new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/negativeDist.frag"))
 
@@ -158,11 +161,11 @@ type BaseRenderer(platform : AbstractPlatform) =
         member this.Dispose() = 
             GL.DeleteTextures(2, sdfTextures)
             GL.DeleteFramebuffers(1, [| this.SDFFrameBuffer |])
-            GL.DeleteBuffers(2, [| quadVBO; shapesVBO; segmentsVBO |])
+            GL.DeleteBuffers(5, [| quadVBO; shapesVBO; polygonSegmentsVBO; circlesVBO; circleDataVBO |])
             let disposeShader (shader : Lazy<Shader>) =
                 if shader.IsValueCreated then
                     (shader.Value :> System.IDisposable).Dispose()
-            [| sdfVisualizerShader; shapesDrawingShader |] 
+            [| sdfVisualizerShader; polygonDrawingShader; circleDrawingShader; calcPositiveDistShader; calcNegativeDistShader |] 
                 |> Array.iter disposeShader
             base.Dispose()
 
@@ -192,25 +195,28 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BufferData(bufferTarget, nativeint (buffer.Size * sizeof<'T>), buffer.Array, BufferUsage.StreamDraw)
 
     // shapes buliding (adding data to VBOs)
-    member private this.BuildCircle(center, radius, innerRadius) =
-        let numSteps = this.GetNumCircleSegments(radius)
+    member private this.BuildCircle(center, radius, strokeWidth) =
+        let innerRadius = if strokeWidth > 0.0f then max 0.0f (radius - strokeWidth*0.5f) else 0.0f
+        let radius' = radius + (max 0.0f strokeWidth*0.5f) + this.MaxDistance
+        let numSteps = this.GetNumCircleSegments(radius') / 8 |> max 4
         let firstIndex = circleVertices.Size
         circleVertices.Add center
+        circleVertexData.Add(Vector4(center.X, center.Y, radius, innerRadius))
         let angleStep = Single.TwoPi / (float32 numSteps)
-        let r = radius / cos(angleStep * 0.5f)
-        for i=1 to numSteps+1 do
+        let r = radius' / cos(angleStep * 0.5f)
+        for i=1 to numSteps do
             let angle = angleStep * (float32 i)
             circleVertices.Add(center + Point(r * cos angle, r * sin angle))
-            circleVertexData.Add(struct(center, radius, innerRadius))
+            circleVertexData.Add(Vector4(center.X, center.Y, radius, innerRadius))
             circleVertexIndices.Add firstIndex
             circleVertexIndices.Add (firstIndex + i)
-            circleVertexIndices.Add (firstIndex + (i % numSteps + 1))
+            circleVertexIndices.Add (firstIndex + (i % numSteps) + 1)
     
     member this.BuildCircle(center, radius) =
         this.BuildCircle(center, radius, 0.0f)
 
-    member this.BuildCircleContour(center, radius, width) =
-        this.BuildCircle(center, radius + width*0.5f,  max 0.0f (radius - width*0.5f))
+    member this.BuildCircleContour(center, radius, strokeWidth) =
+        this.BuildCircle(center, radius, strokeWidth)
         
     member this.BuildPolygon(points : Point[]) =
         let fisrtVertexIndex = shapeVertices.Size
@@ -295,9 +301,11 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         
         sdfVisualizerShader.Force() |> ignore
-        shapesDrawingShader.Force() |> ignore
+        polygonDrawingShader.Force() |> ignore
         GL.UseProgram(this.CalcPositiveDistShader.Program)
         GL.Uniform1(this.CalcPositiveDistShader.GetUniformLocation("h"), this.MaxDistance)
+        GL.UseProgram(circleDrawingShader.Value.Program)
+        GL.Uniform1(circleDrawingShader.Value.GetUniformLocation("h"), this.MaxDistance)
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
@@ -308,6 +316,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         shapesVBO <- gen1 GL.GenBuffers 
         polygonSegmentsVBO <- gen1 GL.GenBuffers 
+        circlesVBO <- gen1 GL.GenBuffers
+        circleDataVBO <- gen1 GL.GenBuffers
 
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
@@ -386,17 +396,18 @@ type BaseRenderer(platform : AbstractPlatform) =
             aoiVertexIndices.Add(currIndex + 2) )
     
     member this.BuildAOIForCircle(center : Point, radius : float32) =
-        let numSteps = this.GetNumCircleSegments(radius)
+        let radius' = (radius + this.MaxDistance)
+        let numSteps = this.GetNumCircleSegments(radius') / 8 |> max 4
         let firstIndex = shapeVertices.Size
         shapeVertices.Add center
         let angleStep = Single.TwoPi / (float32 numSteps)
-        let r = radius / cos(angleStep * 0.5f) + this.MaxDistance
-        for i=1 to numSteps+1 do
+        let r = radius' / cos(angleStep * 0.5f)
+        for i=1 to numSteps do
             let angle = angleStep * (float32 i)
             shapeVertices.Add(center + Point(r * cos angle, r * sin angle))
             aoiVertexIndices.Add firstIndex
             aoiVertexIndices.Add (firstIndex + i)
-            aoiVertexIndices.Add (firstIndex + (i % numSteps + 1))
+            aoiVertexIndices.Add (firstIndex + (i % numSteps) + 1)
 
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
         // Update sdf (signed distance field) texture.
@@ -411,17 +422,15 @@ type BaseRenderer(platform : AbstractPlatform) =
             for struct (Polygon(points), paint) in polygons do
                 if paint.Fill then this.BuildPolygon(points)
                 if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
-
-            assert (polygonVertexIndices.Array |> Seq.take polygonVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapeVertices.Size))
-
+                
             if polygonVertexIndices.Size > 0 then
                 // draw polygons
                 this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
             
                 GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
                 GL.Viewport(0, 0, wallpaperWidth, wallpaperHeight)
-                GL.UseProgram(shapesDrawingShader.Value.Program)
-                let aPos = shapesDrawingShader.Value.GetAttributeLocation("pos")
+                GL.UseProgram(polygonDrawingShader.Value.Program)
+                let aPos = polygonDrawingShader.Value.GetAttributeLocation("pos")
                 GL.EnableVertexAttribArray(aPos)
                 GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
@@ -432,7 +441,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
             for struct (Circle(center, radius), paint) in circles do
                 if paint.Fill then this.BuildCircle(center, radius + paint.StrokeWidth * 0.5f)
-                elif paint.StrokeWidth > 0.0f then this.BuildCircleContour(center, radius + paint.StrokeWidth, paint.StrokeWidth)
+                elif paint.StrokeWidth > 0.0f then this.BuildCircleContour(center, radius, paint.StrokeWidth)
 
             // Build outer shell and area of influence for each shape.
             for struct (Polygon(points), paint) in polygons do
@@ -445,7 +454,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                         this.BuildOuterShellAndAOIForPolygon(quadPoints)
             
             for struct (Circle(center, radius), paint) in circles do
-                this.BuildAOIForCircle(center, radius + paint.StrokeWidth * 0.5f)
+                this.BuildAOIForCircle(center, radius + (max 0.0f paint.StrokeWidth) * 0.5f)
             
             this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
 
@@ -470,13 +479,22 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             // Step 1 (circles): calculate [positive] distances outside of circles and draw circles.
             if circleVertexIndices.Size > 0 then
-                //...
-                ()
+                GL.UseProgram(circleDrawingShader.Value.Program)
+                this.TransferBufferData(circleVertexData, circleDataVBO, BufferTarget.ArrayBuffer)
+                let aData = circleDrawingShader.Value.GetAttributeLocation("data")
+                GL.EnableVertexAttribArray(aData)
+                GL.VertexAttribPointer(aData, 4, VertexAttribPointerType.Float, false, 0, 0)
+
+                this.TransferBufferData(circleVertices, circlesVBO, BufferTarget.ArrayBuffer)
+                let aPos = circleDrawingShader.Value.GetAttributeLocation("pos")
+                GL.EnableVertexAttribArray(aPos)
+                GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+
+                this.PerformDrawElements(circleVertexIndices)
 
             GL.BlendEquation(BlendEquationMode.FuncAdd)
             GL.Disable(EnableCap.Blend)
             
-            assert (aoiVertexIndices.Array |> Seq.take aoiVertexIndices.Size |> Seq.forall (fun i -> i >= 0 && i < shapeVertices.Size))
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
             // Since one cannot read from and write to the same texture, 
             // two textures are used and are swapped between horizontal and vertical passes.
@@ -487,6 +505,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.UseProgram(calcNegativeDistShader.Value.Program)
             GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
             let aPos = calcNegativeDistShader.Value.GetAttributeLocation("pos")
+            GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
             GL.EnableVertexAttribArray(aPos)
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
@@ -516,13 +535,15 @@ type BaseRenderer(platform : AbstractPlatform) =
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
         scale <- Point(xs, ys)
-        GL.UseProgram(shapesDrawingShader.Value.Program)
-        GL.Uniform2(shapesDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
+        GL.UseProgram(polygonDrawingShader.Value.Program)
+        GL.Uniform2(polygonDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
         GL.UseProgram(calcPositiveDistShader.Value.Program)
         GL.Uniform2(calcPositiveDistShader.Value.GetUniformLocation("scale"), xs, ys)
         GL.UseProgram(this.CalcNegativeDistShader.Program)
         GL.Uniform2(calcNegativeDistShader.Value.GetUniformLocation("scale"), xs, ys)
         GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("h"), this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
+        GL.UseProgram(circleDrawingShader.Value.Program)
+        GL.Uniform2(circleDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:
