@@ -126,6 +126,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     let sdfTextures = [| 0; 0 |]
     let mutable sdfFrameBuffer = 0
+    let mutable stencilRenderbuffer = 0
 
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
@@ -263,6 +264,13 @@ type BaseRenderer(platform : AbstractPlatform) =
         if sdfFrameBuffer = 0 then 
             sdfFrameBuffer <- gen1 GL.GenFramebuffers
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, sdfFrameBuffer)
+        if stencilRenderbuffer = 0 then
+            stencilRenderbuffer <- gen1 GL.GenRenderbuffers
+        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, stencilRenderbuffer)
+        GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferInternalFormat.StencilIndex8, wallpaperWidth, wallpaperHeight)
+        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferSlot.StencilAttachment, RenderbufferTarget.Renderbuffer, stencilRenderbuffer)
+        let e = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)
+        assert(e = FramebufferErrorCode.FramebufferComplete)
 
         for texture in sdfTextures do
             GL.BindTexture(TextureTarget.Texture2D, texture)
@@ -498,29 +506,41 @@ type BaseRenderer(platform : AbstractPlatform) =
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
             // Since one cannot read from and write to the same texture, 
             // two textures are used and are swapped between horizontal and vertical passes.
+            
+            GL.Enable(EnableCap.StencilTest)
+            GL.ClearStencil(0)
+            GL.Clear(ClearBufferMask.StencilBufferBit)
+            GL.StencilFuncSeparate(CullFaceMode.FrontAndBack, StencilFunction.Notequal, 1, 0xff)
+            GL.StencilOpSeparate(CullFaceMode.FrontAndBack, StencilOp.Keep, StencilOp.Keep, StencilOp.Replace)
+
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, this.SDFTexture2, 0) 
             GL.ActiveTexture(TextureUnit.Texture0)
             GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
-            GL.UseProgram(calcNegativeDistShader.Value.Program)
-            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
-            let aPos = calcNegativeDistShader.Value.GetAttributeLocation("pos")
+            GL.UseProgram(this.CalcNegativeDistShader.Program)
+            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("sdf"), 0)
+            let aPos = this.CalcNegativeDistShader.GetAttributeLocation("pos")
             GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
             GL.EnableVertexAttribArray(aPos)
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
-            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 1) // horizontal=true
+            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("horizontal"), 1) // horizontal=true
             this.PerformDrawElements(aoiVertexIndices)
 
-            // swap framebuffers and textures
+            // swap textures
             GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2)
-            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("sdf"), 0)
+            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("sdf"), 0)
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, this.SDFTexture, 0)
             
-            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 0) // horizontal=false
+            GL.StencilFuncSeparate(CullFaceMode.FrontAndBack, StencilFunction.Notequal, 2, 0xff)
+            GL.StencilOpSeparate(CullFaceMode.FrontAndBack, StencilOp.Keep, StencilOp.Keep, StencilOp.Replace)
+            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("horizontal"), 0) // horizontal=false
             this.PerformDrawElements(aoiVertexIndices)
-                  
+#if DEBUG
+            GL.Finish()
+#endif      
+            GL.Disable(EnableCap.StencilTest)
             this.ClearBuffers()
 
     member this.ClearBuffers() =
