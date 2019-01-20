@@ -124,9 +124,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable circleVertexData = Buffer<Vector4>(128) // center, radius, innerRadius
     let mutable circleVertexIndices = Buffer<int>(128) 
 
-    let sdfTextures = [| 0; 0; 0 |]
-    let mutable sdfFrameBuffers = [| 0; 0; 0 |]
-    let mutable stencilRenderbuffer = 0
+    let sdfTextures = [| 0; 0 |]
+    let mutable sdfFrameBuffer = 0
 
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
@@ -151,12 +150,9 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
     /// Use this to draw to sdf
-    member internal this.SDFFrameBuffer = sdfFrameBuffers.[0]
-    member internal this.SDFFrameBuffer2 = sdfFrameBuffers.[1]
-    member internal this.SDFFrameBuffer3 = sdfFrameBuffers.[2]
+    member internal this.SDFFrameBuffer = sdfFrameBuffer
     member internal this.SDFTexture = sdfTextures.[0]
     member internal this.SDFTexture2 = sdfTextures.[1]
-    member internal this.SDFTexture3 = sdfTextures.[2]
     member internal this.QuadVBO = quadVBO
     member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
     member internal this.CalcNegativeDistShader = calcNegativeDistShader.Value
@@ -164,7 +160,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
             GL.DeleteTextures(sdfTextures.Length, sdfTextures)
-            GL.DeleteFramebuffers(sdfFrameBuffers.Length, sdfFrameBuffers)
+            GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
             GL.DeleteBuffers(5, [| quadVBO; shapesVBO; polygonSegmentsVBO; circlesVBO; circleDataVBO |])
             let disposeShader (shader : Lazy<Shader>) =
                 if shader.IsValueCreated then
@@ -264,16 +260,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     member private this.InitializeSDF() =
         if sdfTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(sdfTextures.Length, sdfTextures) 
         GL.GenTextures(sdfTextures.Length, sdfTextures)
-        if sdfFrameBuffers |> Array.forall ((=) 0) then 
-            GL.GenFramebuffers(sdfFrameBuffers.Length, sdfFrameBuffers)
+        if sdfFrameBuffer = 0 then 
+            sdfFrameBuffer <- gen1 GL.GenFramebuffers
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
-        if stencilRenderbuffer = 0 then
-            stencilRenderbuffer <- gen1 GL.GenRenderbuffers
-        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, stencilRenderbuffer)
-        GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferInternalFormat.StencilIndex8, wallpaperWidth, wallpaperHeight)
-        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferSlot.StencilAttachment, RenderbufferTarget.Renderbuffer, stencilRenderbuffer)
-        let e = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)
-        assert(e = FramebufferErrorCode.FramebufferComplete)
 
         for texture in sdfTextures do
             GL.BindTexture(TextureTarget.Texture2D, texture)
@@ -334,7 +323,6 @@ type BaseRenderer(platform : AbstractPlatform) =
         circleDataVBO <- gen1 GL.GenBuffers
 
         GL.Disable(EnableCap.DepthTest)
-        GL.Disable(EnableCap.StencilTest)
         GL.Disable(EnableCap.CullFace)
 
     
@@ -425,18 +413,21 @@ type BaseRenderer(platform : AbstractPlatform) =
             aoiVertexIndices.Add (firstIndex + i)
             aoiVertexIndices.Add (firstIndex + (i % numSteps) + 1)
 
+    member private this.ClearBlueChannel() =
+        GL.ColorMask(false, false, true, false)
+        GL.ClearColor(0.0f, 0.0f, 0.0f, 0.0f)
+        GL.Clear(ClearBufferMask.ColorBufferBit)
+        GL.ColorMask(true, true, true, true)
+
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
         // Update sdf (signed distance field) texture.
         // Distances >= 0 are stored in R channel; [absolute values of] distances < 0 are stored in B channel.
         // Distances are in range [-maxDistance; maxDistance]. 
         // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
-        // G channel acts as a stencil buffer for negative distances calculation (pixels with G=0 are skipped)
+        // B channel acts as a stencil buffer for negative distances calculation (pixels with B=0 are skipped)
         if not (Array.isEmpty shapes) then
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
-            GL.ColorMask(false, false, true, false)
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 0.0f)
-            GL.Clear(ClearBufferMask.ColorBufferBit)
-            GL.ColorMask(true, true, true, true)
+            this.ClearBlueChannel()
 
             let polygons, circles = 
                 shapes 
@@ -528,7 +519,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
             // Since one cannot read from and write to the same texture, 
-            // two pairs of FBO and texture are used and are swapped between horizontal and vertical passes.
+            // two textures are used and are swapped between horizontal and vertical passes.
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, this.SDFTexture2, 0)
             GL.ActiveTexture(TextureUnit.Texture0)
@@ -540,27 +531,21 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.EnableVertexAttribArray(aPos)
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
-            GL.ColorMask(false, false, true, false)
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 0.0f)
-            GL.Clear(ClearBufferMask.ColorBufferBit)
-            GL.ColorMask(true, true, true, true)
+            this.ClearBlueChannel()
 
-            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 1) // horizontal=true
-            
+            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("horizontal"), 1) // horizontal=true
             GL.DrawArrays(BeginMode.Triangles, 0, 6)
-            //this.PerformDrawElements(aoiVertexIndices)
 
-            // swap framebuffers and textures
+            // swap textures
             GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2)
             GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("sdf"), 0)
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, this.SDFTexture, 0)
             
-            GL.Uniform1(calcNegativeDistShader.Value.GetUniformLocation("horizontal"), 0) // horizontal=false
-            
+            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("horizontal"), 0) // horizontal=false
             GL.DrawArrays(BeginMode.Triangles, 0, 6)
-            //this.PerformDrawElements(aoiVertexIndices)
             
+            // cleanup
             this.ClearBuffers()
 
     member this.ClearBuffers() =
