@@ -18,5 +18,5 @@ void main() {
 		float h1 = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
 		d = length( pa - ba*h1 );
 	//};
-	gl_FragColor = vec4(clamp(d/h, 0.0, 1.0), 1.0, 0.0, 1.0);
+	gl_FragColor = vec4(clamp(d/h, 0.0, 1.0), 1.0, 1.0, 1.0);
 }

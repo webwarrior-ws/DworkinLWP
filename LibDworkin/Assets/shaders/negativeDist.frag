@@ -1,10 +1,11 @@
-precision highp float;
+precision mediump float;
 
 uniform vec2 screenDimensions;
 uniform float h;
 uniform bool horizontal;
 uniform sampler2D sdf;
 
+varying vec2 texCoords;
 
 float len(float x, float y) {
 	return sqrt(x*x + y*y);
@@ -12,9 +13,10 @@ float len(float x, float y) {
 
 
 void main() {
-	vec2 texCoords = gl_FragCoord.xy / screenDimensions;
 	vec4 rawPixel = texture2D(sdf, texCoords);
 	
+	if(rawPixel.b == 0.0) discard;
+
 	if(rawPixel.r > 0.0) {
 		gl_FragColor = rawPixel;
 		return;
@@ -25,10 +27,10 @@ void main() {
 		for(float x=1.0; x<h; x+=1.0) {
 			vec2 leftPos = texCoords + vec2(-x/screenDimensions.x, 0.0);
 			vec2 rightPos = texCoords + vec2(x/screenDimensions.x, 0.0);
-			vec4 neighbourLeft = texture2D(sdf, leftPos);
-			vec4 neighbourRight = texture2D(sdf, rightPos);
-			if(neighbourLeft.r > 0.0 || neighbourRight.r > 0.0) {
-				d = x - max(neighbourLeft.r, neighbourRight.r)*h;
+			float neighbourLeft, neighbourRight;
+			if((neighbourLeft = texture2D(sdf, leftPos).r) > 0.0 || 
+			   (neighbourRight = texture2D(sdf, rightPos).r) > 0.0) {
+				d = x - max(neighbourLeft, neighbourRight)*h;
 				break;
 			};
 		};
@@ -54,5 +56,5 @@ void main() {
 		};
 	};
 
-	gl_FragColor = vec4(rawPixel.r, clamp(d/h, 0.0, 1.0), 0.0, 1.0);
+	gl_FragColor = vec4(rawPixel.r, clamp(d/h, 0.0, 1.0), rawPixel.b, 1.0);
 }
