@@ -371,8 +371,8 @@ type BaseRenderer(platform : AbstractPlatform) =
             let OC = (OA + OB).Normalized() * h
             let cosAOC = Point.Dot(OA, OC) / (h*h) // we know that both OA and OC have length=h by construction
             let cosAOD = sqrt((1.0f + cosAOC) * 0.5f)
-            let OD = (OA + OC).Normalized() * (h / cosAOD)
-            let OE = (OB + OC).Normalized() * (h / cosAOD)
+            let OD = (OA + OC) / (2.0f * cosAOD * cosAOD) // (OA + OC).Normalized() * (h / cosAOD)
+            let OE = (OB + OC) / (2.0f * cosAOD * cosAOD) // (OB + OC).Normalized() * (h / cosAOD)
 
             let vertices = [| O; O + OA; O + OD; O + OE; O + OB |]
             let currIndex = shapeVertices.Size
