@@ -501,8 +501,10 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
 
     let mutable environmentConfig = environmentConfig
     let mutable environment : Agents.DworkinEnvironment option = None
-    
-    let mutable statsPrinted = false
+#if __ANDROID__    
+    member val StatsPrinted = false with get, set
+#endif
+    member this.Environment = environment
 
     member this.EnvironmentConfig 
         with get() : Agents.IDworkinEnvironmentConfig = environmentConfig
@@ -518,7 +520,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         let dt = System.DateTime.Now - startTime
 #if __ANDROID__
         Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
-        statsPrinted <- false
+        this.StatsPrinted <- false
 #endif
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
@@ -560,7 +562,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
                     TimeSamplers.Environment.LastTime 
                     TimeSamplers.Shapes.LastTime
                     TimeSamplers.Image.LastTime ) |> ignore
-        elif not statsPrinted then
+        elif not this.StatsPrinted then
             Android.Util.Log.Debug("avgTimes", 
                 sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
                     TimeSamplers.Environment.Average 
@@ -571,5 +573,5 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
                     TimeSamplers.Environment.Stdev 
                     TimeSamplers.Shapes.Stdev
                     TimeSamplers.Image.Stdev ) |> ignore
-            statsPrinted <- true
+            this.StatsPrinted <- true
 #endif

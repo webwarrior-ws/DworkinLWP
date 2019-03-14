@@ -45,6 +45,7 @@ type DotNETPlatform() =
         System.IO.File.ReadAllText(@"D:\Projects\DworkinLWP\LibDworkin\Assets\" + filename)
 #endif
 
+
 type Shader(vertexShader : string, fragmentShader : string) =
     // adapted code from OpenTK examples
     let status_code = ref 0
