@@ -201,9 +201,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
 
-        GL.UseProgram(this.CalcPositiveDistShader.Program)
+        this.CalcPositiveDistShader.Use()
         GL.Uniform2(this.CalcPositiveDistShader.GetUniformLocation("screenDimensions"), float32 width, float32 height)
-        GL.UseProgram(this.CalcNegativeDistShader.Program)
+        this.CalcNegativeDistShader.Use()
         GL.Uniform2(this.CalcNegativeDistShader.GetUniformLocation("screenDimensions"), float32 width, float32 height)
     
     abstract member OnSurfaceCreated : unit -> unit
@@ -212,9 +212,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         sdfVisualizerShader.Force() |> ignore
         polygonDrawingShader.Force() |> ignore
-        GL.UseProgram(this.CalcPositiveDistShader.Program)
+        this.CalcPositiveDistShader.Use()
         GL.Uniform1(this.CalcPositiveDistShader.GetUniformLocation("h"), this.MaxDistance)
-        GL.UseProgram(circleDrawingShader.Value.Program)
+        circleDrawingShader.Value.Use()
         GL.Uniform1(circleDrawingShader.Value.GetUniformLocation("h"), this.MaxDistance)
         
         quadVBO <- gen1 GL.GenBuffers
@@ -249,7 +249,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member this.DrawImage() =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
-        GL.UseProgram(sdfVisualizerShader.Value.Program)
+        sdfVisualizerShader.Value.Use()
         GL.ActiveTexture(TextureUnit.Texture0)
         GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
         GL.Uniform1(sdfVisualizerShader.Value.GetUniformLocation("sdf"), 0)
@@ -348,7 +348,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                 // draw polygons
                 this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
 
-                GL.UseProgram(polygonDrawingShader.Value.Program)
+                polygonDrawingShader.Value.Use()
                 let aPos = polygonDrawingShader.Value.GetAttributeLocation("pos")
                 GL.EnableVertexAttribArray(aPos)
                 GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
@@ -384,7 +384,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             // Step 1(polygons): calculate [positive] distances outside of shapes.
             if polygonVertexIndices.Size > 0 then
                 this.TransferBufferData(polygonSegmentsVertices, polygonSegmentsVBO, BufferTarget.ArrayBuffer)
-                GL.UseProgram(this.CalcPositiveDistShader.Program)
+                this.CalcPositiveDistShader.Use()
                 let aSegment = this.CalcPositiveDistShader.GetAttributeLocation("inSegment")
                 GL.EnableVertexAttribArray(aSegment)
                 GL.VertexAttribPointer(aSegment, 4, VertexAttribPointerType.Float, false, 0, 0)
@@ -398,7 +398,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             // Step 1 (circles): calculate [positive] distances outside of circles and draw circles.
             if circleVertexIndices.Size > 0 then
-                GL.UseProgram(circleDrawingShader.Value.Program)
+                circleDrawingShader.Value.Use()
                 this.TransferBufferData(circleVertexData, circleDataVBO, BufferTarget.ArrayBuffer)
                 let aData = circleDrawingShader.Value.GetAttributeLocation("data")
                 GL.EnableVertexAttribArray(aData)
@@ -416,7 +416,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
             // Mark AOI (set B channel to 1.0) for next step
             GL.ColorMask(false, false, true, false)
-            GL.UseProgram(polygonDrawingShader.Value.Program)
+            polygonDrawingShader.Value.Use()
             GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
             let aPos = polygonDrawingShader.Value.GetAttributeLocation("pos")
             GL.EnableVertexAttribArray(aPos)
@@ -431,7 +431,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                                     TextureTarget.Texture2D, this.SDFTexture2, 0)
             GL.ActiveTexture(TextureUnit.Texture0)
             GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
-            GL.UseProgram(this.CalcNegativeDistShader.Program)
+            this.CalcNegativeDistShader.Use()
             GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("sdf"), 0)
             let aPos = this.CalcNegativeDistShader.GetAttributeLocation("pos")
             GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
@@ -467,14 +467,14 @@ type BaseRenderer(platform : AbstractPlatform) =
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
         scale <- Point(xs, ys)
-        GL.UseProgram(polygonDrawingShader.Value.Program)
+        polygonDrawingShader.Value.Use()
         GL.Uniform2(polygonDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
-        GL.UseProgram(calcPositiveDistShader.Value.Program)
+        calcPositiveDistShader.Value.Use()
         GL.Uniform2(calcPositiveDistShader.Value.GetUniformLocation("scale"), xs, ys)
-        GL.UseProgram(this.CalcNegativeDistShader.Program)
+        this.CalcNegativeDistShader.Use()
         GL.Uniform2(calcNegativeDistShader.Value.GetUniformLocation("scale"), xs, ys)
         GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("h"), this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
-        GL.UseProgram(circleDrawingShader.Value.Program)
+        circleDrawingShader.Value.Use()
         GL.Uniform2(circleDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
