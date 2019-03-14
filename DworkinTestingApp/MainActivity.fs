@@ -53,7 +53,7 @@ type MainActivity () =
             Android.Widget.Toast.MakeText(this, "This device does not support OpenGL ES 2.0.", Android.Widget.ToastLength.Long).Show()
 
         
-        this.SetContentView (view)
+        this.SetContentView(view)
 
     override this.OnPause() =
         // never forget to do this!

@@ -33,18 +33,64 @@ module Helpers =
         -1.0f;  1.0f;
         -1.0f; -1.0f;|]
     
-    let measureTime (action : unit -> unit) =
-        let stopwatch = System.Diagnostics.Stopwatch.StartNew()
-        action()
-        stopwatch.Stop()
-        stopwatch.Elapsed
+    /// Use Measure() method in for loops to take measurement.
+    /// E.g.  for _ in sampler.Measure(0) do doSmth()
+    type TimeSampler(name : string) =
+        let stopwatch = System.Diagnostics.Stopwatch()
+        let samples = ResizeArray<int * float>() // (agents count, time in ms)
+        
+        let mutable currAgents = 0
 
+        member this.Measure(agentsCount) =
+            currAgents <- agentsCount
+            this
+
+        member this.Name = name
+        member this.Samples = samples.ToArray()
+        member this.Last = samples.Last
+        member this.LastTime = snd samples.Last
+
+        member this.Average = samples |> Seq.averageBy snd
+        member this.Max = samples |> Seq.maxBy snd
+        member this.Stdev =
+            let avg = this.Average
+            let squares = [ for (_, x) in samples -> (x - avg) * (x - avg) ]
+            sqrt ((Seq.sum squares) / (float samples.Count))
+        
+        interface System.Collections.Generic.IEnumerable<TimeSampler> with
+            member this.GetEnumerator() : System.Collections.Generic.IEnumerator<TimeSampler> = this :> System.Collections.Generic.IEnumerator<TimeSampler>
+            member this.GetEnumerator() : System.Collections.IEnumerator = this :> System.Collections.IEnumerator
+        
+        interface System.Collections.Generic.IEnumerator<TimeSampler> with
+            member this.Current : TimeSampler = this
+            member this.Current: obj = (this :> System.Collections.Generic.IEnumerator<TimeSampler>).Current :> obj
+            member this.Dispose(): unit = ()
+
+            member this.MoveNext(): bool = 
+                if stopwatch.IsRunning then
+                    stopwatch.Stop()
+                    samples.Add(currAgents, stopwatch.Elapsed.TotalMilliseconds)
+                    stopwatch.Reset()
+                    false
+                else
+                    stopwatch.Start()
+                    true
+            
+            member this.Reset(): unit = ()
+    
+    module TimeSamplers =
+        let Environment = new TimeSampler("env")
+        let Shapes = new TimeSampler("shapes")
+        let Image = new TimeSampler("img")
+
+
+// NOTE: to get OpenGL version, use GL.GetString(StringName.Version) 
+// OpenGL<space>ES<space><version number><space><vendor-specific information>
  
 /// Platform-independent facade used by renderers to load shaders and other stuff
 [<AbstractClass>]
 type AbstractPlatform() =
     abstract member TextFromAsset : string -> string
-    abstract member GLVersion : int*int
 
 #if __ANDROID__
  type AndroidPlatform(context : Android.Content.Context) =
@@ -52,18 +98,11 @@ type AbstractPlatform() =
     override this.TextFromAsset(filename : string) =
         use reader = new System.IO.StreamReader(context.Assets.Open(filename))
         reader.ReadToEnd()
-    
-    override this.GLVersion =
-        let activityManager = context.GetSystemService(Android.Content.Context.ActivityService) :?> Android.App.ActivityManager
-        let rawVersion = activityManager.DeviceConfigurationInfo.ReqGlEsVersion
-        (rawVersion >>> 16, rawVersion &&& 0xffff)
 #else
 type NETCorePlatform() =
     inherit AbstractPlatform()
     override this.TextFromAsset(filename : string) =
         System.IO.File.ReadAllText(@"D:\Projects\DworkinLWP\LibDworkin\Assets\" + filename)
-    override this.GLVersion = 
-        (3, 1) // for now
 #endif
 
 type Shader(vertexShader : string, fragmentShader : string) =
@@ -143,9 +182,10 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable wallpaperHeight = 0
     let mutable scale = Point(1.0f, 1.0f)
 
-    // maximal absolute values of distances in signed distance field
+    /// maximal absolute values of distances in signed distance field
     member this.MaxDistance = 16.0f
 
+    /// frames per second
     member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
@@ -627,25 +667,25 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
 
         let mutable agentsCount = 0
         let mutable shapes = [||]
-        let envStepTime = 
-            measureTime (fun () -> 
-                match environment with
-                | Some(env) -> 
-                    agentsCount <- env.AgentsCount
-                    shapes <- env.Step()
-                | None -> () )
-        let renderShapesTime = measureTime (fun () -> this.RenderShapes(shapes))
-        let drawImageTime = measureTime this.DrawImage
 
-        let dt = envStepTime + renderShapesTime + drawImageTime
-        if dt.TotalMilliseconds < delay then
-            System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt.TotalMilliseconds))
+        match environment with
+        | Some(env) -> 
+            agentsCount <- env.AgentsCount
+            for _ in TimeSamplers.Environment.Measure(agentsCount) do
+                shapes <- env.Step()
+        | None -> ()
+        for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
+        for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
+
+        let dt = TimeSamplers.Environment.LastTime + TimeSamplers.Shapes.LastTime + TimeSamplers.Image.LastTime
+        if dt < delay then
+            System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
 #if __ANDROID__
         //else
         Android.Util.Log.Debug("frameTime", 
             sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
                 agentsCount
-                envStepTime.TotalMilliseconds 
-                renderShapesTime.TotalMilliseconds
-                drawImageTime.TotalMilliseconds ) |> ignore
+                TimeSamplers.Environment.LastTime 
+                TimeSamplers.Shapes.LastTime
+                TimeSamplers.Image.LastTime ) |> ignore
 #endif
