@@ -79,6 +79,8 @@ type Shader(vertexShader : string, fragmentShader : string) =
     
     member this.Program = program
 
+    member this.Use() = GL.UseProgram(program)
+
     member this.GetUniformLocation(name : string) =
         getOrSetIfAbsent uniformLocations name (fun () -> GL.GetUniformLocation(this.Program, name))
     

@@ -32,12 +32,12 @@ void main() {
    // Saves about 25% time.
    //if(rawPixel.b == 0.0) discard;
 
-   float d = rawPixel.x > 0.0 ? rawPixel.r : -rawPixel.g;
+   float d = rawPixel.r > 0.0 ? rawPixel.r : -rawPixel.g;
 
    vec3 col;
    col = vis(d);
    //col = vec3(mask(rawPixel.rg));
-   //col = vec3(outline(rawPixel.xy, 0.05));
+   //col = vec3(outline(rawPixel.rg, 0.05));
 
    gl_FragColor = vec4(col, 1.0);
 }
