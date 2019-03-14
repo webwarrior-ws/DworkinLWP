@@ -76,16 +76,36 @@ type Shader(vertexShader : string, fragmentShader : string) =
     
     let uniformLocations = System.Collections.Generic.Dictionary<string, int>()
     let attributeLocations = System.Collections.Generic.Dictionary<string, int>()
+
+    let deferredActions = System.Collections.Concurrent.ConcurrentDictionary<int, unit -> unit>()
     
     member this.Program = program
 
-    member this.Use() = GL.UseProgram(program)
+    member this.Use() = 
+        GL.UseProgram(program)
+        if not deferredActions.IsEmpty then
+            for action in deferredActions.Values do action()
+            deferredActions.Clear()
 
     member this.GetUniformLocation(name : string) =
         getOrSetIfAbsent uniformLocations name (fun () -> GL.GetUniformLocation(this.Program, name))
     
     member this.GetAttributeLocation(name : string) =
         getOrSetIfAbsent attributeLocations name (fun () -> GL.GetAttribLocation(this.Program, name))
+    
+    // These methods defer setting uniform to the next time when Use() method is called.
+    // Do not use when setting samplers.
+    member this.DeferredSetUniform(name : string, value : int) =
+        let loc = this.GetUniformLocation(name)
+        deferredActions.[loc] <- (fun () -> GL.Uniform1(loc, value))
+    
+    member this.DeferredSetUniform(name : string, value : float32) =
+        let loc = this.GetUniformLocation(name)
+        deferredActions.[loc] <- (fun () -> GL.Uniform1(loc, value))
+    
+    member this.DeferredSetUniform(name : string, value1 : float32, value2 : float32) =
+        let loc = this.GetUniformLocation(name)
+        deferredActions.[loc] <- (fun () -> GL.Uniform2(loc, value1, value2))
     
     interface System.IDisposable with
         member this.Dispose() = 

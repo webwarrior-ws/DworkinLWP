@@ -200,11 +200,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
-
-        this.CalcPositiveDistShader.Use()
-        GL.Uniform2(this.CalcPositiveDistShader.GetUniformLocation("screenDimensions"), float32 width, float32 height)
-        this.CalcNegativeDistShader.Use()
-        GL.Uniform2(this.CalcNegativeDistShader.GetUniformLocation("screenDimensions"), float32 width, float32 height)
+        
+        this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
+        this.CalcNegativeDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
     
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
@@ -212,10 +210,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         sdfVisualizerShader.Force() |> ignore
         polygonDrawingShader.Force() |> ignore
-        this.CalcPositiveDistShader.Use()
-        GL.Uniform1(this.CalcPositiveDistShader.GetUniformLocation("h"), this.MaxDistance)
-        circleDrawingShader.Value.Use()
-        GL.Uniform1(circleDrawingShader.Value.GetUniformLocation("h"), this.MaxDistance)
+        
+        this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
+        circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
         
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
@@ -467,15 +464,11 @@ type BaseRenderer(platform : AbstractPlatform) =
     /// Set scale used in vertex shader for drawing shapes
     member this.SetScale(xs : float32, ys : float32) =
         scale <- Point(xs, ys)
-        polygonDrawingShader.Value.Use()
-        GL.Uniform2(polygonDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
-        calcPositiveDistShader.Value.Use()
-        GL.Uniform2(calcPositiveDistShader.Value.GetUniformLocation("scale"), xs, ys)
-        this.CalcNegativeDistShader.Use()
-        GL.Uniform2(calcNegativeDistShader.Value.GetUniformLocation("scale"), xs, ys)
-        GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("h"), this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
-        circleDrawingShader.Value.Use()
-        GL.Uniform2(circleDrawingShader.Value.GetUniformLocation("scale"), xs, ys)
+        polygonDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
+        calcPositiveDistShader.Value.DeferredSetUniform("scale", xs, ys)
+        this.CalcNegativeDistShader.DeferredSetUniform("scale", xs, ys)
+        this.CalcNegativeDistShader.DeferredSetUniform("h", this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
+        circleDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:
