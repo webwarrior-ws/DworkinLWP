@@ -39,7 +39,7 @@ type AbstractPlatform() =
         use reader = new System.IO.StreamReader(context.Assets.Open(filename))
         reader.ReadToEnd()
 #else
-type NETCorePlatform() =
+type DotNETPlatform() =
     inherit AbstractPlatform()
     override this.TextFromAsset(filename : string) =
         System.IO.File.ReadAllText(@"D:\Projects\DworkinLWP\LibDworkin\Assets\" + filename)
