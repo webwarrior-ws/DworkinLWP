@@ -27,7 +27,8 @@ void main() {
 		for(float x=1.0; x<h; x+=1.0) {
 			vec2 leftPos = texCoords + vec2(-x/screenDimensions.x, 0.0);
 			vec2 rightPos = texCoords + vec2(x/screenDimensions.x, 0.0);
-			float neighbourLeft, neighbourRight;
+			float neighbourLeft = 0.0;
+			float neighbourRight = 0.0;
 			if((neighbourLeft = texture2D(sdf, leftPos).r) > 0.0 || 
 			   (neighbourRight = texture2D(sdf, rightPos).r) > 0.0) {
 				d = x - max(neighbourLeft, neighbourRight)*h;
