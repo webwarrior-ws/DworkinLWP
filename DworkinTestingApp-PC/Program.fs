@@ -35,7 +35,7 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
 
  
 let pcbConfig = GeneratedConfigs.PCB_RandomPosChips()
-let renderer = DworkinRenderer(NETCorePlatform(), pcbConfig)
+let renderer = DworkinRenderer(LibDworkin.RendererComponents.NETCorePlatform(), pcbConfig)
 
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
