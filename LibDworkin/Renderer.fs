@@ -634,6 +634,8 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
 
     let mutable environmentConfig = environmentConfig
     let mutable environment : Agents.DworkinEnvironment option = None
+    
+    let mutable statsPrinted = false
 
     member this.EnvironmentConfig 
         with get() : Agents.IDworkinEnvironmentConfig = environmentConfig
@@ -649,6 +651,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         let dt = System.DateTime.Now - startTime
 #if __ANDROID__
         Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
+        statsPrinted <- false
 #endif
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
@@ -671,21 +674,35 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         match environment with
         | Some(env) -> 
             agentsCount <- env.AgentsCount
-            for _ in TimeSamplers.Environment.Measure(agentsCount) do
-                shapes <- env.Step()
+            if agentsCount > 0 then
+                for _ in TimeSamplers.Environment.Measure(agentsCount) do
+                    shapes <- env.Step()
         | None -> ()
-        for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
-        for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
+        if agentsCount > 0 then
+            for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
+            for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
 
         let dt = TimeSamplers.Environment.LastTime + TimeSamplers.Shapes.LastTime + TimeSamplers.Image.LastTime
         if dt < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
 #if __ANDROID__
-        //else
-        Android.Util.Log.Debug("frameTime", 
-            sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
-                agentsCount
-                TimeSamplers.Environment.LastTime 
-                TimeSamplers.Shapes.LastTime
-                TimeSamplers.Image.LastTime ) |> ignore
+        if agentsCount > 0 then
+            Android.Util.Log.Debug("frameTime", 
+                sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
+                    agentsCount
+                    TimeSamplers.Environment.LastTime 
+                    TimeSamplers.Shapes.LastTime
+                    TimeSamplers.Image.LastTime ) |> ignore
+        elif not statsPrinted then
+            Android.Util.Log.Debug("avgTimes", 
+                sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
+                    TimeSamplers.Environment.Average 
+                    TimeSamplers.Shapes.Average
+                    TimeSamplers.Image.Average ) |> ignore
+            Android.Util.Log.Debug("avgTimes", 
+                sprintf "(stdev) env.: %7.6g; shapes: %7.6g; img: %7.6g"
+                    TimeSamplers.Environment.Stdev 
+                    TimeSamplers.Shapes.Stdev
+                    TimeSamplers.Image.Stdev ) |> ignore
+            statsPrinted <- true
 #endif
