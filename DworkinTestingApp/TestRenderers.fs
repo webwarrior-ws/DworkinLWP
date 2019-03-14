@@ -232,14 +232,17 @@ type BenchmarkRenderer(context, environmentConfig : LibDworkin.Agents.IDworkinEn
                 for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
                 for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
         elif not this.StatsPrinted then
-            Android.Util.Log.Debug("avgTimes", 
-                sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
-                    TimeSamplers.Environment.Average 
-                    TimeSamplers.Shapes.Average
-                    TimeSamplers.Image.Average ) |> ignore
-            Android.Util.Log.Debug("avgTimes", 
-                sprintf "(stdev) env.: %7.6g; shapes: %7.6g; img: %7.6g"
-                    TimeSamplers.Environment.Stdev 
-                    TimeSamplers.Shapes.Stdev
-                    TimeSamplers.Image.Stdev ) |> ignore
+            let printStats (sampler : TimeSampler) =
+                Android.Util.Log.Debug("avgTimes", 
+                    sprintf "(%-6s) avg: %6.2f max: %6.2f top1%%: %6.2f stdev: %6.2f"
+                        sampler.Name
+                        sampler.Average 
+                        sampler.Max
+                        (sampler.Top 0.01)
+                        sampler.Stdev) |> ignore
+            
+            printStats TimeSamplers.Environment
+            printStats TimeSamplers.Shapes
+            printStats TimeSamplers.Image
+
             this.StatsPrinted <- true
