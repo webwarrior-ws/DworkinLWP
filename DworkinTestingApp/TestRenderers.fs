@@ -7,6 +7,7 @@ open Javax.Microedition.Khronos
 
 open LibDworkin.Geometry
 open LibDworkin.Renderer
+open LibDworkin.RendererComponents
 open LibDworkin.AgentAbstractions
 open LibDworkin.SpatialIndex
 open LibDworkin.Colliders
@@ -205,3 +206,40 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
         
         this.RenderShapes(shapes.ToArray())
         this.DrawImage()
+
+
+type BenchmarkRenderer(context, environmentConfig : LibDworkin.Agents.IDworkinEnvironmentConfig)  =
+    inherit DworkinRenderer(context, environmentConfig)
+
+    let shapesQueue = System.Collections.Generic.Queue<int * ShapeAndPaint[]>()
+
+    override this.OnSurfaceChanged(width, height) =
+        base.OnSurfaceChanged(width, height)
+        shapesQueue.Clear()
+        match this.Environment with
+        | Some(env) -> 
+            while env.HasAgents do
+                let agentsCount = env.AgentsCount
+                for _ in TimeSamplers.Environment.Measure(agentsCount) do
+                    shapesQueue.Enqueue(agentsCount, env.Step())
+        | None -> ()
+
+    override this.OnDrawFrame() = 
+        if shapesQueue.Count > 0 then
+            let startTime = System.DateTime.Now
+            while (System.DateTime.Now - startTime).TotalMilliseconds < 33.0 do
+                let agentsCount, shapes = shapesQueue.Dequeue()
+                for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
+                for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
+        elif not this.StatsPrinted then
+            Android.Util.Log.Debug("avgTimes", 
+                sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
+                    TimeSamplers.Environment.Average 
+                    TimeSamplers.Shapes.Average
+                    TimeSamplers.Image.Average ) |> ignore
+            Android.Util.Log.Debug("avgTimes", 
+                sprintf "(stdev) env.: %7.6g; shapes: %7.6g; img: %7.6g"
+                    TimeSamplers.Environment.Stdev 
+                    TimeSamplers.Shapes.Stdev
+                    TimeSamplers.Image.Stdev ) |> ignore
+            this.StatsPrinted <- true

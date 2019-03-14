@@ -34,6 +34,7 @@ type MainActivity () =
         
         let platform = LibDworkin.RendererComponents.AndroidPlatform(this)
         let renderer = new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
+            //new TestRenderers.BenchmarkRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
             //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.SpiralsProbesBranching1())
             //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.PCB_RandomPosChips())
             //new TestRenderers.CollidersTestRenderer(platform, TestConfigs.circleAdvancedTest)
