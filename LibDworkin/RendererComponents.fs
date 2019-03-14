@@ -108,11 +108,15 @@ type TimeSampler(name : string) =
     member this.LastTime = snd samples.Last
 
     member this.Average = samples |> Seq.averageBy snd
-    member this.Max = samples |> Seq.maxBy snd
+    member this.Max = samples |> Seq.map snd |> Seq.max
     member this.Stdev =
         let avg = this.Average
         let squares = [ for (_, x) in samples -> (x - avg) * (x - avg) ]
         sqrt ((Seq.sum squares) / (float samples.Count))
+    member this.Top(fraction : float) =
+        let sorted = samples |> Seq.map snd |> Seq.sortDescending |> Seq.toArray
+        let top = sorted.[0..int(ceil(float samples.Count * fraction))]
+        top |> Array.average
         
     interface System.Collections.Generic.IEnumerable<TimeSampler> with
         member this.GetEnumerator() : System.Collections.Generic.IEnumerator<TimeSampler> = this :> System.Collections.Generic.IEnumerator<TimeSampler>
