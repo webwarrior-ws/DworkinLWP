@@ -227,7 +227,7 @@ type BenchmarkRenderer(context, environmentConfig : LibDworkin.Agents.IDworkinEn
     override this.OnDrawFrame() = 
         if shapesQueue.Count > 0 then
             let startTime = System.DateTime.Now
-            while (System.DateTime.Now - startTime).TotalMilliseconds < 33.0 do
+            while (System.DateTime.Now - startTime).TotalMilliseconds < 33.0 && shapesQueue.Count > 0 do
                 let agentsCount, shapes = shapesQueue.Dequeue()
                 for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
                 for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
