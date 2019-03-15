@@ -520,12 +520,13 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             env.Step() |> ignore
 
     override this.OnSurfaceChanged(width, height) =
-        base.OnSurfaceChanged(width, height)
-        // setup scale and offset
-        let dimensions = this.GetDimensions(width, height)
-        this.ResetEnvironment(dimensions)
+        if this.WallpaperSize <> (width, height) then
+            base.OnSurfaceChanged(width, height)
+            // setup scale and offset
+            let dimensions = this.GetDimensions(width, height)
+            this.ResetEnvironment(dimensions)
         
-        this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
+            this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)

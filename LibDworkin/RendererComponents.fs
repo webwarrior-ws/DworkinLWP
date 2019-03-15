@@ -84,8 +84,9 @@ type Shader(vertexShader : string, fragmentShader : string) =
     member this.Use() = 
         GL.UseProgram(program)
         if not deferredActions.IsEmpty then
-            for action in deferredActions.Values do action()
+            let actions = deferredActions.Values
             deferredActions.Clear()
+            for action in actions do action()
 
     member this.GetUniformLocation(name : string) =
         getOrSetIfAbsent uniformLocations name (fun () -> GL.GetUniformLocation(this.Program, name))
@@ -93,7 +94,7 @@ type Shader(vertexShader : string, fragmentShader : string) =
     member this.GetAttributeLocation(name : string) =
         getOrSetIfAbsent attributeLocations name (fun () -> GL.GetAttribLocation(this.Program, name))
     
-    // These methods defer setting uniform to the next time when Use() method is called.
+    // These methods defer setting uniform to the next time Use() method is called.
     // Do not use when setting samplers.
     member this.DeferredSetUniform(name : string, value : int) =
         let loc = this.GetUniformLocation(name)
