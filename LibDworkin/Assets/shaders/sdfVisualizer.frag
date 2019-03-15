@@ -30,7 +30,7 @@ void main() {
    // This might be viable optimization technique.
    // On first frame (or when background/foreground/shader changed), draw everything; then only update affected areas.
    // Saves about 25% time.
-   //if(rawPixel.b == 0.0) discard;
+   //if(rawPixel.b > 0.0) discard;
 
    float d = rawPixel.r > 0.0 ? rawPixel.r : -rawPixel.g;
 
