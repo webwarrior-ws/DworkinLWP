@@ -15,7 +15,7 @@ float len(float x, float y) {
 void main() {
 	vec4 rawPixel = texture2D(sdf, texCoords);
 	
-	if(rawPixel.b == 0.0) discard;
+	if(rawPixel.b > 0.0) discard;
 
 	if(rawPixel.r > 0.0) {
 		gl_FragColor = rawPixel;

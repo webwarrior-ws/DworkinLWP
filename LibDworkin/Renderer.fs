@@ -319,7 +319,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member private this.ClearBlueChannel() =
         GL.ColorMask(false, false, true, false)
-        GL.ClearColor(0.0f, 0.0f, 0.0f, 0.0f)
+        GL.ClearColor(0.0f, 0.0f, 1.0f, 0.0f)
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.ColorMask(true, true, true, true)
 
@@ -328,7 +328,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Distances >= 0 are stored in R channel; [absolute values of] distances < 0 are stored in B channel.
         // Distances are in range [-maxDistance; maxDistance]. 
         // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
-        // B channel acts as a stencil buffer for negative distances calculation (pixels with B=0 are skipped)
+        // B channel acts as a stencil buffer for negative distances calculation (pixels with B>0 are skipped)
         if not (Array.isEmpty shapes) then
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
             this.ClearBlueChannel()
@@ -410,16 +410,6 @@ type BaseRenderer(platform : AbstractPlatform) =
 
             GL.BlendEquation(BlendEquationMode.FuncAdd)
             GL.Disable(EnableCap.Blend)
-
-            // Mark AOI (set B channel to 1.0) for next step
-            GL.ColorMask(false, false, true, false)
-            polygonDrawingShader.Value.Use()
-            GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
-            let aPos = polygonDrawingShader.Value.GetAttributeLocation("pos")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-            this.PerformDrawElements(aoiVertexIndices)
-            GL.ColorMask(true, true, true, true)
             
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
             // Since one cannot read from and write to the same texture, 
