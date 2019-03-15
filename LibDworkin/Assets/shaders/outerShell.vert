@@ -6,8 +6,13 @@ attribute vec4 inSegment;
 uniform vec2 screenDimensions;
 uniform vec2 scale;
 
-varying vec4 segment;
+varying vec2 closestPoint;
 varying vec2 p;
+
+float suqaredDistance(vec2 a, vec2 b) {
+	vec2 diff = a - b;
+	return dot(diff, diff);
+}
 
 void main() {
 	// map coordinates to [(-1, -1); (1, 1)] screen space
@@ -15,6 +20,11 @@ void main() {
 	// invert y axis
 	newPos.y = -newPos.y;
 	gl_Position = vec4(newPos, 0.0, 1.0);
-	segment = inSegment;
 	p = pos;
+	if(inSegment.xy == inSegment.zw || suqaredDistance(pos, inSegment.xy) < suqaredDistance(pos, inSegment.zw)) {
+		closestPoint = inSegment.xy;
+	}
+	else {
+		closestPoint = inSegment.zw;
+	}
 }
