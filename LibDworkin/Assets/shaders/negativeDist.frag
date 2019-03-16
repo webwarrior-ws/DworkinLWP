@@ -24,13 +24,13 @@ void main() {
 	
 	float d = h;
 	if(horizontal) {
+		float xScale = 1.0/screenDimensions.x;
 		for(float x=1.0; x<h; x+=1.0) {
-			vec2 leftPos = texCoords + vec2(-x/screenDimensions.x, 0.0);
-			vec2 rightPos = texCoords + vec2(x/screenDimensions.x, 0.0);
+			vec2 shift = vec2(x*xScale, 0.0);
 			float neighbourLeft = 0.0;
 			float neighbourRight = 0.0;
-			if((neighbourLeft = texture2D(sdf, leftPos).r) > 0.0 || 
-			   (neighbourRight = texture2D(sdf, rightPos).r) > 0.0) {
+			if((neighbourLeft = texture2D(sdf, texCoords - shift).r) > 0.0 || 
+			   (neighbourRight = texture2D(sdf, texCoords + shift).r) > 0.0) {
 				d = x - max(neighbourLeft, neighbourRight)*h;
 				break;
 			};
@@ -38,8 +38,9 @@ void main() {
 	}
 	else {
 		d = rawPixel.g*h;
+		float yScale = 1.0/screenDimensions.y;
 		for(float y=1.0; y<h; y+=1.0) {
-			vec2 shift = vec2(0.0, y/screenDimensions.y);
+			vec2 shift = vec2(0.0, y*yScale);
 			vec4 neighbourUp = texture2D(sdf, texCoords - shift);
 			vec4 neighbourDown = texture2D(sdf, texCoords + shift);
 			if(neighbourUp.r == 0.0) {
