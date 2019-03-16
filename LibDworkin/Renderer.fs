@@ -497,10 +497,11 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
     
     member this.ResetEnvironment(dimensions : Point) =
         this.ClearSDF()
-        let startTime = System.DateTime.Now
+        let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let env = environmentConfig.GetEnvironment(dimensions)
         environment <- Some(env)
-        let dt = System.DateTime.Now - startTime
+        stopWatch.Stop()
+        let dt = stopWatch.Elapsed
 #if __ANDROID__
         Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
         this.StatsPrinted <- false
