@@ -484,6 +484,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
 
     let mutable environmentConfig = environmentConfig
     let mutable environment : Agents.DworkinEnvironment option = None
+    let mutable framesAfterStop = 0
 #if __ANDROID__    
     member val StatsPrinted = false with get, set
 #endif
@@ -496,6 +497,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
     member this.ResetEnvironment(dimensions : Point) =
+        framesAfterStop <- 0
         this.ClearSDF()
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let env = environmentConfig.GetEnvironment(dimensions)
@@ -535,6 +537,9 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         if agentsCount > 0 then
             for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
             for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
+        elif framesAfterStop < 3 then // avoid flicker from triple buffering
+            this.DrawImage()
+            framesAfterStop <- framesAfterStop + 1
 
         let dt = TimeSamplers.Environment.LastTime + TimeSamplers.Shapes.LastTime + TimeSamplers.Image.LastTime
         if dt < delay then
