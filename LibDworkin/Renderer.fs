@@ -299,20 +299,6 @@ type BaseRenderer(platform : AbstractPlatform) =
             aoiVertexIndices.Add(baseIndex + 1)
             aoiVertexIndices.Add(currIndex + 1)
             aoiVertexIndices.Add(currIndex + 2) )
-    
-    member this.BuildAOIForCircle(center : Point, radius : float32) =
-        let radius' = (radius + this.MaxDistance)
-        let numSteps = this.GetNumCircleSegments(radius') / 8 |> max 4
-        let firstIndex = shapeVertices.Size
-        shapeVertices.Add center
-        let angleStep = Single.TwoPi / (float32 numSteps)
-        let r = radius' / cos(angleStep * 0.5f)
-        for i=1 to numSteps do
-            let angle = angleStep * (float32 i)
-            shapeVertices.Add(center + Point(r * cos angle, r * sin angle))
-            aoiVertexIndices.Add firstIndex
-            aoiVertexIndices.Add (firstIndex + i)
-            aoiVertexIndices.Add (firstIndex + (i % numSteps) + 1)
 
     member private this.ClearBlueChannel() =
         GL.ColorMask(false, false, true, false)
@@ -365,9 +351,6 @@ type BaseRenderer(platform : AbstractPlatform) =
                     let contourSegmentQuads = this.GetQuadsForPolygonContour(points, paint.StrokeWidth)
                     for quadPoints in contourSegmentQuads do
                         this.BuildOuterShellAndAOIForPolygon(quadPoints)
-            
-            for struct (Circle(center, radius), paint) in circles do
-                this.BuildAOIForCircle(center, radius + (max 0.0f paint.StrokeWidth) * 0.5f)
             
             this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
 
