@@ -22,7 +22,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 #endif
     // fields
     let mutable shapeVertices = Buffer<Vector2>(128)
-    let mutable polygonSegmentsVertices = Buffer<Vector2>(256)
+    let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
     let mutable polygonVertexIndices = Buffer<int>(128)
     let mutable aoiVertexIndices = Buffer<int>(128)
 
@@ -281,12 +281,8 @@ type BaseRenderer(platform : AbstractPlatform) =
             let vertices = [| O; O + OA; O + OD; O + OE; O + OB |]
             let currIndex = shapeVertices.Size
             this.BuildPolygon(vertices)
-            for _j=1 to 3 do
+            for _j=1 to 5 do
                 polygonSegmentsVertices.Add O
-                polygonSegmentsVertices.Add Oprev
-            for _j=1 to 2 do
-                polygonSegmentsVertices.Add O
-                polygonSegmentsVertices.Add O2
             
             for j=1 to vertices.Length do
                 aoiVertexIndices.Add(baseIndex + 1)
@@ -295,8 +291,9 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             let currIndex = shapeVertices.Size // not a duplicate definition, more like update
             this.BuildPolygon([| O; O + OB; O2 + OB; O2 |])
-            for _j=1 to 4 do
+            for _j=1 to 2 do
                 polygonSegmentsVertices.Add O
+            for _j=1 to 2 do
                 polygonSegmentsVertices.Add O2
 
             aoiVertexIndices.Add(baseIndex + 1)
@@ -382,9 +379,9 @@ type BaseRenderer(platform : AbstractPlatform) =
             if polygonVertexIndices.Size > 0 then
                 this.TransferBufferData(polygonSegmentsVertices, polygonSegmentsVBO, BufferTarget.ArrayBuffer)
                 this.CalcPositiveDistShader.Use()
-                let aSegment = this.CalcPositiveDistShader.GetAttributeLocation("inSegment")
+                let aSegment = this.CalcPositiveDistShader.GetAttributeLocation("pointOnSegment")
                 GL.EnableVertexAttribArray(aSegment)
-                GL.VertexAttribPointer(aSegment, 4, VertexAttribPointerType.Float, false, 0, 0)
+                GL.VertexAttribPointer(aSegment, 2, VertexAttribPointerType.Float, false, 0, 0)
                 
                 GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
                 let aPos = this.CalcPositiveDistShader.GetAttributeLocation("pos")
