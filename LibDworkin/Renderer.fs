@@ -500,6 +500,10 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             this.ResetEnvironment(dimensions)
         
             this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
+        elif framesAfterStop > 0 then
+            // Fixes issue of black screen after pause (e.g. waking after sleep). 
+            // Value of -1 was determined experimentally
+            framesAfterStop <- -1
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)
