@@ -45,6 +45,30 @@ type DotNETPlatform() =
         System.IO.File.ReadAllText(@"D:\Projects\DworkinLWP\LibDworkin\Assets\" + filename)
 #endif
 
+/// Like Lazy<'T>, but with ability to "forget" computed value.
+/// This class tracks its instances and can reset them all.
+type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
+    static let allInstances = ResizeArray<System.WeakReference<ResettableLazy<'T>>>()
+
+    let mutable lazyContainer = Lazy(valueFactory)
+    do
+        allInstances.Add(System.WeakReference<ResettableLazy<'T>>(this))
+
+    member this.Value = lazyContainer.Value
+    member this.IsValueCreated = lazyContainer.IsValueCreated
+
+    member this.Reset() =
+        lazyContainer <- Lazy(valueFactory)
+    
+    static member ResetAll() : unit =
+        allInstances.RemoveAll(fun each -> 
+            match each.TryGetTarget() with
+            | true, inst -> 
+                inst.Reset() 
+                false
+            | false, _ -> true )
+        |> ignore
+
 
 type Shader(vertexShader : string, fragmentShader : string) =
     // adapted code from OpenTK examples

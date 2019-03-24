@@ -21,6 +21,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     inherit Java.Lang.Object()
 #endif
     // fields
+    let mutable onSurfaceCreatedCalled = false
+
     let mutable shapeVertices = Buffer<Vector2>(128)
     let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
     let mutable polygonVertexIndices = Buffer<int>(128)
@@ -39,11 +41,11 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable circlesVBO = 0
     let mutable circleDataVBO = 0
 
-    let sdfVisualizerShader = lazy(new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
-    let polygonDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/drawPolygons.vert", platform.TextFromAsset "shaders/drawPolygons.frag"))
-    let circleDrawingShader = lazy(new Shader(platform.TextFromAsset "shaders/drawCircles.vert", platform.TextFromAsset "shaders/drawCircles.frag"))
-    let calcPositiveDistShader = lazy(new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/positiveDist.frag"))
-    let calcNegativeDistShader = lazy(new Shader(platform.TextFromAsset "shaders/negativeDist.vert", platform.TextFromAsset "shaders/negativeDist.frag"))
+    let sdfVisualizerShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
+    let polygonDrawingShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/drawPolygons.vert", platform.TextFromAsset "shaders/drawPolygons.frag"))
+    let circleDrawingShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/drawCircles.vert", platform.TextFromAsset "shaders/drawCircles.frag"))
+    let calcPositiveDistShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/positiveDist.frag"))
+    let calcNegativeDistShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/negativeDist.vert", platform.TextFromAsset "shaders/negativeDist.frag"))
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
@@ -69,7 +71,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.DeleteTextures(sdfTextures.Length, sdfTextures)
             GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
             GL.DeleteBuffers(5, [| quadVBO; shapesVBO; polygonSegmentsVBO; circlesVBO; circleDataVBO |])
-            let disposeShader (shader : Lazy<Shader>) =
+            let disposeShader (shader : ResettableLazy<Shader>) =
                 if shader.IsValueCreated then
                     (shader.Value :> System.IDisposable).Dispose()
             [| sdfVisualizerShader; polygonDrawingShader; circleDrawingShader; calcPositiveDistShader; calcNegativeDistShader |]
@@ -207,9 +209,12 @@ type BaseRenderer(platform : AbstractPlatform) =
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+
+        if onSurfaceCreatedCalled then
+            ResettableLazy<Shader>.ResetAll()
         
-        sdfVisualizerShader.Force() |> ignore
-        polygonDrawingShader.Force() |> ignore
+        sdfVisualizerShader.Value |> ignore
+        polygonDrawingShader.Value |> ignore
         
         this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
@@ -228,6 +233,13 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
+
+        if onSurfaceCreatedCalled then // OpenGL Context was lost, restart
+            let dims = wallpaperWidth, wallpaperHeight
+            wallpaperWidth <- 0
+            wallpaperHeight <- 0
+            this.OnSurfaceChanged(dims)
+        onSurfaceCreatedCalled <- true
 
     
     abstract member OnDrawFrame : unit -> unit
