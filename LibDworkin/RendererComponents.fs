@@ -1,4 +1,4 @@
-﻿module LibDworkin.RendererComponents
+﻿module rec LibDworkin.RendererComponents
 
 open PharoCompatibility
 
@@ -31,6 +31,10 @@ module Helpers =
 [<AbstractClass>]
 type AbstractPlatform() =
     abstract member TextFromAsset : string -> string
+
+    member internal this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
+        let readSource fname = this.TextFromAsset(System.IO.Path.Combine("shaders", fname))
+        ResettableLazy(fun () -> new Shader(readSource vertexShaderName, readSource fragmentShaderName))
 
 #if __ANDROID__
  type AndroidPlatform(context : Android.Content.Context) =

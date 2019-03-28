@@ -41,11 +41,11 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable circlesVBO = 0
     let mutable circleDataVBO = 0
 
-    let sdfVisualizerShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/sdfVisualizer.vert", platform.TextFromAsset "shaders/sdfVisualizer.frag"))
-    let polygonDrawingShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/drawPolygons.vert", platform.TextFromAsset "shaders/drawPolygons.frag"))
-    let circleDrawingShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/drawCircles.vert", platform.TextFromAsset "shaders/drawCircles.frag"))
-    let calcPositiveDistShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/outerShell.vert", platform.TextFromAsset "shaders/positiveDist.frag"))
-    let calcNegativeDistShader = ResettableLazy(fun () -> new Shader(platform.TextFromAsset "shaders/negativeDist.vert", platform.TextFromAsset "shaders/negativeDist.frag"))
+    let sdfVisualizerShader = platform.GetShader("sdfVisualizer.vert", "sdfVisualizer.frag")
+    let polygonDrawingShader = platform.GetShader("drawPolygons.vert", "drawPolygons.frag")
+    let circleDrawingShader = platform.GetShader("drawCircles.vert", "drawCircles.frag")
+    let calcPositiveDistShader = platform.GetShader("outerShell.vert", "positiveDist.frag")
+    let calcNegativeDistShader = platform.GetShader("negativeDist.vert", "negativeDist.frag")
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
