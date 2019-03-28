@@ -1,5 +1,7 @@
 ﻿module rec LibDworkin.RendererComponents
 
+open System
+
 open PharoCompatibility
 
 open OpenTK.Graphics.ES20
@@ -33,30 +35,30 @@ type AbstractPlatform() =
     abstract member TextFromAsset : string -> string
 
     member internal this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
-        let readSource fname = this.TextFromAsset(System.IO.Path.Combine("shaders", fname))
+        let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
         ResettableLazy(fun () -> new Shader(readSource vertexShaderName, readSource fragmentShaderName))
 
 #if __ANDROID__
  type AndroidPlatform(context : Android.Content.Context) =
     inherit AbstractPlatform()
     override this.TextFromAsset(filename : string) =
-        use reader = new System.IO.StreamReader(context.Assets.Open(filename))
+        use reader = new IO.StreamReader(context.Assets.Open(filename))
         reader.ReadToEnd()
 #else
 type DotNETPlatform() =
     inherit AbstractPlatform()
     override this.TextFromAsset(filename : string) =
-        System.IO.File.ReadAllText(@"D:\Projects\DworkinLWP\LibDworkin\Assets\" + filename)
+        IO.File.ReadAllText(IO.Path.Combine(@"D:\Projects\DworkinLWP\LibDworkin\Assets\", filename))
 #endif
 
 /// Like Lazy<'T>, but with ability to "forget" computed value.
 /// This class tracks its instances and can reset them all.
 type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
-    static let allInstances = ResizeArray<System.WeakReference<ResettableLazy<'T>>>()
+    static let allInstances = ResizeArray<WeakReference<ResettableLazy<'T>>>()
 
     let mutable lazyContainer = Lazy(valueFactory)
     do
-        allInstances.Add(System.WeakReference<ResettableLazy<'T>>(this))
+        allInstances.Add(WeakReference<ResettableLazy<'T>>(this))
 
     member this.Value = lazyContainer.Value
     member this.IsValueCreated = lazyContainer.IsValueCreated
@@ -102,10 +104,10 @@ type Shader(vertexShader : string, fragmentShader : string) =
 
         if !status_code <> 1 then failwith !info
     
-    let uniformLocations = System.Collections.Generic.Dictionary<string, int>()
-    let attributeLocations = System.Collections.Generic.Dictionary<string, int>()
+    let uniformLocations = Collections.Generic.Dictionary<string, int>()
+    let attributeLocations = Collections.Generic.Dictionary<string, int>()
 
-    let deferredActions = System.Collections.Concurrent.ConcurrentDictionary<int, unit -> unit>()
+    let deferredActions = Collections.Concurrent.ConcurrentDictionary<int, unit -> unit>()
     
     member this.Program = program
 
@@ -136,7 +138,7 @@ type Shader(vertexShader : string, fragmentShader : string) =
         let loc = this.GetUniformLocation(name)
         deferredActions.[loc] <- (fun () -> GL.Uniform2(loc, value1, value2))
     
-    interface System.IDisposable with
+    interface IDisposable with
         member this.Dispose() = 
             GL.DeleteProgram(program)
 
@@ -144,7 +146,7 @@ type Shader(vertexShader : string, fragmentShader : string) =
 /// Use Measure() method in for loops to take measurement.
 /// E.g.  for _ in sampler.Measure(0) do doSmth()
 type TimeSampler(name : string) =
-    let stopwatch = System.Diagnostics.Stopwatch()
+    let stopwatch = Diagnostics.Stopwatch()
     let samples = ResizeArray<int * float>() // (agents count, time in ms)
         
     let mutable currAgents = 0
@@ -169,13 +171,13 @@ type TimeSampler(name : string) =
         let top = sorted.[0..int(ceil(float samples.Count * fraction))]
         top |> Array.average
         
-    interface System.Collections.Generic.IEnumerable<TimeSampler> with
-        member this.GetEnumerator() : System.Collections.Generic.IEnumerator<TimeSampler> = this :> System.Collections.Generic.IEnumerator<TimeSampler>
-        member this.GetEnumerator() : System.Collections.IEnumerator = this :> System.Collections.IEnumerator
+    interface Collections.Generic.IEnumerable<TimeSampler> with
+        member this.GetEnumerator() : Collections.Generic.IEnumerator<TimeSampler> = this :> Collections.Generic.IEnumerator<TimeSampler>
+        member this.GetEnumerator() : Collections.IEnumerator = this :> Collections.IEnumerator
         
-    interface System.Collections.Generic.IEnumerator<TimeSampler> with
+    interface Collections.Generic.IEnumerator<TimeSampler> with
         member this.Current : TimeSampler = this
-        member this.Current: obj = (this :> System.Collections.Generic.IEnumerator<TimeSampler>).Current :> obj
+        member this.Current: obj = (this :> Collections.Generic.IEnumerator<TimeSampler>).Current :> obj
         member this.Dispose(): unit = ()
 
         member this.MoveNext(): bool = 
