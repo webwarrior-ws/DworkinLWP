@@ -50,16 +50,16 @@
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
   <ItemGroup>
-    <AndroidAsset Include="Assets\shaders\sdfVisualizer.vert" />
+    <AndroidAsset Include="Assets\shaders\fullScreenQuad.vert" />
     <AndroidAsset Include="Assets\shaders\sdfVisualizer.frag" />
     <AndroidAsset Include="Assets\shaders\drawPolygons.frag" />
     <AndroidAsset Include="Assets\shaders\drawPolygons.vert" />
-    <AndroidAsset Include="Assets\shaders\negativeDist.frag" />
     <AndroidAsset Include="Assets\shaders\outerShell.vert" />
     <AndroidAsset Include="Assets\shaders\positiveDist.frag" />
     <AndroidAsset Include="Assets\shaders\drawCircles.frag" />
     <AndroidAsset Include="Assets\shaders\drawCircles.vert" />
-    <AndroidAsset Include="Assets\shaders\negativeDist.vert" />
+    <AndroidAsset Include="Assets\shaders\negativeDist.frag" />
+    <AndroidAsset Include="Assets\shaders\materials\solidColor.frag" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
