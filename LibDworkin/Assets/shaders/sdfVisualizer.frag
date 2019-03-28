@@ -1,6 +1,6 @@
 precision mediump float;
 
-varying vec2 p;
+varying vec2 pos;
 
 uniform sampler2D sdf;
 
@@ -25,7 +25,7 @@ float outline(vec2 rawPixel, float width) {
 }
 
 void main() {
-   vec3 rawPixel = texture2D(sdf, p).rgb;
+   vec3 rawPixel = texture2D(sdf, pos).rgb;
 
    // This might be viable optimization technique.
    // On first frame (or when background/foreground/shader changed), draw everything; then only update affected areas.

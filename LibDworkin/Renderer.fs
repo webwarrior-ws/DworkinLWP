@@ -41,11 +41,11 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable circlesVBO = 0
     let mutable circleDataVBO = 0
 
-    let sdfVisualizerShader = platform.GetShader("sdfVisualizer.vert", "sdfVisualizer.frag")
+    let sdfVisualizerShader = platform.GetShader("fullScreenQuad.vert", "sdfVisualizer.frag")
     let polygonDrawingShader = platform.GetShader("drawPolygons.vert", "drawPolygons.frag")
     let circleDrawingShader = platform.GetShader("drawCircles.vert", "drawCircles.frag")
     let calcPositiveDistShader = platform.GetShader("outerShell.vert", "positiveDist.frag")
-    let calcNegativeDistShader = platform.GetShader("negativeDist.vert", "negativeDist.frag")
+    let calcNegativeDistShader = platform.GetShader("fullScreenQuad.vert", "negativeDist.frag")
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
@@ -412,7 +412,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
             this.CalcNegativeDistShader.Use()
             GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("sdf"), 0)
-            let aPos = this.CalcNegativeDistShader.GetAttributeLocation("pos")
+            let aPos = this.CalcNegativeDistShader.GetAttributeLocation("texCoords")
             GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
             GL.EnableVertexAttribArray(aPos)
             GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
