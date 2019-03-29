@@ -789,7 +789,7 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         this.AddAgent(FixedDelayAgent(numSteps, Action=action))
     
     override this.HasActiveAgents =
-        this.AgentsCount - numDelayAgents > 0
+        this.ActiveAgentsCount > 0
     
     override this.Paint = OpenTK.Graphics.Color4.White // ?? is it needed?
 
@@ -811,6 +811,9 @@ type DworkinEnvironment(bounds, randomSeed : int) =
             numDelayAgents <- numDelayAgents - (oldCount - this.AgentsCount)
         result
     
+    member this.ActiveAgentsCount =
+        this.AgentsCount - numDelayAgents
+
     member this.AddCollider(aCollider) =
         this.AddColliderToLayer(aCollider, CollisionLayer.Default)
 

@@ -219,7 +219,7 @@ type BenchmarkRenderer(context, environmentConfig : LibDworkin.Agents.IDworkinEn
         match this.Environment with
         | Some(env) -> 
             while env.HasAgents do
-                let agentsCount = env.AgentsCount
+                let agentsCount = env.ActiveAgentsCount
                 for _ in TimeSamplers.Environment.Measure(agentsCount) do
                     shapesQueue.Enqueue(agentsCount, env.Step())
         | None -> ()
