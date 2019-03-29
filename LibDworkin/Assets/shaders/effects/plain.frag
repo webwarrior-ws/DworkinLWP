@@ -16,6 +16,7 @@ float mask(vec2 rawPixel) {
 
 void main() {
    vec3 rawPixel = texture2D(sdf, pos).rgb;
+
    float m = mask(rawPixel.rg);
    vec3 col = mix(texture2D(foreground, pos).rgb, texture2D(background, pos).rgb, m);
    

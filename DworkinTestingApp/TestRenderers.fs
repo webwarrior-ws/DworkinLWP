@@ -233,17 +233,18 @@ type BenchmarkRenderer(context, environmentConfig : LibDworkin.Agents.IDworkinEn
                 for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
                 t <- t + TimeSamplers.Shapes.LastTime + TimeSamplers.Image.LastTime
         elif not this.StatsPrinted then
-            let printStats (sampler : TimeSampler) =
+            let printStats (samples : TimeMeasurementSample[]) (name : string) =
                 Android.Util.Log.Debug("avgTimes", 
                     sprintf "(%-6s) avg: %6.2f max: %6.2f top1%%: %6.2f stdev: %6.2f"
-                        sampler.Name
-                        sampler.Average 
-                        sampler.Max
-                        (sampler.Top 0.01)
-                        sampler.Stdev) |> ignore
+                        name
+                        (TimeStats.average samples)
+                        (TimeStats.max samples)
+                        (TimeStats.top 0.01 samples)
+                        (TimeStats.stdev samples) ) |> ignore
             
-            printStats TimeSamplers.Environment
-            printStats TimeSamplers.Shapes
-            printStats TimeSamplers.Image
+            printStats TimeSamplers.Environment.Samples TimeSamplers.Environment.Name
+            printStats TimeSamplers.Shapes.Samples TimeSamplers.Shapes.Name
+            printStats TimeSamplers.Image.Samples TimeSamplers.Image.Name
+            printStats (TimeStats.add TimeSamplers.Shapes.Samples TimeSamplers.Image.Samples) "GPU"
 
             this.StatsPrinted <- true
