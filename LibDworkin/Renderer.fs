@@ -35,13 +35,19 @@ type BaseRenderer(platform : AbstractPlatform) =
     let sdfTextures = [| 0; 0 |]
     let mutable sdfFrameBuffer = 0
 
+    let materialTextures = [| 0; 0 |]
+    let mutable materialFrameBuffer = 0
+
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
     let mutable polygonSegmentsVBO = 0
     let mutable circlesVBO = 0
     let mutable circleDataVBO = 0
 
-    let sdfVisualizerShader = platform.GetShader("fullScreenQuad.vert", "sdfVisualizer.frag")
+    let mutable foregroundMaterial : Material = SolidColorMaterial(platform, Color=Graphics.Color4.Black) :> Material
+    let mutable backgroundMaterial : Material = SolidColorMaterial(platform, Color=Graphics.Color4.White) :> Material
+    let mutable effect : Effect = SDFVisualizerEffect(platform) :> Effect
+
     let polygonDrawingShader = platform.GetShader("drawPolygons.vert", "drawPolygons.frag")
     let circleDrawingShader = platform.GetShader("drawCircles.vert", "drawCircles.frag")
     let calcPositiveDistShader = platform.GetShader("outerShell.vert", "positiveDist.frag")
@@ -58,6 +64,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
+
+    member this.BackgroundTexture = materialTextures.[0]
+    member this.ForegroundTexture = materialTextures.[1]
     /// Use this to draw to sdf
     member internal this.SDFFrameBuffer = sdfFrameBuffer
     member internal this.SDFTexture = sdfTextures.[0]
@@ -65,6 +74,28 @@ type BaseRenderer(platform : AbstractPlatform) =
     member internal this.QuadVBO = quadVBO
     member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
     member internal this.CalcNegativeDistShader = calcNegativeDistShader.Value
+
+    member this.Foreground
+        with get() : Material = foregroundMaterial
+        and set(material : Material) =
+            material.Scale <- scale
+            foregroundMaterial <- material
+            if this.ForegroundTexture <> 0 then
+                this.DrawMaterial(foregroundMaterial, this.ForegroundTexture)
+    
+    member this.Background
+        with get() : Material = backgroundMaterial
+        and set(material : Material) =
+            material.Scale <- scale
+            backgroundMaterial <- material
+            if this.BackgroundTexture <> 0 then
+                this.DrawMaterial(backgroundMaterial, this.BackgroundTexture)
+    
+    member this.Effect
+        with get() : Effect = effect
+        and set(e : Effect) =
+            effect <- e
+
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
@@ -74,7 +105,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             let disposeShader (shader : ResettableLazy<Shader>) =
                 if shader.IsValueCreated then
                     (shader.Value :> System.IDisposable).Dispose()
-            [| sdfVisualizerShader; polygonDrawingShader; circleDrawingShader; calcPositiveDistShader; calcNegativeDistShader |]
+            [| polygonDrawingShader; circleDrawingShader; calcPositiveDistShader; calcNegativeDistShader |]
                 |> Array.iter disposeShader
             base.Dispose()
 
@@ -165,6 +196,12 @@ type BaseRenderer(platform : AbstractPlatform) =
         // account for DPI?
         max 6 ( min (int (size * 4.0f)) 120)
     
+    member private this.SetCommonTextureParameters(wrapMode : TextureWrapMode) =
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int wrapMode)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int wrapMode)
+
     /// initialize sdf texture and framebuffer
     member private this.InitializeSDF() =
         if sdfTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(sdfTextures.Length, sdfTextures) 
@@ -178,10 +215,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             // NOTE: UnsignedShort565 may be the only supported pixel type
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
                             PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+            this.SetCommonTextureParameters(TextureWrapMode.ClampToEdge)
 
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, texture, 0)      
@@ -190,6 +224,35 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                 TextureTarget.Texture2D, this.SDFTexture, 0)
+    
+    member private this.InitializeMaterialTextures() =
+        if materialTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(materialTextures.Length, materialTextures) 
+        GL.GenTextures(materialTextures.Length, materialTextures)
+        if materialFrameBuffer = 0 then 
+            materialFrameBuffer <- gen1 GL.GenFramebuffers
+        
+        Array.iter2 
+            (fun (texture : int) (material : Material) ->
+                GL.BindTexture(TextureTarget.Texture2D, texture)
+                // NOTE: UnsignedShort565 may be the only supported pixel type
+                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
+                                PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
+                this.SetCommonTextureParameters(TextureWrapMode.ClampToEdge)
+                this.DrawMaterial(material, texture))
+            [| this.ForegroundTexture; this.BackgroundTexture |] 
+            [| this.Foreground; this.Background |]
+    
+    member this.DrawMaterial(material : Material, texture : int) =
+        GL.BindTexture(TextureTarget.Texture2D, texture)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, materialFrameBuffer)
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                TextureTarget.Texture2D, texture, 0)
+        material.Use()
+        let aTexCoords = material.Shader.GetAttributeLocation("texCoords")
+        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
+        GL.EnableVertexAttribArray(aTexCoords)
+        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6)
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
@@ -199,6 +262,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         wallpaperHeight <- height
 
         this.InitializeSDF()
+        this.InitializeMaterialTextures()
         
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
@@ -212,9 +276,6 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         if onSurfaceCreatedCalled then
             ResettableLazy<Shader>.ResetAll()
-        
-        sdfVisualizerShader.Value |> ignore
-        polygonDrawingShader.Value |> ignore
         
         this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
@@ -258,11 +319,20 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member this.DrawImage() =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
-        sdfVisualizerShader.Value.Use()
+
+        this.Effect.Use()
+
         GL.ActiveTexture(TextureUnit.Texture0)
         GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
-        GL.Uniform1(sdfVisualizerShader.Value.GetUniformLocation("sdf"), 0)
-        let aTexCoords = sdfVisualizerShader.Value.GetAttributeLocation("texCoords")
+        GL.Uniform1(this.Effect.Shader.GetUniformLocation("sdf"), 0)
+        GL.ActiveTexture(TextureUnit.Texture1)
+        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture)
+        GL.Uniform1(this.Effect.Shader.GetUniformLocation("background"), 1)
+        GL.ActiveTexture(TextureUnit.Texture2)
+        GL.BindTexture(TextureTarget.Texture2D, this.ForegroundTexture)
+        GL.Uniform1(this.Effect.Shader.GetUniformLocation("foreground"), 2)
+
+        let aTexCoords = this.Effect.Shader.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
         GL.EnableVertexAttribArray(aTexCoords)
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
@@ -270,7 +340,6 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.DrawArrays(BeginMode.Triangles, 0, 6)
         
         GL.DisableVertexAttribArray(aTexCoords)
-        GL.BindTexture(TextureTarget.Texture2D, 0)
     
     member this.BuildOuterShellAndAOIForPolygon(points : Point[]) =
         let n = points.Length
@@ -451,6 +520,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.CalcNegativeDistShader.DeferredSetUniform("scale", xs, ys)
         this.CalcNegativeDistShader.DeferredSetUniform("h", this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
         circleDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
+        this.Foreground.Scale <- scale
+        this.Background.Scale <- scale
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:

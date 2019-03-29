@@ -32,11 +32,17 @@ module Helpers =
 /// Platform-independent facade used by renderers to load shaders and other stuff
 [<AbstractClass>]
 type AbstractPlatform() =
+    let shaders = Collections.Generic.Dictionary<string * string, ResettableLazy<Shader>>()
+
     abstract member TextFromAsset : string -> string
 
     member internal this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
-        let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
-        ResettableLazy(fun () -> new Shader(readSource vertexShaderName, readSource fragmentShaderName))
+        getOrSetIfAbsent 
+            shaders
+            (vertexShaderName, fragmentShaderName)
+            (fun () -> 
+                let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
+                ResettableLazy(fun () -> new Shader(readSource vertexShaderName, readSource fragmentShaderName)))        
 
 #if __ANDROID__
  type AndroidPlatform(context : Android.Content.Context) =
@@ -141,6 +147,44 @@ type Shader(vertexShader : string, fragmentShader : string) =
     interface IDisposable with
         member this.Dispose() = 
             GL.DeleteProgram(program)
+
+
+/// Component that is responsible for rendering background/foreground textures
+[<AbstractClass>]
+type Material(shader : ResettableLazy<Shader>) = 
+    member internal this.Shader = shader.Value
+    /// Scale as used in Renderer
+    member val internal Scale = Geometry.Point(1.0f) with get, set
+
+    abstract Use: unit -> unit
+    default this.Use() =
+        this.Shader.Use()
+    
+type SolidColorMaterial(platform : AbstractPlatform) =
+    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/solidColor.frag"))
+    
+    member val Color = Graphics.Color4.Magenta with get, set
+
+    override this.Use() =
+        base.Use()
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), this.Color)
+
+
+/// Component that is responsible for drawing image using SDF, background, and foreground textures
+[<AbstractClass>]
+type Effect(shader : ResettableLazy<Shader>) =
+    member internal this.Shader = shader.Value
+    
+    abstract Use: unit -> unit
+    default this.Use() =
+        this.Shader.Use()
+
+/// Effect used for debugging. Doesn't use background or foreground
+type SDFVisualizerEffect(platform : AbstractPlatform) =
+    inherit Effect(platform.GetShader("fullScreenQuad.vert", "sdfVisualizer.frag"))
+
+type PlainEffect(platform : AbstractPlatform) =
+    inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/plain.frag"))
 
     
 /// Use Measure() method in for loops to take measurement.
