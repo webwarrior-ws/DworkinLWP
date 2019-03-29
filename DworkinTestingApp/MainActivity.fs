@@ -33,10 +33,11 @@ type MainActivity () =
             || Build.Model.Contains("Android SDK built for x86")))
         
         let platform = LibDworkin.RendererComponents.AndroidPlatform(this)
-        let renderer = new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
+        let renderer = //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
             //new TestRenderers.BenchmarkRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
+            //new TestRenderers.BenchmarkRenderer(platform, GeneratedConfigs.PCB_RandomPosChips())
             //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.SpiralsProbesBranching1())
-            //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.PCB_RandomPosChips())
+            new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.PCB_RandomPosChips())
             //new TestRenderers.CollidersTestRenderer(platform, TestConfigs.circleAdvancedTest)
             //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.circleAdvancedTest)
             //new TestRenderers.AdvancedShapesTestRenderer(platform)
@@ -45,6 +46,7 @@ type MainActivity () =
             //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.brushesAndSpeedsTest) 
             //new TestRenderers.ShapesTestRenderer(platform) 
             //new TestRenderers.CollidingAgentsTestRenderer(platform)
+        //renderer.Effect <- LibDworkin.RendererComponents.PlainEffect(platform)
         if supportsEs2 then
             view.SetEGLContextClientVersion(2)
             view.PreserveEGLContextOnPause <- true

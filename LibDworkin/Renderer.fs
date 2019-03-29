@@ -592,18 +592,20 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         let delay = 1000.0 / float(this.FPS)
 
         let mutable agentsCount = 0
+        let mutable activeAgentsCount = 0
         let mutable shapes = [||]
 
         match environment with
         | Some(env) -> 
             agentsCount <- env.AgentsCount
+            activeAgentsCount <- env.ActiveAgentsCount
             if agentsCount > 0 then
-                for _ in TimeSamplers.Environment.Measure(agentsCount) do
+                for _ in TimeSamplers.Environment.Measure(activeAgentsCount) do
                     shapes <- env.Step()
         | None -> ()
         if agentsCount > 0 then
-            for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
-            for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
+            for _ in TimeSamplers.Shapes.Measure(activeAgentsCount) do this.RenderShapes(shapes)
+            for _ in TimeSamplers.Image.Measure(activeAgentsCount) do this.DrawImage()
         elif framesAfterStop < 3 then // avoid flicker from triple buffering
             this.DrawImage()
             framesAfterStop <- framesAfterStop + 1
