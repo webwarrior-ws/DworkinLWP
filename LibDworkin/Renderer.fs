@@ -622,13 +622,13 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
         elif not this.StatsPrinted then
             Android.Util.Log.Debug("avgTimes", 
                 sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
-                    TimeSamplers.Environment.Average 
-                    TimeSamplers.Shapes.Average
-                    TimeSamplers.Image.Average ) |> ignore
+                    (TimeStats.average TimeSamplers.Environment.Samples)
+                    (TimeStats.average TimeSamplers.Shapes.Samples)
+                    (TimeStats.average TimeSamplers.Image.Samples) ) |> ignore
             Android.Util.Log.Debug("avgTimes", 
                 sprintf "(stdev) env.: %7.6g; shapes: %7.6g; img: %7.6g"
-                    TimeSamplers.Environment.Stdev 
-                    TimeSamplers.Shapes.Stdev
-                    TimeSamplers.Image.Stdev ) |> ignore
+                    (TimeStats.stdev TimeSamplers.Environment.Samples)
+                    (TimeStats.stdev TimeSamplers.Shapes.Samples)
+                    (TimeStats.stdev TimeSamplers.Image.Samples) ) |> ignore
             this.StatsPrinted <- true
 #endif

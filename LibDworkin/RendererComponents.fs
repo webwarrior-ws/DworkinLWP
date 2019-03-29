@@ -186,12 +186,15 @@ type SDFVisualizerEffect(platform : AbstractPlatform) =
 type PlainEffect(platform : AbstractPlatform) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/plain.frag"))
 
+
+
+type TimeMeasurementSample = int * float
     
 /// Use Measure() method in for loops to take measurement.
 /// E.g.  for _ in sampler.Measure(0) do doSmth()
 type TimeSampler(name : string) =
     let stopwatch = Diagnostics.Stopwatch()
-    let samples = ResizeArray<int * float>() // (agents count, time in ms)
+    let samples = ResizeArray<TimeMeasurementSample>() // (agents count, time in ms)
         
     let mutable currAgents = 0
 
@@ -203,24 +206,13 @@ type TimeSampler(name : string) =
     member this.Samples = samples.ToArray()
     member this.Last = samples.Last
     member this.LastTime = snd samples.Last
-
-    member this.Average = samples |> Seq.averageBy snd
-    member this.Max = samples |> Seq.map snd |> Seq.max
-    member this.Stdev =
-        let avg = this.Average
-        let squares = [ for (_, x) in samples -> (x - avg) * (x - avg) ]
-        sqrt ((Seq.sum squares) / (float samples.Count))
-    member this.Top(fraction : float) =
-        let sorted = samples |> Seq.map snd |> Seq.sortDescending |> Seq.toArray
-        let top = sorted.[0..int(ceil(float samples.Count * fraction))]
-        top |> Array.average
         
     interface Collections.Generic.IEnumerable<TimeSampler> with
         member this.GetEnumerator() : Collections.Generic.IEnumerator<TimeSampler> = this :> Collections.Generic.IEnumerator<TimeSampler>
         member this.GetEnumerator() : Collections.IEnumerator = this :> Collections.IEnumerator
         
     interface Collections.Generic.IEnumerator<TimeSampler> with
-        member this.Current : TimeSampler = this
+        member this.Current: TimeSampler = this
         member this.Current: obj = (this :> Collections.Generic.IEnumerator<TimeSampler>).Current :> obj
         member this.Dispose(): unit = ()
 
@@ -235,6 +227,27 @@ type TimeSampler(name : string) =
                 true
             
         member this.Reset(): unit = ()
+
+
+module TimeStats =
+    let average (samples : TimeMeasurementSample[]) = 
+        samples |> Seq.averageBy snd
+
+    let max (samples : TimeMeasurementSample[]) = 
+        samples |> Seq.map snd |> Seq.max
+
+    let stdev (samples : TimeMeasurementSample[]) = 
+        let avg = average samples
+        let squares = [ for (_, x) in samples -> (x - avg) * (x - avg) ]
+        sqrt ((Seq.sum squares) / (float samples.Length))
+
+    let top (fraction : float) (samples : TimeMeasurementSample[]) =
+        let sorted = samples |> Seq.map snd |> Seq.sortDescending |> Seq.toArray
+        let top = sorted.[0..int(ceil(float samples.Length * fraction))]
+        top |> Array.average
+    
+    let add (a : TimeMeasurementSample[]) (b : TimeMeasurementSample[]) =
+        Array.map2 (fun (count, t1) (_, t2) -> (count, t1+t2)) a b
     
 module TimeSamplers =
     let Environment = new TimeSampler("env")
