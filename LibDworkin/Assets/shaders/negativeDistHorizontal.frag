@@ -20,8 +20,10 @@ void main() {
 		vec2 shift = vec2(x*xScale, 0.0);
 		float neighbourLeft = texture2D(sdf, pos - shift).r;
 		float neighbourRight = texture2D(sdf, pos + shift).r;
-		d = x - max(neighbourLeft, neighbourRight)*h;
-		if(d < h) break;
+        if(neighbourLeft > 0.0 || neighbourRight > 0.0) {
+            d = x - max(neighbourLeft, neighbourRight)*h;
+            break;
+        }
 	}
 
 	gl_FragColor.g = d/h;
