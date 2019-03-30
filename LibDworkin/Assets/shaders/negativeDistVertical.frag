@@ -16,22 +16,19 @@ void main() {
 	
 	if(rawPixel.b > 0.0) discard;
 
-	if(rawPixel.r > 0.0) {
-		gl_FragColor = rawPixel;
-		return;
-	}
+	gl_FragColor = rawPixel;
+	if(rawPixel.r > 0.0) return;
 	
 	float d = rawPixel.g*h;
-	for(float y=1.0; y<h; y+=1.0) {
+	for(float y=1.0; y<=h; y+=1.0) {
+		if(d <= y) break;
 		vec2 shift = vec2(0.0, y*yScale);
 		vec2 neighbourUp = texture2D(sdf, pos - shift).rg * h;
 		d = min(d, neighbourUp.r == 0.0 ? len(neighbourUp.g, y) : y-neighbourUp.r);
-		if(d <= y) break;
 		vec2 neighbourDown = texture2D(sdf, pos + shift).rg * h;
 		d = min(d, neighbourDown.r == 0.0 ? len(neighbourDown.g, y) : y-neighbourDown.r);
-		if(d <= y) break;
 	}
 
-	gl_FragColor = vec4(rawPixel.r, d/h, rawPixel.b, 1.0);
+	gl_FragColor.g = d/h;
 }
 
