@@ -9,10 +9,6 @@ uniform vec2 scale;
 varying vec2 closestPoint;
 varying vec2 p;
 
-float suqaredDistance(vec2 a, vec2 b) {
-	vec2 diff = a - b;
-	return dot(diff, diff);
-}
 
 void main() {
 	// map coordinates to [(-1, -1); (1, 1)] screen space
