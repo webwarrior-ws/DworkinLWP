@@ -16,13 +16,13 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
         match args.Key with
         | Input.Key.S ->
             for each in this.Guis do each.ToggleVisibility()
-        | Input.Key.R -> // reload all shaders and textures
+        | Input.Key.R -> // reload all shaders and textures in currently used effects and materials
             renderer.Effect.ResetShader()
             renderer.Effect <- renderer.Effect
             renderer.Background.ResetShader()
             renderer.Background <- renderer.Background
             renderer.Foreground.ResetShader()
-            renderer.Foreground <- renderer.Background
+            renderer.Foreground <- renderer.Foreground
         | _ -> ()
 
     override this.OnLoad(e) = 
