@@ -12,11 +12,22 @@ open GUI
 type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRenderer, ?guis : GUI.Widgets.AbstractGui list) =
     inherit GUI.Window(1280, 720, defaultArg guis [])
 
+    member this.HandleKeyUp(args : Input.KeyboardKeyEventArgs) =
+        match args.Key with
+        | Input.Key.S ->
+            for each in this.Guis do each.ToggleVisibility()
+        | Input.Key.R -> // reload all shaders and textures
+            renderer.Effect.ResetShader()
+            renderer.Effect <- renderer.Effect
+            renderer.Background.ResetShader()
+            renderer.Background <- renderer.Background
+            renderer.Foreground.ResetShader()
+            renderer.Foreground <- renderer.Background
+        | _ -> ()
+
     override this.OnLoad(e) = 
         base.OnLoad(e)
-        this.Keyboard.KeyUp.Add(fun args -> 
-            if args.Key = Input.Key.S then 
-                for each in this.Guis do each.ToggleVisibility())
+        this.Keyboard.KeyUp.Add(this.HandleKeyUp)
         GL.ClearColor(0.0f, 0.0f, 0.0f, 0.0f)
         renderer.OnSurfaceCreated()
     

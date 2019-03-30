@@ -149,16 +149,21 @@ type Shader(vertexShader : string, fragmentShader : string) =
             GL.DeleteProgram(program)
 
 
-/// Component that is responsible for rendering background/foreground textures
 [<AbstractClass>]
-type Material(shader : ResettableLazy<Shader>) = 
+type ShaderBasedComponent(shader : ResettableLazy<Shader>) = 
     member internal this.Shader = shader.Value
-    /// Scale as used in Renderer
-    member val internal Scale = Geometry.Point(1.0f) with get, set
+    member this.ResetShader() = shader.Reset()
 
     abstract Use: unit -> unit
     default this.Use() =
         this.Shader.Use()
+
+/// Component that is responsible for rendering background/foreground textures
+[<AbstractClass>]
+type Material(shader : ResettableLazy<Shader>) = 
+    inherit ShaderBasedComponent(shader)
+    /// Scale as used in Renderer
+    member val internal Scale = Geometry.Point(1.0f) with get, set
     
 type SolidColorMaterial(platform : AbstractPlatform) =
     inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/solidColor.frag"))
@@ -173,11 +178,7 @@ type SolidColorMaterial(platform : AbstractPlatform) =
 /// Component that is responsible for drawing image using SDF, background, and foreground textures
 [<AbstractClass>]
 type Effect(shader : ResettableLazy<Shader>) =
-    member internal this.Shader = shader.Value
-    
-    abstract Use: unit -> unit
-    default this.Use() =
-        this.Shader.Use()
+    inherit ShaderBasedComponent(shader)
 
 /// Effect used for debugging. Doesn't use background or foreground
 type SDFVisualizerEffect(platform : AbstractPlatform) =
