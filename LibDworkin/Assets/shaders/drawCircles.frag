@@ -13,5 +13,5 @@ void main() {
 		d = abs(d) - (radius - innerRadius);
 	};
 	float t = d/h;
-	gl_FragColor = vec4(clamp(t, 0.0, 1.0), 1.0, max(0.0, t-1.0), 1.0);
+	gl_FragColor = vec4(t, 1.0, t-1.0, 1.0);
 }

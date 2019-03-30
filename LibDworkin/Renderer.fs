@@ -51,7 +51,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     let polygonDrawingShader = platform.GetShader("drawPolygons.vert", "drawPolygons.frag")
     let circleDrawingShader = platform.GetShader("drawCircles.vert", "drawCircles.frag")
     let calcPositiveDistShader = platform.GetShader("outerShell.vert", "positiveDist.frag")
-    let calcNegativeDistShader = platform.GetShader("fullScreenQuad.vert", "negativeDist.frag")
+    let calcNegativeDistShaderHorizontal = platform.GetShader("fullScreenQuad.vert", "negativeDistHorizontal.frag")
+    let calcNegativeDistShaderVertical = platform.GetShader("fullScreenQuad.vert", "negativeDistVertical.frag")
 
     let mutable wallpaperWidth = 0
     let mutable wallpaperHeight = 0
@@ -73,7 +74,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     member internal this.SDFTexture2 = sdfTextures.[1]
     member internal this.QuadVBO = quadVBO
     member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
-    member internal this.CalcNegativeDistShader = calcNegativeDistShader.Value
+    member internal this.CalcNegativeDistShaderHorizontal = calcNegativeDistShaderHorizontal.Value
+    member internal this.CalcNegativeDistShaderVertical = calcNegativeDistShaderVertical.Value
 
     member this.Foreground
         with get() : Material = foregroundMaterial
@@ -105,7 +107,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             let disposeShader (shader : ResettableLazy<Shader>) =
                 if shader.IsValueCreated then
                     (shader.Value :> System.IDisposable).Dispose()
-            [| polygonDrawingShader; circleDrawingShader; calcPositiveDistShader; calcNegativeDistShader |]
+            [| polygonDrawingShader; circleDrawingShader; calcPositiveDistShader; calcNegativeDistShaderHorizontal; calcNegativeDistShaderVertical |]
                 |> Array.iter disposeShader
             base.Dispose()
 
@@ -268,7 +270,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
         
         this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
-        this.CalcNegativeDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
+        this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / (float32 width))
+        this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / (float32 height))
     
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
@@ -479,25 +482,27 @@ type BaseRenderer(platform : AbstractPlatform) =
                                     TextureTarget.Texture2D, this.SDFTexture2, 0)
             GL.ActiveTexture(TextureUnit.Texture0)
             GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
-            this.CalcNegativeDistShader.Use()
-            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("sdf"), 0)
-            let aPos = this.CalcNegativeDistShader.GetAttributeLocation("texCoords")
             GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
             this.ClearBlueChannel()
 
-            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("horizontal"), 1) // horizontal=true
+            // horizontal pass
+            this.CalcNegativeDistShaderHorizontal.Use()
+            GL.Uniform1(this.CalcNegativeDistShaderHorizontal.GetUniformLocation("sdf"), 0)
+            let aPos = this.CalcNegativeDistShaderHorizontal.GetAttributeLocation("texCoords")
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
             GL.DrawArrays(BeginMode.Triangles, 0, 6)
 
-            // swap textures
+            // swap textures; vertical pass
             GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2)
-            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("sdf"), 0)
+            this.CalcNegativeDistShaderVertical.Use()
+            GL.Uniform1(this.CalcNegativeDistShaderVertical.GetUniformLocation("sdf"), 0)
+            let aPos = this.CalcNegativeDistShaderVertical.GetAttributeLocation("texCoords")
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, this.SDFTexture, 0)
-            
-            GL.Uniform1(this.CalcNegativeDistShader.GetUniformLocation("horizontal"), 0) // horizontal=false
             GL.DrawArrays(BeginMode.Triangles, 0, 6)
             
             // cleanup
@@ -517,8 +522,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         scale <- Point(xs, ys)
         polygonDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
         calcPositiveDistShader.Value.DeferredSetUniform("scale", xs, ys)
-        this.CalcNegativeDistShader.DeferredSetUniform("scale", xs, ys)
-        this.CalcNegativeDistShader.DeferredSetUniform("h", this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
+        this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("h", this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
+        this.CalcNegativeDistShaderVertical.DeferredSetUniform("h", this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
         circleDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
         this.Foreground.Scale <- scale
         this.Background.Scale <- scale
