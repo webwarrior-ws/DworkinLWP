@@ -12,22 +12,18 @@ void main() {
 	
 	if(rawPixel.b > 0.0) discard;
 
-	if(rawPixel.r > 0.0) {
-		gl_FragColor = rawPixel;
-		return;
-	}
+	gl_FragColor = rawPixel;
+	if(rawPixel.r > 0.0) return;
 	
 	float d = h;
-	for(float x=1.0; x<h; x+=1.0) {
+	for(float x=1.0; x<=h; x+=1.0) {
 		vec2 shift = vec2(x*xScale, 0.0);
 		float neighbourLeft = texture2D(sdf, pos - shift).r;
 		float neighbourRight = texture2D(sdf, pos + shift).r;
-		if(neighbourLeft > 0.0 || neighbourRight > 0.0) {
-			d = x - max(neighbourLeft, neighbourRight)*h;
-			break;
-		}
+		d = x - max(neighbourLeft, neighbourRight)*h;
+		if(d < h) break;
 	}
 
-	gl_FragColor = vec4(rawPixel.r, d/h, rawPixel.b, 1.0);
+	gl_FragColor.g = d/h;
 }
 
