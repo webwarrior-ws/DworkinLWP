@@ -65,7 +65,7 @@ module Widgets =
             slider.add_ValueChanged(fun _base _args -> numField.Value <- slider.Value)
     
         override this.Update() =
-            if slider <> null && slider.Value <> this.GetValue() then
+            if slider |> isNull |> not && slider.Value <> this.GetValue() then
                 this.ConfigRef := Optic.set lens (this.FromFloat slider.Value) (!this.ConfigRef)
     
 
@@ -93,7 +93,7 @@ module Widgets =
             numberbox <- new NumericUpDown(panel, Value=float32(Optic.get lens (!this.ConfigRef)), Height=lineHeight, Width=lineHeight*3, Dock=Gwen.Pos.Right)
     
         override this.Update() =
-            if numberbox <> null && (int numberbox.Value) <> Optic.get lens (!this.ConfigRef) then
+            if numberbox |> isNull |> not && (int numberbox.Value) <> Optic.get lens (!this.ConfigRef) then
                 this.ConfigRef := Optic.set lens (int numberbox.Value) (!this.ConfigRef)
 
 
@@ -107,7 +107,7 @@ module Widgets =
                 checkbox.Children.[0].Width <- checkbox.GetChildrenSize().Y
     
         override this.Update() =
-            if checkbox <> null && checkbox.IsChecked <> Optic.get lens (!this.ConfigRef) then
+            if checkbox |> isNull |> not && checkbox.IsChecked <> Optic.get lens (!this.ConfigRef) then
                 this.ConfigRef := Optic.set lens checkbox.IsChecked (!this.ConfigRef)
      
     type RadioButtonPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
@@ -126,7 +126,7 @@ module Widgets =
             radioGroup.SetSelection(List.findIndex (fun each -> each = currValue) options)
         
         override this.Update() =
-            if radioGroup <> null then
+            if radioGroup |> isNull |> not then
                 let currIndex = radioGroup.SelectedIndex
                 let currValue = Optic.get lens (!this.ConfigRef)
                 if currValue <> options.[currIndex] then
@@ -135,17 +135,16 @@ module Widgets =
     type DropdownListPropertyEditor<'TConfig, 'TValue when 'TValue: equality>(name : string, lens : Lens<'TConfig, 'TValue>, options: 'TValue list) =
         inherit ConfigPropertyEditor<'TConfig>()
         let mutable dropdownList : ComboBox = null
-        let items = ResizeArray<MenuItem>()
+        let mutable items : MenuItem[] = [||]
 
         override this.Initialize(parent) =
             let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
             dropdownList <- new ComboBox(panel, Height=lineHeight, Dock=Gwen.Pos.Top)
-            for opt in options do
-                dropdownList.AddItem(sprintf "%A" opt) |> items.Add
+            items <- [| for opt in options -> dropdownList.AddItem(sprintf "%A" opt) |]
 
         override this.Update() = 
-            if dropdownList <> null then
-                let currIndex = items.IndexOf(dropdownList.SelectedItem)
+            if dropdownList |> isNull |> not then
+                let currIndex = items |> Array.findIndex (fun x -> x = dropdownList.SelectedItem)
                 let currValue = Optic.get lens (!this.ConfigRef)
                 if currIndex >= 0 && currValue <> options.[currIndex] then
                     this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
@@ -194,43 +193,48 @@ module Widgets =
         inherit AbstractGui()
 
         let mutable canvas : Base = null 
-        let mutable lastTabName = ""
-        let mutable tabPanel : TabControl = null
+        let mutable lastConfigName = ""
+        let mutable window : WindowControl = null
+        let mutable currentPanel : GroupBox = null
+        let mutable combobox : ComboBox = null
+
+        member private this.SetPanelForItem(item : MenuItem) =
+            window.RemoveChild(currentPanel, false)
+            currentPanel <- new GroupBox(window, Dock=Gwen.Pos.Top)
+            currentPanel.AutoSizeToContents <- true
+            currentPanel.ShouldDrawBackground <- true
+            (item.UserData :?> AbstractGui).Initialize(currentPanel)
+            currentPanel.SizeToChildren() |> ignore
+            lastConfigName <- combobox.SelectedItem.Name
 
         override this.Initialize(parent : Base) =
             canvas <- parent
-
-            tabPanel <- new TabControl(canvas)
-            tabPanel.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, guiPadding, guiPadding)
-            tabPanel.SetSize(guiWidth, canvas.Height * 2 / 3) |> ignore
+            window <- new WindowControl(canvas, "Environment config")
+            window.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, guiPadding, guiPadding)
+            window.SetSize(guiWidth, canvas.Height * 2 / 3) |> ignore
+            window.ShouldDrawBackground <- true
+            
+            combobox <- new ComboBox(window, Height=lineHeight, Dock=Gwen.Pos.Top)
 
             for each in configGuis do
-                let panel = new GroupBox(tabPanel)
-                let tabButton = tabPanel.AddPage(each.Name, panel)
-                tabButton.Name <- each.Name
-                tabButton.UserData <- each
-                panel.AutoSizeToContents <- true
-                panel.ShouldDrawBackground <- true
-
+                let item = combobox.AddItem(each.Name, each.Name)
+                item.UserData <- each
                 each.Renderer <- Some(renderer)
-                each.Initialize(panel)
-
-                panel.SizeToChildren() |> ignore
         
-            lastTabName <- tabPanel.CurrentButton.Name
+            this.SetPanelForItem(combobox.SelectedItem)
     
         override this.Update() = 
-            if tabPanel <> null then
-                let currConfigGui = tabPanel.CurrentButton.UserData :?> IEnvironmentConfigEditor
-                if lastTabName <> tabPanel.CurrentButton.Name then
+            if combobox |> isNull |> not then
+                let currConfigGui = combobox.SelectedItem.UserData :?> IEnvironmentConfigEditor
+                if lastConfigName <> combobox.SelectedItem.Name then
+                    this.SetPanelForItem(combobox.SelectedItem)
                     currConfigGui.SetConfig()
-                    lastTabName <- tabPanel.CurrentButton.Name
                 else
                     currConfigGui.Update()
     
         override this.ToggleVisibility() =
-            if tabPanel <> null then
-                if tabPanel.IsVisible then tabPanel.Hide() else tabPanel.Show()
+            if window |> isNull |> not then
+                if window.IsVisible then window.Hide() else window.Show()
 
 
 
