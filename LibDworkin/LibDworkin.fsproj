@@ -58,7 +58,8 @@
     <AndroidAsset Include="Assets\shaders\positiveDist.frag" />
     <AndroidAsset Include="Assets\shaders\drawCircles.frag" />
     <AndroidAsset Include="Assets\shaders\drawCircles.vert" />
-    <AndroidAsset Include="Assets\shaders\negativeDist.frag" />
+    <AndroidAsset Include="Assets\shaders\negativeDistHorizontal.frag" />
+    <AndroidAsset Include="Assets\shaders\negativeDistVertical.frag" />
     <AndroidAsset Include="Assets\shaders\materials\solidColor.frag" />
     <AndroidAsset Include="Assets\shaders\effects\plain.frag" />
     <None Include="Resources\AboutResources.txt" />
