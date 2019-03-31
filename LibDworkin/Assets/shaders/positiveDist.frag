@@ -1,12 +1,8 @@
 precision mediump float;
 
-varying vec2 closestPoint;
-varying vec2 p;
-
-uniform float h;
+varying vec2 toClosestPoint;
 
 void main() {
-	float d = distance(p, closestPoint);
-	float t = d/h;
-	gl_FragColor = vec4(t, 1.0, t-1.0, 1.0);
+	float d = length(toClosestPoint);
+	gl_FragColor = vec4(d, 1.0, d-1.0, 1.0);
 }

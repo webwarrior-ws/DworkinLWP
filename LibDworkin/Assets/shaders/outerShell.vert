@@ -5,9 +5,10 @@ attribute vec2 pointOnSegment;
 
 uniform vec2 screenDimensions;
 uniform vec2 scale;
+uniform float h;
 
-varying vec2 closestPoint;
-varying vec2 p;
+// vector to closest point on shape, divided by h
+varying vec2 toClosestPoint;
 
 
 void main() {
@@ -16,6 +17,5 @@ void main() {
 	// invert y axis
 	newPos.y = -newPos.y;
 	gl_Position = vec4(newPos, 0.0, 1.0);
-	p = pos;
-	closestPoint = pointOnSegment;
+	toClosestPoint = (pointOnSegment - pos) / h;
 }
