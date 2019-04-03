@@ -154,9 +154,12 @@ type ShaderBasedComponent(shader : ResettableLazy<Shader>) =
     member internal this.Shader = shader.Value
     member this.ResetShader() = shader.Reset()
 
+    abstract SetUniforms : unit -> unit
+    default this.SetUniforms() = ()
+
     abstract Use: unit -> unit
     default this.Use() =
-        this.Shader.Use()
+        this.Shader.Use()        
 
 /// Component that is responsible for rendering background/foreground textures
 [<AbstractClass>]
@@ -164,25 +167,38 @@ type Material(shader : ResettableLazy<Shader>) =
     inherit ShaderBasedComponent(shader)
     /// Scale as used in Renderer
     member val internal Scale = Geometry.Point(1.0f) with get, set
-    
-type SolidColorMaterial(platform : AbstractPlatform) =
-    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/solidColor.frag"))
-    
-    member val Color = Graphics.Color4.Magenta with get, set
 
     override this.Use() =
         base.Use()
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), this.Color)
+        this.SetUniforms()
+    
+type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
+    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/solidColor.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
 
 
-/// Component that is responsible for drawing image using SDF, background, and foreground textures
+/// Component that is responsible for drawing image using SDF, background, and foreground textures.
+/// No two Effect subclasses should share a shader.
 [<AbstractClass>]
 type Effect(shader : ResettableLazy<Shader>) =
     inherit ShaderBasedComponent(shader)
+    let mutable wasUsed = false
+    
+    override this.Use() =
+        let needsInit = not shader.IsValueCreated || not wasUsed
+        base.Use()
+        if needsInit then 
+            this.SetUniforms()
+        wasUsed <- true
 
 /// Effect used for debugging. Doesn't use background or foreground
-type SDFVisualizerEffect(platform : AbstractPlatform) =
+type SDFVisualizerEffect(platform : AbstractPlatform, frequency : float32) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "sdfVisualizer.frag"))
+    
+    override this.SetUniforms() =
+        GL.Uniform1(this.Shader.GetUniformLocation("frequency"), frequency)
 
 type PlainEffect(platform : AbstractPlatform) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/plain.frag"))

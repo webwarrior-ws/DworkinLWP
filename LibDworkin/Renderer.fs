@@ -44,9 +44,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable circlesVBO = 0
     let mutable circleDataVBO = 0
 
-    let mutable foregroundMaterial : Material = SolidColorMaterial(platform, Color=Graphics.Color4.Black) :> Material
-    let mutable backgroundMaterial : Material = SolidColorMaterial(platform, Color=Graphics.Color4.White) :> Material
-    let mutable effect : Effect = SDFVisualizerEffect(platform) :> Effect
+    let mutable foregroundMaterial : Material = SolidColorMaterial(platform, Graphics.Color4.Black) :> Material
+    let mutable backgroundMaterial : Material = SolidColorMaterial(platform, Graphics.Color4.White) :> Material
+    let mutable effect : Effect = SDFVisualizerEffect(platform, 32.0f) :> Effect
 
     let polygonDrawingShader = platform.GetShader("drawPolygons.vert", "drawPolygons.frag")
     let circleDrawingShader = platform.GetShader("drawCircles.vert", "drawCircles.frag")

@@ -4,12 +4,14 @@ varying vec2 pos;
 
 uniform sampler2D sdf;
 
+uniform float frequency;
+
 const float threshold = 0.05;
 
 vec3 vis(float d) {
 	vec3 col = vec3(1.0) - sign(d)*vec3(0.1,0.4,0.7);
 	col *= 1.0 - exp(-2.0*abs(d));
-	col *= 0.8 + 0.2*cos(32.0*d);
+	col *= 0.8 + 0.2*cos(frequency*d);
 	return mix( col, vec3(1.0), 1.0-smoothstep(0.0,0.02,abs(d)) );
 }
 
