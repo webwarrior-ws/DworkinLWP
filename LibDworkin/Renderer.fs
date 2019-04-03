@@ -638,4 +638,6 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
                     (TimeStats.stdev TimeSamplers.Shapes.Samples)
                     (TimeStats.stdev TimeSamplers.Image.Samples) ) |> ignore
             this.StatsPrinted <- true
+#else
+        framesAfterStop <- 0 // always do redraw on PC
 #endif
