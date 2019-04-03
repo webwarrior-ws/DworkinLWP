@@ -1,11 +1,46 @@
 module GUI
 
 open OpenTK
+
 open Gwen
 open Gwen.Control
+
 open LibDworkin.Renderer
 open LibDworkin.Configs
 open LibDworkin.Aether
+open LibDworkin.RendererComponents
+
+open System.Collections.Generic
+
+
+type RendererComponentFactory<'T when 'T :> ShaderBasedComponent>(platform : AbstractPlatform, initialParams : IDictionary<string, obj>) =
+    let properties = Dictionary<string, obj>()
+    do
+        for pair in initialParams do properties.[pair.Key] <- pair.Value
+        
+    let mutable changed = true
+    member this.Changed = changed
+
+    member this.Build() : 'T = 
+        changed <- false
+        let typ = typeof<'T>
+        let constructor = typ.GetConstructors().[0]
+        let parameters = constructor.GetParameters()
+        let parameterValues = Array.zeroCreate parameters.Length
+        parameterValues.[0] <- box platform
+        for i=1 to parameters.Length-1 do
+            parameterValues.[i] <- properties.[parameters.[i].Name]
+        constructor.Invoke(parameterValues) :?> 'T
+        
+    member this.Item
+        with get(name : string) =
+            properties.[name]
+        and set (name : string) (value : obj) =
+            changed <- true
+            properties.[name] <- value
+        
+    static member LensFor<'TValue>(name : string) : Lens<RendererComponentFactory<'T>, 'TValue> =
+        (fun factory -> unbox<'TValue> factory.[name]) , (fun v factory -> factory.[name] <- box v; factory)
 
 
 [<AutoOpen>]
@@ -22,7 +57,7 @@ module Widgets =
     let lineHeight = int(20.0 * scaleFactor)
     let sliderWidth = int(180.0 * scaleFactor)
     let guiWidth = int(220.0 * scaleFactor)
-    let guiPadding = int(20.0 * scaleFactor)
+    let guiPadding = int(10.0 * scaleFactor)
 
     [<AbstractClass>]
     type AbstractGui() =
@@ -150,19 +185,19 @@ module Widgets =
                     this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
 
 
-    /// Superclass of EnvironmentConfigEditor needed only because it's not parametrized by config type
+    /// GUI that sets or modifies some property of Renderer (environment config, effect, material, ...)
     [<AbstractClass>]
-    type IEnvironmentConfigEditor() =
+    type IRendererPropertyEditor() =
         inherit AbstractGui()
         abstract Renderer : DworkinRenderer option with get, set
         abstract Name : string with get
-        abstract SetConfig : unit -> unit
+        abstract SetProperty : unit -> unit
 
 
     type EnvironmentConfigEditor<'TConfig when 'TConfig :> DworkinEnvironmentConfig>(name : string, 
                                                                                      config : 'TConfig, 
                                                                                      propertyGuis : ConfigPropertyEditor<'TConfig> list) =
-        inherit IEnvironmentConfigEditor()
+        inherit IRendererPropertyEditor()
         let configRef = ref config
         let mutable lastConfig = config
 
@@ -176,7 +211,7 @@ module Widgets =
                 gui.ConfigRef <- configRef
                 gui.Initialize(panel)
     
-        override this.SetConfig() =
+        override this.SetProperty() =
             match this.Renderer with
             | Some(renderer) -> renderer.EnvironmentConfig <- !configRef
             | None -> ()
@@ -185,56 +220,113 @@ module Widgets =
             for gui in propertyGuis do 
                 gui.Update()
             if not(Unchecked.equals lastConfig !configRef) then
-                this.SetConfig()
+                this.SetProperty()
                 lastConfig <- !configRef
+    
 
+    type RendererComponentEditor<'T when 'T :> ShaderBasedComponent>(name : string, 
+                                                                     platform : AbstractPlatform, 
+                                                                     initialParams, 
+                                                                     propertyGuis : ConfigPropertyEditor<RendererComponentFactory<'T>> list, 
+                                                                     setter : DworkinRenderer -> 'T -> unit ) =
+        inherit IRendererPropertyEditor()
+        let factory = RendererComponentFactory<'T>(platform, initialParams)
 
-    type EnviromentConfigChooser(renderer : DworkinRenderer, configGuis : IEnvironmentConfigEditor list) = 
+        override val Renderer : DworkinRenderer option = None with get, set
+    
+        override this.Name = name
+
+        override this.Initialize(panel : Base) =
+            for gui in propertyGuis do 
+                gui.ConfigRef <- ref factory
+                gui.Initialize(panel)
+    
+        override this.SetProperty() =
+            match this.Renderer with
+            | Some(renderer) -> setter renderer (factory.Build())
+            | None -> ()
+
+        override this.Update() = 
+            for gui in propertyGuis do gui.Update()
+            if factory.Changed then
+                this.SetProperty()
+
+    
+    /// GUI that lets user choose and edit some config
+    type Chooser(renderer : DworkinRenderer, guis : IRendererPropertyEditor list) = 
         inherit AbstractGui()
 
-        let mutable canvas : Base = null 
         let mutable lastConfigName = ""
-        let mutable window : WindowControl = null
+        let mutable groupBox : GroupBox = null
         let mutable currentPanel : GroupBox = null
         let mutable combobox : ComboBox = null
 
+        member internal this.ComboBox = combobox
+
         member private this.SetPanelForItem(item : MenuItem) =
-            window.RemoveChild(currentPanel, false)
-            currentPanel <- new GroupBox(window, Dock=Gwen.Pos.Top)
+            groupBox.RemoveChild(currentPanel, false)
+            currentPanel <- new GroupBox(groupBox, Dock=Gwen.Pos.Top)
             currentPanel.AutoSizeToContents <- true
             currentPanel.ShouldDrawBackground <- true
             (item.UserData :?> AbstractGui).Initialize(currentPanel)
             currentPanel.SizeToChildren() |> ignore
             lastConfigName <- combobox.SelectedItem.Name
+            groupBox.SizeToChildren() |> ignore
+        
+        abstract UpdateValue : IRendererPropertyEditor * bool -> unit
+        default this.UpdateValue(gui, isNewValue) =
+            if isNewValue then gui.SetProperty()
+            else gui.Update()
 
-        override this.Initialize(parent : Base) =
-            canvas <- parent
-            window <- new WindowControl(canvas, "Environment config")
-            window.Position(Gwen.Pos.Top ||| Gwen.Pos.Left, guiPadding, guiPadding)
-            window.SetSize(guiWidth, canvas.Height * 2 / 3) |> ignore
-            window.ShouldDrawBackground <- true
-            
-            combobox <- new ComboBox(window, Height=lineHeight, Dock=Gwen.Pos.Top)
-
-            for each in configGuis do
-                let item = combobox.AddItem(each.Name, each.Name)
+        abstract InitializeGuis : unit -> unit
+        default this.InitializeGuis() =
+            for each in guis do
+                let item = this.ComboBox.AddItem(each.Name, each.Name)
                 item.UserData <- each
                 each.Renderer <- Some(renderer)
+
+        override this.Initialize(parent : Base) =
+            groupBox <- new GroupBox(parent, Dock=Gwen.Pos.Top)
+            groupBox.ShouldDrawBackground <- true
+            
+            combobox <- new ComboBox(groupBox, Height=lineHeight, Dock=Gwen.Pos.Top)
+
+            this.InitializeGuis()
         
             this.SetPanelForItem(combobox.SelectedItem)
+            groupBox.SetSize(parent.Width, parent.Height) |> ignore
     
         override this.Update() = 
             if combobox |> isNull |> not then
-                let currConfigGui = combobox.SelectedItem.UserData :?> IEnvironmentConfigEditor
+                let currConfigGui = combobox.SelectedItem.UserData :?> IRendererPropertyEditor
                 if lastConfigName <> combobox.SelectedItem.Name then
                     this.SetPanelForItem(combobox.SelectedItem)
-                    currConfigGui.SetConfig()
+                    this.UpdateValue(currConfigGui, true)
                 else
-                    currConfigGui.Update()
+                    this.UpdateValue(currConfigGui, false)
     
+
+    type ControlWindow(children : AbstractGui list, position : Pos, vSize : float) =
+        inherit AbstractGui()
+        let mutable window : WindowControl = null
+
+        override this.Initialize(parent : Base) =
+            let canvas = parent
+            window <- new WindowControl(canvas)
+            window.Position(position, guiPadding, guiPadding) 
+            window.SetSize(guiWidth, int(float canvas.Height * vSize)) |> ignore 
+            window.ShouldDrawBackground <- true
+
+            for child in children do
+                child.Initialize(window)
+        
         override this.ToggleVisibility() =
             if window |> isNull |> not then
                 if window.IsVisible then window.Hide() else window.Show()
+        
+        override this.Update() = 
+            for child in children do
+                child.Update()
 
 
 
@@ -284,8 +376,8 @@ type Window(width : int, height : int, guis : AbstractGui list) as this =
 
 /// Helper functions to make GUI Widgets
 module Builders =
-    let environmentChooser (renderer : DworkinRenderer) (configGuis : IEnvironmentConfigEditor list) =
-        EnviromentConfigChooser(renderer, configGuis)
+    let chooser (renderer : DworkinRenderer) (configGuis : IRendererPropertyEditor list) =
+        Chooser(renderer, configGuis)
     
     let environmentEditor (name : string) (config : 'TConfig) (propertyGuis : ConfigPropertyEditor<'TConfig> list) =
         EnvironmentConfigEditor(name, config, propertyGuis)
@@ -307,3 +399,24 @@ module Builders =
     
     let numberboxEditor (name : string) (lens : Lens<'TConfig, int>) =
         IntNumberboxPropertyEditor(name, lens)
+    
+    let getLens<'T, 'TValue when 'T :> ShaderBasedComponent> (name : string) =
+        RendererComponentFactory<'T>.LensFor<'TValue>(name)
+    
+    let shaderBasedComponentEditor<'T when 'T :> ShaderBasedComponent> 
+        (platform : AbstractPlatform) 
+        (setter : DworkinRenderer -> 'T -> unit) 
+        (name : string) 
+        (initialParams : IDictionary<string, obj>)
+        (propertyGuis : ConfigPropertyEditor<RendererComponentFactory<'T>> list) =
+        RendererComponentEditor<'T>(name, platform, initialParams, propertyGuis, setter) :> IRendererPropertyEditor
+    
+    let singleControlWindow (position : Pos) (vSize : float) (control : AbstractGui) =
+        ControlWindow([control], position, vSize)
+    
+    let window (position : Pos) (vSize : float) (children : AbstractGui list) =
+        ControlWindow(children, position, vSize)
+    
+    module ShaderComponents =
+        let floatSliderEditor (minValue : float32) (maxValue : float32) (step : float32) (name : string) =
+            (floatSliderEditor name (getLens<'TConfig, float32> name) minValue maxValue step) :> ConfigPropertyEditor<_>

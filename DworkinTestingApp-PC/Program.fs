@@ -5,6 +5,7 @@ open OpenTK.Graphics.ES20
 
 open LibDworkin.Aether.Operators
 open LibDworkin.Renderer
+open LibDworkin.RendererComponents
 open GUI
 
 
@@ -46,12 +47,28 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
 
  
 let pcbConfig = GeneratedConfigs.PCB_RandomPosChips()
-let platform = LibDworkin.RendererComponents.DotNETPlatform()
+let platform = DotNETPlatform()
 let renderer = DworkinRenderer(platform, pcbConfig)
+
+module Builders =
+    let private makeShaderBasedComponentEditor<'T when 'T :> ShaderBasedComponent> (setter : DworkinRenderer -> 'T -> unit) name (children : (string * obj * (string -> ConfigPropertyEditor<RendererComponentFactory<'T>>)) list) : IRendererPropertyEditor = 
+        let defaultValues = children |> List.map (fun (a, b, _) -> a, box b) |> dict
+        let guis = children |> List.map (fun (propName, _, builder) -> builder propName)
+        (Builders.shaderBasedComponentEditor platform setter name defaultValues guis)
+
+    let effectEditor<'T when 'T :> Effect> =
+        makeShaderBasedComponentEditor<'T> (fun renderer value -> renderer.Effect <- value) 
+    
+    let foregroundEditor<'T when 'T :> Material> = 
+        makeShaderBasedComponentEditor<'T> (fun renderer value -> renderer.Foreground <- value)
+    
+    let backgroundEditor<'T when 'T :> Material> =
+        makeShaderBasedComponentEditor<'T> (fun renderer value -> renderer.Background <- value)
+
 
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
-    Builders.environmentChooser
+    Builders.chooser
         renderer
         [
             Builders.environmentEditor
@@ -87,12 +104,24 @@ let configGui  =
                     Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.MagneticSpiralsBunchBranching2_3>;
                 ];
         ]
+    |> Builders.singleControlWindow (Gwen.Pos.Top ||| Gwen.Pos.Left) 0.65
+
+let effectGui = 
+    Builders.chooser
+        renderer
+        [
+            Builders.effectEditor<SDFVisualizerEffect> "sdfVisualizer"
+                [ 
+                    "frequency", box 32.0f, Builders.ShaderComponents.floatSliderEditor 8.0f 64.0f 4.0f;
+                ];
+            Builders.effectEditor<PlainEffect> "plain" [];
+        ]
+    |> Builders.singleControlWindow (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.45
 
 
 [<EntryPoint>]
 let main _argv =
-    //renderer.Effect <- LibDworkin.RendererComponents.PlainEffect(platform)
-    let window = new MainWindow<_>(renderer, [configGui])
+    let window = new MainWindow<_>(renderer, [configGui; effectGui])
     //let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.MagneticSpiralsBunchBranching2_3()))
     window.Run(30.0)
 
