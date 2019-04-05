@@ -51,7 +51,7 @@ let platform = DotNETPlatform()
 let renderer = DworkinRenderer(platform, pcbConfig)
 
 module Builders =
-    let private makeShaderBasedComponentEditor<'T when 'T :> ShaderBasedComponent> (setter : DworkinRenderer -> 'T -> unit) name (children : (string * obj * (string -> ConfigPropertyEditor<RendererComponentFactory<'T>>)) list) : IRendererPropertyEditor = 
+    let internal makeShaderBasedComponentEditor<'T when 'T :> ShaderBasedComponent> (setter : DworkinRenderer -> 'T -> unit) name (children : (string * obj * (string -> ConfigPropertyEditor<RendererComponentFactory<'T>>)) list) : IRendererPropertyEditor = 
         let defaultValues = children |> List.map (fun (a, b, _) -> a, box b) |> dict
         let guis = children |> List.map (fun (propName, _, builder) -> builder propName)
         (Builders.shaderBasedComponentEditor platform setter name defaultValues guis)
@@ -69,6 +69,7 @@ module Builders =
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
     Builders.chooser
+        "Environment"
         renderer
         [
             Builders.environmentEditor
@@ -104,10 +105,11 @@ let configGui  =
                     Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.MagneticSpiralsBunchBranching2_3>;
                 ];
         ]
-    |> Builders.singleControlWindow (Gwen.Pos.Top ||| Gwen.Pos.Left) 0.65
+    |> Builders.singleControlWindow (Gwen.Pos.Top ||| Gwen.Pos.Left) guiWidth 0.65
 
 let effectGui = 
     Builders.chooser
+        "Effect"
         renderer
         [
             Builders.effectEditor<SDFVisualizerEffect> "sdfVisualizer"
@@ -116,12 +118,27 @@ let effectGui =
                 ];
             Builders.effectEditor<PlainEffect> "plain" [];
         ]
-    |> Builders.singleControlWindow (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.45
+
+let makeMaterialGui (setter : DworkinRenderer -> 'T -> unit) (name : string) =
+    Builders.chooser
+        name
+        renderer
+        [
+            Builders.makeShaderBasedComponentEditor<SolidColorMaterial> setter "solidColor"
+                [ 
+                    "color", box (Graphics.Color4.Azure), Builders.ShaderComponents.colorEditor;
+                ];
+        ]
+
+let foregroundGui = makeMaterialGui (fun renderer value -> renderer.Foreground <- value) "Foreground"
+let backgroundGui = makeMaterialGui (fun renderer value -> renderer.Background <- value) "Background"
+
+let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWidth [ effectGui; foregroundGui; backgroundGui ]
 
 
 [<EntryPoint>]
 let main _argv =
-    let window = new MainWindow<_>(renderer, [configGui; effectGui])
+    let window = new MainWindow<_>(renderer, [configGui; appearanceGui])
     //let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.MagneticSpiralsBunchBranching2_3()))
     window.Run(30.0)
 
