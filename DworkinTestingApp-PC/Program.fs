@@ -119,19 +119,19 @@ let effectGui =
             Builders.effectEditor<PlainEffect> "plain" [];
         ]
 
-let makeMaterialGui (setter : DworkinRenderer -> 'T -> unit) (name : string) =
+let makeMaterialGui (setter : DworkinRenderer -> 'T -> unit) (name : string) (defaultColor : Graphics.Color4) =
     Builders.chooser
         name
         renderer
         [
             Builders.makeShaderBasedComponentEditor<SolidColorMaterial> setter "solidColor"
                 [ 
-                    "color", box (Graphics.Color4.Azure), Builders.ShaderComponents.colorEditor;
+                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
                 ];
         ]
 
-let foregroundGui = makeMaterialGui (fun renderer value -> renderer.Foreground <- value) "Foreground"
-let backgroundGui = makeMaterialGui (fun renderer value -> renderer.Background <- value) "Background"
+let foregroundGui = makeMaterialGui (fun renderer value -> renderer.Foreground <- value) "Foreground" Graphics.Color4.Black
+let backgroundGui = makeMaterialGui (fun renderer value -> renderer.Background <- value) "Background" Graphics.Color4.White
 
 let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWidth [ effectGui; foregroundGui; backgroundGui ]
 
