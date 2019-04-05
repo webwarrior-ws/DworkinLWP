@@ -183,6 +183,30 @@ module Widgets =
                 let currValue = Optic.get lens (!this.ConfigRef)
                 if currIndex >= 0 && currValue <> options.[currIndex] then
                     this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
+    
+    type ColorPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, OpenTK.Graphics.Color4>) =
+        inherit ConfigPropertyEditor<'TConfig>()
+        let mutable colorControl : HSVColorPicker = null
+
+        override this.Initialize(parent) =
+            let panel = new GroupBox(parent, Text=name, Dock=Gwen.Pos.Top, AutoSizeToContents=true)
+            let picker = new HSVColorPicker(panel, Dock=Gwen.Pos.Top)
+            // remove non-essential stuff
+            for i=1 to 8 do
+                picker.RemoveChild(picker.Children.[2], true)
+            picker.SizeToChildren(true, false) |> ignore
+            picker.add_ColorChanged(Base.GwenEventHandler(fun _ _ -> 
+                let c = picker.SelectedColor
+                let newValue = OpenTK.Graphics.Color4(c.R, c.G, c.B, c.A)
+                this.ConfigRef := Optic.set lens newValue (!this.ConfigRef)))
+            colorControl <- picker
+
+        override this.Update() = 
+            if colorControl |> isNull |> not then
+                let currValue = Optic.get lens (!this.ConfigRef)
+                let currColor = System.Drawing.Color.FromArgb(currValue.ToArgb())
+                if currColor <> colorControl.SelectedColor then
+                    colorControl.SetColor(currColor)
 
 
     /// GUI that sets or modifies some property of Renderer (environment config, effect, material, ...)
@@ -253,7 +277,7 @@ module Widgets =
 
     
     /// GUI that lets user choose and edit some config
-    type Chooser(renderer : DworkinRenderer, guis : IRendererPropertyEditor list) = 
+    type Chooser(renderer : DworkinRenderer, name : string, guis : IRendererPropertyEditor list) = 
         inherit AbstractGui()
 
         let mutable lastConfigName = ""
@@ -271,7 +295,6 @@ module Widgets =
             (item.UserData :?> AbstractGui).Initialize(currentPanel)
             currentPanel.SizeToChildren() |> ignore
             lastConfigName <- combobox.SelectedItem.Name
-            groupBox.SizeToChildren() |> ignore
         
         abstract UpdateValue : IRendererPropertyEditor * bool -> unit
         default this.UpdateValue(gui, isNewValue) =
@@ -286,15 +309,15 @@ module Widgets =
                 each.Renderer <- Some(renderer)
 
         override this.Initialize(parent : Base) =
-            groupBox <- new GroupBox(parent, Dock=Gwen.Pos.Top)
+            groupBox <- new GroupBox(parent, Dock=Gwen.Pos.Top, Text=name)
             groupBox.ShouldDrawBackground <- true
+            groupBox.AutoSizeToContents <- true
             
             combobox <- new ComboBox(groupBox, Height=lineHeight, Dock=Gwen.Pos.Top)
 
             this.InitializeGuis()
         
             this.SetPanelForItem(combobox.SelectedItem)
-            groupBox.SetSize(parent.Width, parent.Height) |> ignore
     
         override this.Update() = 
             if combobox |> isNull |> not then
@@ -306,7 +329,7 @@ module Widgets =
                     this.UpdateValue(currConfigGui, false)
     
 
-    type ControlWindow(children : AbstractGui list, position : Pos, vSize : float) =
+    type ControlWindow(children : AbstractGui list, position : Pos, hSize, vSize : float) =
         inherit AbstractGui()
         let mutable window : WindowControl = null
 
@@ -314,11 +337,12 @@ module Widgets =
             let canvas = parent
             window <- new WindowControl(canvas)
             window.Position(position, guiPadding, guiPadding) 
-            window.SetSize(guiWidth, int(float canvas.Height * vSize)) |> ignore 
+            window.SetSize(hSize, int(float canvas.Height * vSize)) |> ignore 
             window.ShouldDrawBackground <- true
 
             for child in children do
                 child.Initialize(window)
+            window.FitChildrenToSize()
         
         override this.ToggleVisibility() =
             if window |> isNull |> not then
@@ -376,8 +400,8 @@ type Window(width : int, height : int, guis : AbstractGui list) as this =
 
 /// Helper functions to make GUI Widgets
 module Builders =
-    let chooser (renderer : DworkinRenderer) (configGuis : IRendererPropertyEditor list) =
-        Chooser(renderer, configGuis)
+    let chooser (name : string) (renderer : DworkinRenderer) (configGuis : IRendererPropertyEditor list) =
+        Chooser(renderer, name, configGuis)
     
     let environmentEditor (name : string) (config : 'TConfig) (propertyGuis : ConfigPropertyEditor<'TConfig> list) =
         EnvironmentConfigEditor(name, config, propertyGuis)
@@ -411,12 +435,15 @@ module Builders =
         (propertyGuis : ConfigPropertyEditor<RendererComponentFactory<'T>> list) =
         RendererComponentEditor<'T>(name, platform, initialParams, propertyGuis, setter) :> IRendererPropertyEditor
     
-    let singleControlWindow (position : Pos) (vSize : float) (control : AbstractGui) =
-        ControlWindow([control], position, vSize)
+    let singleControlWindow (position : Pos) (hSize : int) (vSize : float) (control : AbstractGui) =
+        ControlWindow([control], position, hSize, vSize)
     
-    let window (position : Pos) (vSize : float) (children : AbstractGui list) =
-        ControlWindow(children, position, vSize)
+    let window (position : Pos) (vSize : float) (hSize : int) (children : AbstractGui list) =
+        ControlWindow(children, position, hSize, vSize)
     
     module ShaderComponents =
         let floatSliderEditor (minValue : float32) (maxValue : float32) (step : float32) (name : string) =
             (floatSliderEditor name (getLens<'TConfig, float32> name) minValue maxValue step) :> ConfigPropertyEditor<_>
+        
+        let colorEditor (name : string) =
+            ColorPropertyEditor(name, (getLens<_, _> name)) :> ConfigPropertyEditor<_>
