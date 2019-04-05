@@ -192,8 +192,10 @@ module Widgets =
             let panel = new GroupBox(parent, Text=name, Dock=Gwen.Pos.Top, AutoSizeToContents=true)
             let picker = new HSVColorPicker(panel, Dock=Gwen.Pos.Top)
             // remove non-essential stuff
-            for i=1 to 8 do
-                picker.RemoveChild(picker.Children.[2], true)
+            for i=3 to 9 do
+                picker.RemoveChild(picker.Children.[3], true)
+            picker.Children.[2].Width <- picker.Children.[1].Width
+            picker.Children.[2].Dock <- Gwen.Pos.Left
             picker.SizeToChildren(true, false) |> ignore
             picker.add_ColorChanged(Base.GwenEventHandler(fun _ _ -> 
                 let c = picker.SelectedColor
