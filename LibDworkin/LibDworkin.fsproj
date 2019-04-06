@@ -62,6 +62,7 @@
     <AndroidAsset Include="Assets\shaders\negativeDistVertical.frag" />
     <AndroidAsset Include="Assets\shaders\materials\solidColor.frag" />
     <AndroidAsset Include="Assets\shaders\effects\plain.frag" />
+    <AndroidAsset Include="Assets\shaders\effects\shadow.frag" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
