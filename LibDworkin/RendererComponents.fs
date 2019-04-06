@@ -185,11 +185,14 @@ type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
 type Effect(shader : ResettableLazy<Shader>) =
     inherit ShaderBasedComponent(shader)
     let mutable wasUsed = false
+
+    member val ScreenDimensions = Geometry.Point() with get, set
     
     override this.Use() =
         let needsInit = not shader.IsValueCreated || not wasUsed
         base.Use()
         if needsInit then 
+            this.Shader.DeferredSetUniform("screenDimensions", this.ScreenDimensions.X, this.ScreenDimensions.Y)        
             this.SetUniforms()
         wasUsed <- true
 
@@ -203,6 +206,22 @@ type SDFVisualizerEffect(platform : AbstractPlatform, frequency : float32) =
 type PlainEffect(platform : AbstractPlatform) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/plain.frag"))
 
+type ShadowEffect(platform : AbstractPlatform, 
+                  shadowDir : Vector2, 
+                  shadowOffset : float32, 
+                  shadowSize : float32, 
+                  shadowSoftness : float32, 
+                  shadowStrength : float32,
+                  inner : bool) =
+    inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/shadow.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform2(this.Shader.GetUniformLocation("shadowDir"), Vector2.Normalize(shadowDir))
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowOffset"), shadowOffset)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowSize"), shadowSize)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowSoftness"), shadowSoftness)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowStrength"), shadowStrength)
+        GL.Uniform1(this.Shader.GetUniformLocation("inner"), if inner then 1 else 0)
 
 
 type TimeMeasurementSample = int * float

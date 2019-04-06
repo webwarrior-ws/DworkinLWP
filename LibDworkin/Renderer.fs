@@ -97,6 +97,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         with get() : Effect = effect
         and set(e : Effect) =
             effect <- e
+            effect.ScreenDimensions <- Point(float32 wallpaperWidth, float32 wallpaperHeight)
 
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
@@ -270,6 +271,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
         
         this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
+        this.Effect.Shader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
         this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / (float32 width))
         this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / (float32 height))
     
