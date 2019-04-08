@@ -8,10 +8,7 @@ varying vec2 pos;
 
 
 float dx(vec2 neighbour) {
-	float d = neighbour.r * h;
-	float cosAlpha = (neighbour.g - 0.5) * 2.0;
-	float dx = cosAlpha < 0.001 ? sign(cosAlpha) : d / cosAlpha;
-	return d > 0.0 ? dx : 0.0;
+	return neighbour.r * h;
 }
 
 
@@ -21,10 +18,7 @@ void main() {
 	if(rawPixel.b > 0.0) discard;
 
 	gl_FragColor = rawPixel;
-	if(rawPixel.r > 0.0) {
-		gl_FragColor.g = 1.0;
-		return;
-	}
+	if(rawPixel.r > 0.0) return;
 	
 	float d = h;
 	for(float x=1.0; x<=h; x+=1.0) {
