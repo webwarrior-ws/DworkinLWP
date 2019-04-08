@@ -396,7 +396,6 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Update sdf (signed distance field) texture.
         // Distances >= 0 are stored in R channel; [absolute values of] distances < 0 are stored in G channel.
         // Distances are in range [-maxDistance; maxDistance]. 
-        // For positive distances, G component stores cosine of angle between X axis and vector to the closest point ([-1; 1] range is mapped to [0; 1]).
         // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
         // B channel acts as a stencil buffer for negative distances calculation (pixels with B>0 are skipped)
         if not (Array.isEmpty shapes) then
