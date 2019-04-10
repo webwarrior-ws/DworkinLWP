@@ -244,12 +244,13 @@ type BevelMode =
     | Trench = 3
 
 type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : float32, lightPos : Geometry.Point, bevelProfile : BevelProfile, mode : BevelMode) =
-    inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/bevel.frag"))
+    inherit Effect(platform.GetShader("effects/bevel.vert", "effects/bevel.frag"))
 
     override this.SetUniforms() =
         GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
         GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance)
         GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), Vector2.Normalize(lightPos))
+        GL.Uniform1(this.Shader.GetUniformLocation("lightHeight"), 1.0f)
         GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
         GL.Uniform1(this.Shader.GetUniformLocation("mode"), int mode)
 
