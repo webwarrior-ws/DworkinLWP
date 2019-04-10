@@ -64,6 +64,7 @@
     <AndroidAsset Include="Assets\shaders\effects\plain.frag" />
     <AndroidAsset Include="Assets\shaders\effects\shadow.frag" />
     <AndroidAsset Include="Assets\shaders\effects\outline.frag" />
+    <AndroidAsset Include="Assets\shaders\effects\bevel.frag" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />

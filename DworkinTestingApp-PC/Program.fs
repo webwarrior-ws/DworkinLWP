@@ -131,6 +131,16 @@ let effectGui =
                 [ 
                     "outlineWidth", box 5.0f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;
                 ];
+            Builders.effectEditor<BevelEffect> "bevel"
+                [ 
+                    "contrast", box 5.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 10.0f 1.0f;
+                    "maxDistance", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
+                    "lightPos", box (Geometry.Point(0.5f, 0.75f)), Builders.ShaderComponents.directionEditor 5.0f;
+                    "bevelProfile", box BevelProfile.Linear, 
+                        Builders.ShaderComponents.dropdownListEditor [ 
+                            BevelProfile.Linear; BevelProfile.Hyperbolic; BevelProfile.Parabola1; BevelProfile.Parabola2; BevelProfile.Exp ];
+                    "mode", box BevelMode.Inner, Builders.ShaderComponents.radioButtonEditor [ BevelMode.Inner; BevelMode.Outer; BevelMode.Ridge; BevelMode.Trench ];
+                ];
         ]
 
 let makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (name : string) (defaultColor : Graphics.Color4) =
