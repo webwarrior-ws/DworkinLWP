@@ -59,13 +59,14 @@ vec3 normalAt(float d, vec2 grad) {
     return normalize(vec3(grad, z*sqrt(1.0-dot(grad, grad))));
 }
 
-// TODO: mix normals instead of mixing shades.
+// TODO: mix normals instead of mixing shades (?)
 float bevel(vec3 toLight, vec3 normal, bool isInner, bool isDown) {
+	vec3 n = normal;
     if(isInner == isDown) {
-        normal = vec3(-normal.xy, normal.z);
+        n = vec3(-normal.xy, normal.z);
     }
     float flatShade = dot(toLight, vec3(0.0, 0.0, 1.0));
-    float shade = clamp(dot(toLight, normal), 0.0, 1.0);
+    float shade = clamp(dot(toLight, n), 0.0, 1.0);
     return shade - flatShade;
 }
 
@@ -83,11 +84,11 @@ vec3 applyBump(vec3 c, vec3 normal, vec3 toLight) {
 void main() {
 	vec3 rawPixel = texture2D(sdf, pos).rgb;
 
+	//if(rawPixel.b > 0.0) discard;
+
 	float m = mask(rawPixel.rg);
 	vec3 fgColor = texture2D(foreground, pos).rgb;
 	vec3 bgColor = texture2D(background, pos).rgb;
-
-	
 
 	vec2 tx1 = texture2D(sdf, px1).rg;
     vec2 tx2 = texture2D(sdf, px2).rg;
