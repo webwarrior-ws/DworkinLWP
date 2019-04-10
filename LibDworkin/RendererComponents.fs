@@ -224,6 +224,13 @@ type ShadowEffect(platform : AbstractPlatform,
         GL.Uniform1(this.Shader.GetUniformLocation("inner"), if inner then 1 else 0)
 
 
+type OutlineEffect(platform : AbstractPlatform, outlineWidth : float32) =
+    inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/outline.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform1(this.Shader.GetUniformLocation("outlineWidth"), outlineWidth)
+
+
 type TimeMeasurementSample = int * float
     
 /// Use Measure() method in for loops to take measurement.

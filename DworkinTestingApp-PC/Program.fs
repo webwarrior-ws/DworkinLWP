@@ -7,6 +7,7 @@ open LibDworkin.Aether.Operators
 open LibDworkin.Renderer
 open LibDworkin.RendererComponents
 open GUI
+open LibDworkin
 
 
 
@@ -117,9 +118,22 @@ let effectGui =
                     "frequency", box 32.0f, Builders.ShaderComponents.floatSliderEditor 8.0f 64.0f 4.0f;
                 ];
             Builders.effectEditor<PlainEffect> "plain" [];
+            Builders.effectEditor<ShadowEffect> "shadow"
+                [ 
+                    "shadowDir", box (Geometry.Point(0.5f, 0.5f)), Builders.ShaderComponents.directionEditor 5.0f;
+                    "shadowOffset", box 5.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 20.0f 1.0f;
+                    "shadowSize", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
+                    "shadowSoftness", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.05f 1.0f 0.05f;
+                    "shadowStrength", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.1f 1.0f 0.05f;
+                    "inner", box false, Builders.ShaderComponents.checkboxEditor;
+                ];
+            Builders.effectEditor<OutlineEffect> "outline"
+                [ 
+                    "outlineWidth", box 5.0f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;
+                ];
         ]
 
-let makeMaterialGui (setter : DworkinRenderer -> 'T -> unit) (name : string) (defaultColor : Graphics.Color4) =
+let makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (name : string) (defaultColor : Graphics.Color4) =
     Builders.chooser
         name
         renderer
