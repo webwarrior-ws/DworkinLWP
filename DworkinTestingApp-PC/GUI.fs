@@ -8,7 +8,9 @@ open Gwen.Control
 open LibDworkin.Renderer
 open LibDworkin.Configs
 open LibDworkin.Aether
+open LibDworkin.Aether.Operators
 open LibDworkin.RendererComponents
+open LibDworkin.Geometry
 
 open System.Collections.Generic
 
@@ -94,8 +96,8 @@ module Widgets =
             let notchCount = if step = this.Zero then 0 else int((this.ToFloat maxValue - this.ToFloat minValue) / this.ToFloat step)
             slider <- new HorizontalSlider(panel, Min=this.ToFloat minValue, Max=this.ToFloat maxValue, Value=this.GetValue(), 
                                            SnapToNotches=(notchCount>0), NotchCount=notchCount, 
-                                           Width=sliderWidth*9/10, Height=lineHeight, Dock=Gwen.Pos.Left)
-            numField <- new TextBoxNumeric(panel, Height=lineHeight, Width=sliderWidth/10, AutoSizeToContents=true, 
+                                           Width=sliderWidth*17/20, Height=lineHeight, Dock=Gwen.Pos.Left)
+            numField <- new TextBoxNumeric(panel, Height=lineHeight, Width=sliderWidth*3/20, AutoSizeToContents=true, 
                                            Value=slider.Value, IsDisabled=true, Dock=Gwen.Pos.Left)
             slider.add_ValueChanged(fun _base _args -> numField.Value <- slider.Value)
     
@@ -116,6 +118,10 @@ module Widgets =
         override this.Zero = 0
         override this.ToFloat(x) = float32 x
         override this.FromFloat(x) = int(x)
+    
+    type DirectionPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, Vector2>, step: float32) =
+        inherit FloatSliderPropertyEditor<'TConfig>(name, (lens >-> DirectionPropertyEditor<'TConfig>.LensForVector), -180.0f, 180.0f, step)
+        static member LensForVector : Lens<Vector2, float32> = (fun p -> p.Theta / Single.radiansInDegree), (fun a p -> Point(cos (deg2rad a), sin (deg2rad a)))
     
 
     type IntNumberboxPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, int>) =
@@ -184,6 +190,27 @@ module Widgets =
                 if currIndex >= 0 && currValue <> options.[currIndex] then
                     this.ConfigRef := Optic.set lens (options.[currIndex]) (!this.ConfigRef)
     
+    type Vector2PropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, Vector2>, minValue: float32, maxValue: float32, step: float32) =
+        inherit ConfigPropertyEditor<'TConfig>()
+
+        static let xLens : Lens<Vector2, float32> = (fun v -> v.X) , (fun x v -> Vector2(x, v.Y))
+        static let yLens : Lens<Vector2, float32> = (fun v -> v.Y) , (fun y v -> Vector2(v.X, y))
+
+        let sliderX = FloatSliderPropertyEditor("x", LibDworkin.Aether.Compose.lens lens xLens, minValue, maxValue, step)
+        let sliderY = FloatSliderPropertyEditor("y", LibDworkin.Aether.Compose.lens lens yLens, minValue, maxValue, step)
+
+        override this.Initialize(parent) =
+            let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
+            sliderX.ConfigRef <- this.ConfigRef
+            sliderY.ConfigRef <- this.ConfigRef
+            sliderX.Initialize(panel)
+            sliderY.Initialize(panel)
+            panel.AutoSizeToContents <- true
+
+        override this.Update() = 
+            sliderX.Update()
+            sliderY.Update()
+
     type ColorPropertyEditor<'TConfig>(name : string, lens : Lens<'TConfig, OpenTK.Graphics.Color4>) =
         inherit ConfigPropertyEditor<'TConfig>()
         let mutable colorControl : HSVColorPicker = null
@@ -448,4 +475,13 @@ module Builders =
             (floatSliderEditor name (getLens<'TConfig, float32> name) minValue maxValue step) :> ConfigPropertyEditor<_>
         
         let colorEditor (name : string) =
-            ColorPropertyEditor(name, (getLens<_, _> name)) :> ConfigPropertyEditor<_>
+            ColorPropertyEditor(name, getLens<_, _> name) :> ConfigPropertyEditor<_>
+        
+        let checkboxEditor (name : string) =
+            CheckboxPropertyEditor(name, getLens<_, _> name) :> ConfigPropertyEditor<_>
+        
+        let vec2Editor (minValue : float32) (maxValue : float32) (step : float32) (name : string) =
+            Vector2PropertyEditor(name, getLens<_, _> name, minValue, maxValue, step) :> ConfigPropertyEditor<_>
+        
+        let directionEditor (step : float32) (name : string) =
+            DirectionPropertyEditor(name, getLens<_, _> name, step) :> ConfigPropertyEditor<_>
