@@ -230,6 +230,29 @@ type OutlineEffect(platform : AbstractPlatform, outlineWidth : float32) =
     override this.SetUniforms() =
         GL.Uniform1(this.Shader.GetUniformLocation("outlineWidth"), outlineWidth)
 
+type BevelProfile =
+    | Linear = 0
+    | Hyperbolic = 1
+    | Parabola1 = 2
+    | Parabola2 = 3
+    | Exp = 4
+
+type BevelMode =
+    | Inner = 0
+    | Outer = 1
+    | Ridge = 2
+    | Trench = 3
+
+type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : float32, lightPos : Geometry.Point, bevelProfile : BevelProfile, mode : BevelMode) =
+    inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/bevel.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
+        GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance)
+        GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), Vector2.Normalize(lightPos))
+        GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
+        GL.Uniform1(this.Shader.GetUniformLocation("mode"), int mode)
+
 
 type TimeMeasurementSample = int * float
     
