@@ -485,3 +485,9 @@ module Builders =
         
         let directionEditor (step : float32) (name : string) =
             DirectionPropertyEditor(name, getLens<_, _> name, step) :> ConfigPropertyEditor<_>
+        
+        let radioButtonEditor (options: 'TValue list) (name : string) =
+            RadioButtonPropertyEditor(name, getLens<_, _> name, options) :> ConfigPropertyEditor<_>
+    
+        let dropdownListEditor (options: 'TValue list) (name : string) =
+            DropdownListPropertyEditor(name, getLens<_, _> name, options) :> ConfigPropertyEditor<_>
