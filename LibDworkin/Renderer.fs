@@ -271,7 +271,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
         
         this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
-        this.Effect.Shader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
+        this.Effect.ScreenDimensions <- Point(float32 width, float32 height)
         this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / (float32 width))
         this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / (float32 height))
     

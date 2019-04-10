@@ -15,7 +15,7 @@ float outline(vec2 rawPixel, float width) {
 	float d = rawPixel.r > 0.0 ? rawPixel.r : rawPixel.g;
 	float c = (d + 1.0 - width) / 2.0;
 	return smoothstep(0.5-threshold*0.5, 0.5+threshold*0.5, c);
-};
+}
 
 void main() {
 	vec2 rawPixel = texture2D(sdf, pos).xy;
