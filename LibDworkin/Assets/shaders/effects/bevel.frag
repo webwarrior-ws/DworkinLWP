@@ -5,6 +5,7 @@ varying vec2 px1;
 varying vec2 px2;
 varying vec2 py1;
 varying vec2 py2;
+varying vec3 toLight;
 
 uniform sampler2D sdf;
 uniform sampler2D background;
@@ -12,8 +13,6 @@ uniform sampler2D foreground;
 
 uniform float contrast; // !slider[1.0, 5.0, 10.0]
 uniform float maxDistance; // !slider[0.0, 1.0, 1.0]
-uniform vec2 lightPos; // !direction[0.5, 0.75]
-uniform float lightHeight; // !slider[0.2, 1.0, 2.0]
 uniform int bevelProfile; // !combobox[0, "Linear", "Hyperbolic", "Parabola1", "Parabola2", "Exp"]
 uniform int mode; // !combobox[1, "Inner", "Outer", "Ridge", "Trench"]
 
@@ -35,7 +34,7 @@ float parabola(float x)
 }
 
 float dist(vec2 tx, bool isInner) {
-    return isInner ? tx.g : tx.r;
+    return clamp((isInner ? tx.g : tx.r), 0.0, maxDistance);
 }
 
 vec2 gradient(vec2 tx1, vec2 tx2, vec2 ty1, vec2 ty2, bool isInner) {
@@ -88,7 +87,7 @@ void main() {
 	vec3 fgColor = texture2D(foreground, pos).rgb;
 	vec3 bgColor = texture2D(background, pos).rgb;
 
-	vec3 toLight = normalize(vec3(lightPos, lightHeight));
+	
 
 	vec2 tx1 = texture2D(sdf, px1).rg;
     vec2 tx2 = texture2D(sdf, px2).rg;
@@ -100,18 +99,18 @@ void main() {
 	if(mode >= 2) { // both
 		// outer
 		vec2 grad = gradient(tx1, tx2, ty1, ty2, false);
-		float d = rawPixel.r;
+		float d = dist(rawPixel.rg, false) / maxDistance;
 		float outer = bevel(toLight, normalAt(d, grad), false, mode==3);
 		// inner
 		grad = gradient(tx1, tx2, ty1, ty2, true);
-		d = rawPixel.g;
+		d = dist(rawPixel.rg, true) / maxDistance;
 		float inner = bevel(toLight, normalAt(d, grad), true, mode==2);
 
 		shade = mix(inner, outer, m);
 	}
 	else {
 		bool isInner = mode!=1;
-		float d = isInner ? rawPixel.g : rawPixel.r;
+		float d = dist(rawPixel.rg, isInner) / maxDistance;
 		vec2 grad = gradient(tx1, tx2, ty1, ty2, isInner);
 		shade = bevel(toLight, normalAt(d, grad), isInner, false);
 	}
