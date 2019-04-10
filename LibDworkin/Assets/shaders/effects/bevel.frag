@@ -1,11 +1,14 @@
 ﻿precision mediump float;
 
 varying vec2 pos;
+varying vec2 px1;
+varying vec2 px2;
+varying vec2 py1;
+varying vec2 py2;
 
 uniform sampler2D sdf;
 uniform sampler2D background;
 uniform sampler2D foreground;
-uniform vec2 screenDimensions;
 
 uniform float contrast; // !slider[1.0, 5.0, 10.0]
 uniform float maxDistance; // !slider[0.0, 1.0, 1.0]
@@ -31,20 +34,19 @@ float parabola(float x)
     return squared(4.0*x*(1.0-x));
 }
 
-float dist(vec2 p, sampler2D sdfTex, bool isInner) {
-    vec4 texel = texture2D(sdfTex, p);
-    return clamp((isInner ? texel.g : texel.r), 0.0, maxDistance);
+float dist(vec2 tx, bool isInner) {
+    return isInner ? tx.g : tx.r;
 }
 
-vec3 normalAt(vec2 p, sampler2D sdfTex, vec2 screenDims, bool isInner) {
-    vec2 ps = vec2(1.0) / screenDims;
-    float x1 = dist(p - vec2(ps.x, 0.0), sdfTex, isInner);
-    float x2 = dist(p + vec2(ps.x, 0.0), sdfTex, isInner);
-    float y1 = dist(p - vec2(0.0, ps.y), sdfTex, isInner);
-    float y2 = dist(p + vec2(0.0, ps.y), sdfTex, isInner);
-    float d = (x1+x2+y1+y2)*0.25/maxDistance;
-    vec2 grad = vec2(x1-x2, y1-y2);
-    
+vec2 gradient(vec2 tx1, vec2 tx2, vec2 ty1, vec2 ty2, bool isInner) {
+	float x1 = dist(tx1, isInner);
+    float x2 = dist(tx2, isInner);
+    float y1 = dist(ty1, isInner);
+    float y2 = dist(ty2, isInner);
+    return vec2(x1-x2, y1-y2);
+}
+
+vec3 normalAt(float d, vec2 grad) {
 	float z = 1.0/contrast;   
     if(bevelProfile == 1)
         z = mix(z*0.5, z*1.5, 1.0/(contrast*d+0.001));
@@ -58,11 +60,8 @@ vec3 normalAt(vec2 p, sampler2D sdfTex, vec2 screenDims, bool isInner) {
     return normalize(vec3(grad, z*sqrt(1.0-dot(grad, grad))));
 }
 
-// TODO: receive normal as argument to avoid duplicate calculations.
-// Mix normals instead of mixing shades.
-float bevel(vec2 p, sampler2D sdfTex, vec2 screenDims, bool isInner, bool isDown) {
-    vec3 toLight = normalize(vec3(lightPos, lightHeight));
-    vec3 normal = normalAt(p, sdfTex, screenDims, isInner);
+// TODO: mix normals instead of mixing shades.
+float bevel(vec3 toLight, vec3 normal, bool isInner, bool isDown) {
     if(isInner == isDown) {
         normal = vec3(-normal.xy, normal.z);
     }
@@ -89,22 +88,32 @@ void main() {
 	vec3 fgColor = texture2D(foreground, pos).rgb;
 	vec3 bgColor = texture2D(background, pos).rgb;
 
+	vec3 toLight = normalize(vec3(lightPos, lightHeight));
+
+	vec2 tx1 = texture2D(sdf, px1).rg;
+    vec2 tx2 = texture2D(sdf, px2).rg;
+    vec2 ty1 = texture2D(sdf, py1).rg;
+    vec2 ty2 = texture2D(sdf, py2).rg;
+
 	vec3 c = mix(fgColor, bgColor, m);
 	float shade;
 	if(mode >= 2) { // both
-		// TODO: remove branching and leave only "else" branch (is faster)
-		if((rawPixel.g == 0.0 && rawPixel.r == 1.0) || (rawPixel.g == 1.0 && rawPixel.r == 0.0)) {
-			bool isDown = rawPixel.r == 0.0 ? mode==2 : mode==3;
-			shade = bevel(pos, sdf, screenDimensions, rawPixel.r == 0.0, isDown);
-		}
-		else {
-			float outer = bevel(pos, sdf, screenDimensions, false, mode==3);
-			float inner = bevel(pos, sdf, screenDimensions, true, mode==2);
-			shade = mix(inner, outer, m);
-		}
+		// outer
+		vec2 grad = gradient(tx1, tx2, ty1, ty2, false);
+		float d = rawPixel.r;
+		float outer = bevel(toLight, normalAt(d, grad), false, mode==3);
+		// inner
+		grad = gradient(tx1, tx2, ty1, ty2, true);
+		d = rawPixel.g;
+		float inner = bevel(toLight, normalAt(d, grad), true, mode==2);
+
+		shade = mix(inner, outer, m);
 	}
 	else {
-		shade = bevel(pos, sdf, screenDimensions, mode!=1, false);
+		bool isInner = mode!=1;
+		float d = isInner ? rawPixel.g : rawPixel.r;
+		vec2 grad = gradient(tx1, tx2, ty1, ty2, isInner);
+		shade = bevel(toLight, normalAt(d, grad), isInner, false);
 	}
 	vec3 col = applyShading(c, shade);
    
