@@ -185,8 +185,13 @@ type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
 type Effect(shader : ResettableLazy<Shader>) =
     inherit ShaderBasedComponent(shader)
     let mutable wasUsed = false
+    let mutable screenDimensions = Geometry.Point()
 
-    member val ScreenDimensions = Geometry.Point() with get, set
+    member this.ScreenDimensions 
+        with get() = screenDimensions
+        and set(value) = 
+            screenDimensions <- value
+            wasUsed <- false
     
     override this.Use() =
         let needsInit = not shader.IsValueCreated || not wasUsed
