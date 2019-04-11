@@ -34,7 +34,7 @@ float parabola(float x)
 }
 
 float dist(vec2 tx, bool isInner) {
-    return clamp((isInner ? tx.g : tx.r), 0.0, maxDistance);
+    return clamp((isInner ? (tx.r==0.0 ? tx.g : -tx.r) : tx.r), 0.0, maxDistance);
 }
 
 vec2 gradient(vec2 tx1, vec2 tx2, vec2 ty1, vec2 ty2, bool isInner) {
