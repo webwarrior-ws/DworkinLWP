@@ -33,51 +33,45 @@ float parabola(float x)
     return squared(4.0*x*(1.0-x));
 }
 
-float dist(vec2 tx, bool isInner) {
-    return clamp((isInner ? (tx.r==0.0 ? tx.g : -tx.r) : tx.r), 0.0, maxDistance);
+float dInner(vec2 t) {
+	return t.r == 0.0 ? t.g : -t.r;
 }
 
-vec2 gradient(vec2 tx1, vec2 tx2, vec2 ty1, vec2 ty2, bool isInner) {
-	float x1 = dist(tx1, isInner);
-    float x2 = dist(tx2, isInner);
-    float y1 = dist(ty1, isInner);
-    float y2 = dist(ty2, isInner);
-    return vec2(x1-x2, y1-y2);
+float dist(vec2 tx, bool isInner) {
+    return clamp((isInner ? dInner(tx) : tx.r), 0.0, maxDistance);
+}
+
+vec2 gradient(vec4 t) {
+    return vec2(t.x-t.y, t.z-t.w);
 }
 
 vec3 normalAt(float d, vec2 grad) {
 	float z = 1.0/contrast;   
-    if(bevelProfile == 1)
-        z = mix(z*0.5, z*1.5, 1.0/(contrast*d+0.001));
-    else if(bevelProfile == 2)
-        z = mix(z*0.75, z*3.5, squared(parabola(0.5*d)));
-    else if(bevelProfile == 3)
-        z = mix(z*0.75, z*3.5, 1.0-parabola(d));
-    else if(bevelProfile == 4)
-        z = mix(z*0.5, z*3.0, exp(-d)-0.367);
-
+	
+	if(bevelProfile == 1)
+		z = mix(z*0.5, z*1.5, 1.0/(contrast*d+0.001));
+	else if(bevelProfile == 2)
+		z = mix(z*0.75, z*3.5, squared(parabola(0.5*d)));
+	else if(bevelProfile == 3)
+		z = mix(z*0.75, z*3.5, 1.0-parabola(d));
+	else if(bevelProfile == 4)
+		z = mix(z*0.5, z*3.0, exp(-d)-0.367);
+	
     return normalize(vec3(grad, z*sqrt(1.0-dot(grad, grad))));
 }
 
-// TODO: mix normals instead of mixing shades (?)
 float bevel(vec3 toLight, vec3 normal, bool isInner, bool isDown) {
 	vec3 n = normal;
     if(isInner == isDown) {
         n = vec3(-normal.xy, normal.z);
     }
-    float flatShade = dot(toLight, vec3(0.0, 0.0, 1.0));
+    float flatShade = toLight.z; //dot(toLight, vec3(0.0, 0.0, 1.0));
     float shade = clamp(dot(toLight, n), 0.0, 1.0);
     return shade - flatShade;
 }
 
 vec3 applyShading(vec3 c, float shade) {
     return shade <= 0.0 ? vec3(1.0+shade) * c : c + vec3(shade);
-}
-
-vec3 applyBump(vec3 c, vec3 normal, vec3 toLight) {
-    float shade = clamp(dot(toLight, normal), 0.0, 1.0);
-    float flatShade = dot(toLight, vec3(0.0, 0.0, 1.0));
-    return applyShading(c, shade - flatShade);
 }
 
 
@@ -95,15 +89,18 @@ void main() {
     vec2 ty1 = texture2D(sdf, py1).rg;
     vec2 ty2 = texture2D(sdf, py2).rg;
 
+	vec4 tInner = clamp(vec4(dInner(tx1), dInner(tx2), dInner(ty1), dInner(ty2)), 0.0, maxDistance);
+	vec4 tOuter = clamp(vec4(tx1.r, tx2.r, ty1.r, ty2.r), 0.0, maxDistance);
+
 	vec3 c = mix(fgColor, bgColor, m);
 	float shade;
 	if(mode >= 2) { // both
 		// outer
-		vec2 grad = gradient(tx1, tx2, ty1, ty2, false);
+		vec2 grad = gradient(tOuter);
 		float d = dist(rawPixel.rg, false) / maxDistance;
 		float outer = bevel(toLight, normalAt(d, grad), false, mode==3);
 		// inner
-		grad = gradient(tx1, tx2, ty1, ty2, true);
+		grad = gradient(tInner);
 		d = dist(rawPixel.rg, true) / maxDistance;
 		float inner = bevel(toLight, normalAt(d, grad), true, mode==2);
 
@@ -112,7 +109,7 @@ void main() {
 	else {
 		bool isInner = mode!=1;
 		float d = dist(rawPixel.rg, isInner) / maxDistance;
-		vec2 grad = gradient(tx1, tx2, ty1, ty2, isInner);
+		vec2 grad = gradient(isInner ? tInner : tOuter);
 		shade = bevel(toLight, normalAt(d, grad), isInner, false);
 	}
 	vec3 col = applyShading(c, shade);
