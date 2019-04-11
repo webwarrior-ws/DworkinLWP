@@ -141,6 +141,11 @@ let effectGui =
                             BevelProfile.Linear; BevelProfile.Hyperbolic; BevelProfile.Parabola1; BevelProfile.Parabola2; BevelProfile.Exp ];
                     "mode", box BevelMode.Inner, Builders.ShaderComponents.radioButtonEditor [ BevelMode.Inner; BevelMode.Outer; BevelMode.Ridge; BevelMode.Trench ];
                 ];
+            Builders.effectEditor<HighlightEffect> "highlight"
+                [ 
+                    "lightPos", box (Geometry.Point(0.0f, 1.0f)), Builders.ShaderComponents.vec2Editor -1.0f 1.0f 0.05f;
+                    "lightIntensity", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
+                ];
         ]
 
 let makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (name : string) (defaultColor : Graphics.Color4) =

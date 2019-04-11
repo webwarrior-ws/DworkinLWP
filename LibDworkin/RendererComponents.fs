@@ -259,6 +259,13 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
         GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
         GL.Uniform1(this.Shader.GetUniformLocation("mode"), int mode)
 
+type HighlightEffect(platform : AbstractPlatform, lightPos : Geometry.Point, lightIntensity : float32) =
+    inherit Effect(platform.GetShader("effects/highlight.vert", "effects/highlight.frag"))
+    
+    override this.SetUniforms() =
+        GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), lightPos)  
+        GL.Uniform1(this.Shader.GetUniformLocation("lightIntensity"), lightIntensity)
+
 
 type TimeMeasurementSample = int * float
     
