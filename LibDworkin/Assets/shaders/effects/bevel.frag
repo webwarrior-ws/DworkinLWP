@@ -38,7 +38,7 @@ float dInner(vec2 t) {
 }
 
 float dist(vec2 tx, bool isInner) {
-    return clamp((isInner ? dInner(tx) : tx.r), 0.0, maxDistance);
+    return clamp((isInner ? dInner(tx) : tx.r), -maxDistance, maxDistance);
 }
 
 vec2 gradient(vec4 t) {
@@ -63,7 +63,7 @@ vec3 normalAt(float d, vec2 grad) {
 float bevel(vec3 toLight, vec3 normal, bool isInner, bool isDown) {
 	vec3 n = normal;
     if(isInner == isDown) {
-        n = vec3(-normal.xy, normal.z);
+        n.xy = -n.xy;
     }
     float flatShade = toLight.z; //dot(toLight, vec3(0.0, 0.0, 1.0));
     float shade = clamp(dot(toLight, n), 0.0, 1.0);
@@ -89,29 +89,25 @@ void main() {
     vec2 ty1 = texture2D(sdf, py1).rg;
     vec2 ty2 = texture2D(sdf, py2).rg;
 
-	vec4 tInner = clamp(vec4(dInner(tx1), dInner(tx2), dInner(ty1), dInner(ty2)), 0.0, maxDistance);
-	vec4 tOuter = clamp(vec4(tx1.r, tx2.r, ty1.r, ty2.r), 0.0, maxDistance);
-
 	vec3 c = mix(fgColor, bgColor, m);
-	float shade;
-	if(mode >= 2) { // both
-		// outer
+
+	float inner=0.0, outer=0.0;
+	// outer
+	if(mode != 0 && m > 0.0) {
+		vec4 tOuter = clamp(vec4(tx1.r, tx2.r, ty1.r, ty2.r), -maxDistance, maxDistance);
 		vec2 grad = gradient(tOuter);
 		float d = dist(rawPixel.rg, false) / maxDistance;
-		float outer = bevel(toLight, normalAt(d, grad), false, mode==3);
-		// inner
-		grad = gradient(tInner);
-		d = dist(rawPixel.rg, true) / maxDistance;
-		float inner = bevel(toLight, normalAt(d, grad), true, mode==2);
+		outer = bevel(toLight, normalAt(d, grad), false, mode==3);
+	}
+	// inner
+	if(mode != 1 && m < 1.0) {
+		vec4 tInner = clamp(vec4(dInner(tx1), dInner(tx2), dInner(ty1), dInner(ty2)), -maxDistance, maxDistance);
+		vec2 grad = gradient(tInner);
+		float d = dist(rawPixel.rg, true) / maxDistance;
+		inner = bevel(toLight, normalAt(d, grad), true, mode==2);
+	}
+	float shade = mix(inner, outer, m);
 
-		shade = mix(inner, outer, m);
-	}
-	else {
-		bool isInner = mode!=1;
-		float d = dist(rawPixel.rg, isInner) / maxDistance;
-		vec2 grad = gradient(isInner ? tInner : tOuter);
-		shade = bevel(toLight, normalAt(d, grad), isInner, false);
-	}
 	vec3 col = applyShading(c, shade);
    
 	gl_FragColor = vec4(col, 1.0);
