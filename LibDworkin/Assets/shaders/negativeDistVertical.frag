@@ -25,8 +25,7 @@ void main() {
 	
 	// using squared distances to avoid sqrt call in loop
 	float d2 = squared(rawPixel.g*h);
-	for(float y=1.0; y<=h; y+=1.0) {
-		if(d2 <= squared(y - 1.0)) break;
+	for(float y=1.0; d2 > squared(y - 1.0); y+=1.0) {
 		float y2 = y*y;
 		vec2 shift = vec2(0.0, y*yScale);
 		vec2 neighbourUp = texture2D(sdf, pos - shift).rg;
