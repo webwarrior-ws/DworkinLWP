@@ -266,7 +266,19 @@ type HighlightEffect(platform : AbstractPlatform, lightPos : Geometry.Point, lig
         GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), lightPos)  
         GL.Uniform1(this.Shader.GetUniformLocation("lightIntensity"), lightIntensity)
 
+type GlowType =
+    | Outer = 0
+    | Inner = 1
+    
+type GlowEffect(platform : AbstractPlatform, glowColor : Graphics.Color4, glowStrength : float32, glowType : GlowType) =
+    inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/glow.frag"))
+    
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("glowColor"), glowColor)  
+        GL.Uniform1(this.Shader.GetUniformLocation("glowStrength"), glowStrength)  
+        GL.Uniform1(this.Shader.GetUniformLocation("glowType"), int glowType)
 
+    
 type TimeMeasurementSample = int * float
     
 /// Use Measure() method in for loops to take measurement.

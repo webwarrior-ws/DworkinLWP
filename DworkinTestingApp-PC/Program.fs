@@ -146,6 +146,12 @@ let effectGui =
                     "lightPos", box (Geometry.Point(0.0f, 1.0f)), Builders.ShaderComponents.vec2Editor -1.0f 1.0f 0.05f;
                     "lightIntensity", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
                 ];
+            Builders.effectEditor<GlowEffect> "glow"
+                [ 
+                    "glowColor", box (Graphics.Color4.Aquamarine), Builders.ShaderComponents.colorEditor;
+                    "glowStrength", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.05f 1.0f 0.05f;
+                    "glowType", box GlowType.Outer, Builders.ShaderComponents.radioButtonEditor [ GlowType.Outer; GlowType.Inner ];
+                ];
         ]
 
 let makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (name : string) (defaultColor : Graphics.Color4) =
