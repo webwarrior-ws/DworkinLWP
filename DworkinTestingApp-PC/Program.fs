@@ -167,8 +167,8 @@ let makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (name : strin
 
 let foregroundGui = makeMaterialGui (fun renderer value -> renderer.Foreground <- value) "Foreground" Graphics.Color4.Black
 let backgroundGui = makeMaterialGui (fun renderer value -> renderer.Background <- value) "Background" Graphics.Color4.White
-
-let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWidth [ effectGui; foregroundGui; backgroundGui ]
+let materialsGui = Builders.tabPane [ ("foreground", foregroundGui :> AbstractGui); ("background", backgroundGui :> AbstractGui) ]
+let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWidth [ effectGui; materialsGui ]
 
 
 [<EntryPoint>]

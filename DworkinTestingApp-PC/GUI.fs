@@ -358,6 +358,24 @@ module Widgets =
                     this.UpdateValue(currConfigGui, false)
     
 
+    type TabPane(children : (string * AbstractGui) list) =
+        inherit AbstractGui()
+        let mutable tabControl : TabControl = null
+
+        override this.Initialize(parent : Base) =
+            tabControl <- new TabControl(parent)
+            tabControl.Dock <- Gwen.Pos.Fill
+            for name, child in children do
+                let panel = new GroupBox(tabControl, Dock=Gwen.Pos.Top)
+                let page = tabControl.AddPage(name, panel)
+                child.Initialize(panel)
+                panel.AutoSizeToContents <- true
+        
+        override this.Update() =
+            for _, child in children do
+                child.Update()
+
+
     type ControlWindow(children : AbstractGui list, position : Pos, hSize, vSize : float) =
         inherit AbstractGui()
         let mutable window : WindowControl = null
@@ -371,7 +389,6 @@ module Widgets =
 
             for child in children do
                 child.Initialize(window)
-            window.FitChildrenToSize()
         
         override this.ToggleVisibility() =
             if window |> isNull |> not then
@@ -470,6 +487,9 @@ module Builders =
     let window (position : Pos) (vSize : float) (hSize : int) (children : AbstractGui list) =
         ControlWindow(children, position, hSize, vSize)
     
+    let tabPane (children : (string * AbstractGui) list) =
+        TabPane(children)
+
     module ShaderComponents =
         let floatSliderEditor (minValue : float32) (maxValue : float32) (step : float32) (name : string) =
             (floatSliderEditor name (getLens<'TConfig, float32> name) minValue maxValue step) :> ConfigPropertyEditor<_>
