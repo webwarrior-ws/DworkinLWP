@@ -40,9 +40,15 @@ type RendererComponentFactory<'T when 'T :> ShaderBasedComponent>(platform : Abs
         and set (name : string) (value : obj) =
             changed <- true
             properties.[name] <- value
-        
+            
+    member this.With(name : string, value : obj) =
+        let newParams = Dictionary(properties)
+        newParams.[name] <- value
+        RendererComponentFactory<'T>(platform, newParams)
+
     static member LensFor<'TValue>(name : string) : Lens<RendererComponentFactory<'T>, 'TValue> =
         (fun factory -> unbox<'TValue> factory.[name]) , (fun v factory -> factory.[name] <- box v; factory)
+
 
 
 [<AutoOpen>]
@@ -283,7 +289,7 @@ module Widgets =
                                                                      propertyGuis : ConfigPropertyEditor<RendererComponentFactory<'T>> list, 
                                                                      setter : DworkinRenderer -> 'T -> unit ) =
         inherit IRendererPropertyEditor()
-        let factory = RendererComponentFactory<'T>(platform, initialParams)
+        member val Factory = RendererComponentFactory<'T>(platform, initialParams)
 
         override val Renderer : DworkinRenderer option = None with get, set
     
@@ -291,17 +297,17 @@ module Widgets =
 
         override this.Initialize(panel : Base) =
             for gui in propertyGuis do 
-                gui.ConfigRef <- ref factory
+                gui.ConfigRef <- ref this.Factory
                 gui.Initialize(panel)
     
         override this.SetProperty() =
             match this.Renderer with
-            | Some(renderer) -> setter renderer (factory.Build())
+            | Some(renderer) -> setter renderer (this.Factory.Build())
             | None -> ()
 
         override this.Update() = 
             for gui in propertyGuis do gui.Update()
-            if factory.Changed then
+            if this.Factory.Changed then
                 this.SetProperty()
 
     
@@ -315,6 +321,9 @@ module Widgets =
         let mutable combobox : ComboBox = null
 
         member internal this.ComboBox = combobox
+
+        member internal this.CurrentConfigGui =
+            combobox.SelectedItem.UserData :?> IRendererPropertyEditor
 
         member private this.SetPanelForItem(item : MenuItem) =
             groupBox.RemoveChild(currentPanel, false)
@@ -350,13 +359,61 @@ module Widgets =
     
         override this.Update() = 
             if combobox |> isNull |> not then
-                let currConfigGui = combobox.SelectedItem.UserData :?> IRendererPropertyEditor
+                let currConfigGui = this.CurrentConfigGui
                 if lastConfigName <> combobox.SelectedItem.Name then
                     this.SetPanelForItem(combobox.SelectedItem)
                     this.UpdateValue(currConfigGui, true)
                 else
                     this.UpdateValue(currConfigGui, false)
     
+
+    type ColorChangeMaterialEditor(platform : AbstractPlatform, backgroundChooser : Chooser, setter : DworkinRenderer -> Material -> unit ) =
+        inherit IRendererPropertyEditor()
+        static let lens : Lens<Graphics.Color4 ref, Graphics.Color4> = (fun cell -> !cell), (fun c cell -> cell := c; cell)
+        let colorEditor = ColorPropertyEditor<Graphics.Color4 ref>("color change", lens)
+
+        member val Factory : obj = null with get, set
+        member val ModifiedFactory : obj = null with get, set
+
+        member this.UpdateFactory() : bool =
+            let foregroundEditor = backgroundChooser.CurrentConfigGui :> obj
+            let oldFactory = this.Factory
+            this.Factory <- foregroundEditor.GetType().GetProperty("Factory").GetValue(foregroundEditor)
+            if oldFactory <> this.Factory then
+                let factoryType = this.Factory.GetType()
+                this.ModifiedFactory <- factoryType.GetMethod("With").Invoke(this.Factory, [| box "color"; box colorEditor.ConfigRef.Value.Value |])
+                true
+            else
+                false
+
+        override val Renderer : DworkinRenderer option = None with get, set
+    
+        override this.Name = "color change"
+
+        override this.Initialize(panel : Base) =
+            colorEditor.ConfigRef <- ref <| ref Graphics.Color4.Black
+            this.UpdateFactory() |> ignore
+            colorEditor.Initialize(panel)
+    
+        override this.SetProperty() =
+            match this.Renderer with
+            | Some(renderer) -> 
+                let factoryType = this.ModifiedFactory.GetType()
+                let newMaterial = factoryType.GetMethod("Build").Invoke(this.ModifiedFactory, [||]) :?> Material
+                setter renderer newMaterial
+            | None -> ()
+
+        override this.Update() = 
+            this.UpdateFactory() |> ignore
+            colorEditor.Update()
+
+            let factoryType = this.ModifiedFactory.GetType()
+            let itemGetter = factoryType.GetProperty("Item")
+            let oldColor = unbox<Graphics.Color4> <| itemGetter.GetValue(this.ModifiedFactory, [| "color" |])
+            if colorEditor.ConfigRef.Value.Value <> oldColor then
+                itemGetter.SetValue(this.ModifiedFactory, colorEditor.ConfigRef.Value.Value, [| "color" |])
+                this.SetProperty()
+
 
     type TabPane(children : (string * AbstractGui) list) =
         inherit AbstractGui()
