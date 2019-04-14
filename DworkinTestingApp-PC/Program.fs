@@ -154,19 +154,29 @@ let effectGui =
                 ];
         ]
 
-let makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (name : string) (defaultColor : Graphics.Color4) =
-    Builders.chooser
-        name
-        renderer
+type private MaterialGuiKind =
+    | Background
+    | Foreground of Chooser
+
+let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind : MaterialGuiKind) (defaultColor : Graphics.Color4) =
+    let mutable guis = 
         [
             Builders.makeShaderBasedComponentEditor<SolidColorMaterial> setter "solidColor"
                 [ 
                     "color", box defaultColor, Builders.ShaderComponents.colorEditor;
                 ];
         ]
+    match kind with 
+        | Foreground(bgChooser) -> 
+            guis <- guis @ [ ColorChangeMaterialEditor(platform, bgChooser, setter) ]
+        | Background -> ()
+    Builders.chooser
+        (match kind with | Foreground(_) -> "Foreground" | Background -> "Background")
+        renderer
+        guis
 
-let foregroundGui = makeMaterialGui (fun renderer value -> renderer.Foreground <- value) "Foreground" Graphics.Color4.Black
-let backgroundGui = makeMaterialGui (fun renderer value -> renderer.Background <- value) "Background" Graphics.Color4.White
+let backgroundGui = makeMaterialGui (fun renderer value -> renderer.Background <- value) Background Graphics.Color4.White
+let foregroundGui = makeMaterialGui (fun renderer value -> renderer.Foreground <- value) (Foreground backgroundGui) Graphics.Color4.Black
 let materialsGui = Builders.tabPane [ ("foreground", foregroundGui :> AbstractGui); ("background", backgroundGui :> AbstractGui) ]
 let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWidth [ effectGui; materialsGui ]
 
