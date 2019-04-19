@@ -38,17 +38,6 @@ type AbstractPlatform() =
     abstract member TextFromAsset : string -> string
     abstract member LoadTextureFromAsset : string -> int
 
-    member internal this.UploadTexture(pixels : nativeint, width, height) : int =
-        let texture = GL.GenTexture()
-        GL.BindTexture(TextureTarget.Texture2D, texture)
-        // NOTE: UnsignedShort565 may be the only supported pixel type
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, pixels)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
-        texture
-
     member this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
         getOrSetIfAbsent 
             shaders
@@ -66,9 +55,24 @@ type AbstractPlatform() =
 #if __ANDROID__
  type AndroidPlatform(context : Android.Content.Context) =
     inherit AbstractPlatform()
+    
     override this.TextFromAsset(filename : string) =
         use reader = new IO.StreamReader(context.Assets.Open(filename))
         reader.ReadToEnd()
+    
+    override this.LoadTextureFromAsset(filename : string) =
+        use opts = new Android.Graphics.BitmapFactory.Options(InScaled=false)
+        use stream = context.Assets.Open(IO.Path.Combine("textures", filename))
+        use bitmap = Android.Graphics.BitmapFactory.DecodeStream(stream, new Android.Graphics.Rect(), opts)
+        let texture = GL.GenTexture()
+        GL.BindTexture(TextureTarget.Texture2D, texture)
+        Android.Opengl.GLUtils.TexImage2D(Android.Opengl.GLES20.GlTexture2d, 0, bitmap, 0)
+        bitmap.Recycle();
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
+        texture
 #else
 type DotNETPlatform() =
     inherit AbstractPlatform()
@@ -83,6 +87,17 @@ type DotNETPlatform() =
         let pixels = imgData.Scan0
         let texture = this.UploadTexture(pixels, bmp.Width, bmp.Height)
         bmp.UnlockBits(imgData)
+        texture
+    
+    member private this.UploadTexture(pixels : nativeint, width, height) : int =
+        let texture = GL.GenTexture()
+        GL.BindTexture(TextureTarget.Texture2D, texture)
+        // NOTE: UnsignedShort565 may be the only supported pixel type
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, pixels)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
         texture
 #endif
 
