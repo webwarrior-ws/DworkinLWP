@@ -46,7 +46,14 @@ type MainActivity () =
             //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.brushesAndSpeedsTest) 
             //new TestRenderers.ShapesTestRenderer(platform) 
             //new TestRenderers.CollidingAgentsTestRenderer(platform)
-        //renderer.Effect <- LibDworkin.RendererComponents.PlainEffect(platform)
+        renderer.Effect <- LibDworkin.RendererComponents.PlainEffect(platform)
+        renderer.Effect <- LibDworkin.RendererComponents.GlowEffect(platform, OpenTK.Graphics.Color4.BlueViolet, 0.5f, LibDworkin.RendererComponents.GlowType.Outer)
+        //renderer.Effect <- LibDworkin.RendererComponents.ShadowEffect(platform, LibDworkin.Geometry.Point(1.0f, -1.0f), 10.0f, 0.2f, 0.5f, 0.5f, false)
+        //renderer.Effect <- LibDworkin.RendererComponents.BevelEffect(platform, 5.0f, 0.5f, LibDworkin.Geometry.Point(1.0f, -1.0f), 
+        //                                                             LibDworkin.RendererComponents.BevelProfile.Linear,
+        //                                                             LibDworkin.RendererComponents.BevelMode.Ridge)
+        renderer.Background <- LibDworkin.RendererComponents.NormalmapAndAOMaterial(platform, OpenTK.Graphics.Color4.LightGray, "TexturesCom_Leather_Plain_512_normal.png",
+                                                                                    LibDworkin.Geometry.Point(0.0f, 1.0f), 1.0f, 1.0f, None)
         if supportsEs2 then
             view.SetEGLContextClientVersion(2)
             view.PreserveEGLContextOnPause <- true

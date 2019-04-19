@@ -16,6 +16,10 @@ void main() {
 	pos = texCoords * 0.5 + 0.5;
 	vec2 scale = vec2(scaleFactor) / screenDimensions;
 	pScaled = pos * scale * screenDimensions;
-	pScaled.y *= screenDimensions.y / screenDimensions.x;
+	float ratio = screenDimensions.x / screenDimensions.y;
+	if(ratio < 1.0)
+		pScaled.x *= ratio;
+	else
+		pScaled.y /= ratio;
 	toLight = normalize(vec3(lightPos, lightHeight));
 }

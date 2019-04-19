@@ -588,8 +588,10 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             // setup scale and offset
             let dimensions = this.GetDimensions(width, height)
             this.ResetEnvironment(dimensions)
-        
             this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
+            // update foreground and background textures
+            this.Background <- this.Background
+            this.Foreground <- this.Foreground
         elif framesAfterStop > 0 then
             // Fixes issue of black screen after pause (e.g. waking after sleep). 
             // Value of -1 was determined experimentally
