@@ -33,16 +33,35 @@ module Helpers =
 [<AbstractClass>]
 type AbstractPlatform() =
     let shaders = Collections.Generic.Dictionary<string * string, ResettableLazy<Shader>>()
+    let textures = Collections.Generic.Dictionary<string, ResettableLazy<int>>()
 
     abstract member TextFromAsset : string -> string
+    abstract member LoadTextureFromAsset : string -> int
 
-    member internal this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
+    member internal this.UploadTexture(pixels : nativeint, width, height) : int =
+        let texture = GL.GenTexture()
+        GL.BindTexture(TextureTarget.Texture2D, texture)
+        // NOTE: UnsignedShort565 may be the only supported pixel type
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, pixels)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
+        texture
+
+    member this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
         getOrSetIfAbsent 
             shaders
             (vertexShaderName, fragmentShaderName)
             (fun () -> 
                 let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
                 ResettableLazy(fun () -> new Shader(readSource vertexShaderName, readSource fragmentShaderName)))        
+    
+    member this.GetTexture(filename : string) : ResettableLazy<int> =
+        getOrSetIfAbsent
+            textures
+            filename
+            (fun () -> ResettableLazy(fun () -> this.LoadTextureFromAsset(filename)))
 
 #if __ANDROID__
  type AndroidPlatform(context : Android.Content.Context) =
@@ -53,8 +72,18 @@ type AbstractPlatform() =
 #else
 type DotNETPlatform() =
     inherit AbstractPlatform()
+    static let assetsPath = @"D:\Projects\DworkinLWP\LibDworkin\Assets\"
+    
     override this.TextFromAsset(filename : string) =
-        IO.File.ReadAllText(IO.Path.Combine(@"D:\Projects\DworkinLWP\LibDworkin\Assets\", filename))
+        IO.File.ReadAllText(IO.Path.Combine(assetsPath, filename))
+    
+    override this.LoadTextureFromAsset(filename : string) =
+        use bmp = new Drawing.Bitmap(IO.Path.Combine(assetsPath, "textures", filename))
+        let imgData = bmp.LockBits(Drawing.Rectangle(Drawing.Point(0, 0), bmp.Size), Drawing.Imaging.ImageLockMode.ReadOnly, Drawing.Imaging.PixelFormat.Format24bppRgb)
+        let pixels = imgData.Scan0
+        let texture = this.UploadTexture(pixels, bmp.Width, bmp.Height)
+        bmp.UnlockBits(imgData)
+        texture
 #endif
 
 /// Like Lazy<'T>, but with ability to "forget" computed value.
@@ -177,6 +206,35 @@ type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
 
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+
+type NormalmapAndAOMaterial(platform : AbstractPlatform, 
+                            color : Graphics.Color4, 
+                            normalMap : string, 
+                            lightPos : Geometry.Point, 
+                            lightHeight : float32, 
+                            scaleFactor : float32,
+                            ao : (string * float32) option ) =
+    inherit Material(platform.GetShader("materials/normalmap+ao.vert", "materials/normalmap+ao.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+        GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), Vector2.Normalize(lightPos))
+        GL.Uniform1(this.Shader.GetUniformLocation("lightHeight"), lightHeight)
+        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
+        // textures
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(normalMap).Value)
+        GL.Uniform1(this.Shader.GetUniformLocation("normalMap"), 0)
+        match ao with
+        | Some(filename, strength) ->
+            GL.ActiveTexture(TextureUnit.Texture1)
+            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(filename).Value)
+            GL.Uniform1(this.Shader.GetUniformLocation("aoMap"), 1)
+            GL.Uniform1(this.Shader.GetUniformLocation("aoStrength"), strength)
+        | None -> 
+            GL.Uniform1(this.Shader.GetUniformLocation("aoStrength"), 0.0f)
+        // screen dimensions
+        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
 
 
 /// Component that is responsible for drawing image using SDF, background, and foreground textures.
