@@ -174,6 +174,14 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
                     "normalMap", box "TexturesCom_Leather_Plain_512_normal.png", Builders.ShaderComponents.dropdownListEditor [ "TexturesCom_Leather_Plain_512_normal.png" ];
                     "ao", box None, Builders.ShaderComponents.radioButtonEditor [ None ];
                 ];
+            Builders.makeShaderBasedComponentEditor<ColoredTextureMaterial> setter "colored texture"
+                [ 
+                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
+                    "flatShade", box 0.75f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
+                    "contrast", box 1.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 4.0f 0.1f;
+                    "scaleFactor", box 2.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 3.0f 0.1f;
+                    "shadeMap", box "knitted-netting_@2X.png", Builders.ShaderComponents.dropdownListEditor [ "knitted-netting_@2X.png" ];
+                ];
         ]
     match kind with 
         | Foreground(bgChooser) -> 

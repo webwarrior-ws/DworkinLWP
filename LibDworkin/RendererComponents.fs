@@ -252,6 +252,27 @@ type NormalmapAndAOMaterial(platform : AbstractPlatform,
         GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
 
 
+type ColoredTextureMaterial(platform : AbstractPlatform, 
+                            color : Graphics.Color4, 
+                            shadeMap : string, 
+                            flatShade : float32, 
+                            contrast : float32,
+                            scaleFactor : float32 ) =
+    inherit Material(platform.GetShader("materials/coloredtexture.vert", "materials/coloredtexture.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+        GL.Uniform1(this.Shader.GetUniformLocation("flatShade"), flatShade)
+        GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
+        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
+        // texture
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(shadeMap).Value)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadeMap"), 0)
+        // screen dimensions
+        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
+
+
 /// Component that is responsible for drawing image using SDF, background, and foreground textures.
 /// No two Effect subclasses should share a shader.
 [<AbstractClass>]

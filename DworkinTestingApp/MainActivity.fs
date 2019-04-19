@@ -52,8 +52,10 @@ type MainActivity () =
         //renderer.Effect <- LibDworkin.RendererComponents.BevelEffect(platform, 5.0f, 0.5f, LibDworkin.Geometry.Point(1.0f, -1.0f), 
         //                                                             LibDworkin.RendererComponents.BevelProfile.Linear,
         //                                                             LibDworkin.RendererComponents.BevelMode.Ridge)
-        renderer.Background <- LibDworkin.RendererComponents.NormalmapAndAOMaterial(platform, OpenTK.Graphics.Color4.LightGray, "TexturesCom_Leather_Plain_512_normal.png",
-                                                                                    LibDworkin.Geometry.Point(0.0f, 1.0f), 1.0f, 1.0f, None)
+        //renderer.Background <- LibDworkin.RendererComponents.NormalmapAndAOMaterial(platform, OpenTK.Graphics.Color4.LightGray, "TexturesCom_Leather_Plain_512_normal.png",
+        //                                                                            LibDworkin.Geometry.Point(0.0f, 1.0f), 1.0f, 1.0f, None)
+        renderer.Background <- LibDworkin.RendererComponents.ColoredTextureMaterial(platform, OpenTK.Graphics.Color4.DarkGray, "knitted-netting_@2X.png",
+                                                                                    0.775f, 1.25f, 80.0f)
         if supportsEs2 then
             view.SetEGLContextClientVersion(2)
             view.PreserveEGLContextOnPause <- true
