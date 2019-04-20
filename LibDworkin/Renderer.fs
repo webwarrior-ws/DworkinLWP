@@ -246,6 +246,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             [| this.Foreground; this.Background |]
     
     member this.DrawMaterial(material : Material, texture : int) =
+        let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         GL.BindTexture(TextureTarget.Texture2D, texture)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, materialFrameBuffer)
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
@@ -256,6 +257,12 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.EnableVertexAttribArray(aTexCoords)
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
         GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        stopWatch.Stop()
+#if __ANDROID__
+        let materialKind = if texture = this.ForegroundTexture then "foreground" else "background"
+        let materialName = material.GetType().Name
+        Android.Util.Log.Debug("frameTime", sprintf "Rendering %s (%s): %gms" materialKind materialName stopWatch.Elapsed.TotalMilliseconds) |> ignore
+#endif
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
