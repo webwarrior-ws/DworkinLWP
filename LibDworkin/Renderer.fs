@@ -293,6 +293,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         if onSurfaceCreatedCalled then
             ResettableLazy<Shader>.ResetAll()
+            ResettableLazy<int>.ResetAll() // textures
         
         this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
