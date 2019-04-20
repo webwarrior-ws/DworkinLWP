@@ -270,6 +270,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Viewport(0, 0, width, height)
         wallpaperWidth <- width
         wallpaperHeight <- height
+        // setup scale and offset
+        let dimensions = this.GetDimensions(width, height)
+        this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
 
         this.InitializeSDF()
         this.InitializeMaterialTextures()
@@ -281,6 +284,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.Effect.ScreenDimensions <- Point(float32 width, float32 height)
         this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / (float32 width))
         this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / (float32 height))
+
+        this.ResetEnvironment(dimensions)
     
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
@@ -320,6 +325,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Clear the rendering surface. 
         GL.Clear(ClearBufferMask.ColorBufferBit)
     
+    abstract member ResetEnvironment : Point -> unit
+    default this.ResetEnvironment(dimensions) = ()
+
     member this.ClearSDF() =
         GL.ColorMask(true, true, true, true)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
@@ -573,7 +581,7 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             environmentConfig <- config
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
-    member this.ResetEnvironment(dimensions : Point) =
+    override this.ResetEnvironment(dimensions : Point) =
         framesAfterStop <- 0
         this.ClearSDF()
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
@@ -592,13 +600,12 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
     override this.OnSurfaceChanged(width, height) =
         if this.WallpaperSize <> (width, height) then
             base.OnSurfaceChanged(width, height)
-            // setup scale and offset
-            let dimensions = this.GetDimensions(width, height)
-            this.ResetEnvironment(dimensions)
-            this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
+            
+            
+            
             // update foreground and background textures
-            this.Background <- this.Background
-            this.Foreground <- this.Foreground
+            //this.Background <- this.Background
+            //this.Foreground <- this.Foreground
         elif framesAfterStop > 0 then
             // Fixes issue of black screen after pause (e.g. waking after sleep). 
             // Value of -1 was determined experimentally
