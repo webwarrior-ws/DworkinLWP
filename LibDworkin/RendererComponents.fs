@@ -85,7 +85,15 @@ type DotNETPlatform() =
         use bmp = new Drawing.Bitmap(IO.Path.Combine(assetsPath, "textures", filename))
         let imgData = bmp.LockBits(Drawing.Rectangle(Drawing.Point(0, 0), bmp.Size), Drawing.Imaging.ImageLockMode.ReadOnly, Drawing.Imaging.PixelFormat.Format24bppRgb)
         let pixels = imgData.Scan0
-        let texture = this.UploadTexture(pixels, bmp.Width, bmp.Height)
+        // swap R and B channels
+        let pixelsPtr : nativeptr<uint8> = NativePtr.ofNativeInt pixels
+        for i in 0 .. 3 .. (imgData.Height * imgData.Stride - 1) do
+            let r = NativePtr.get pixelsPtr i
+            let b = NativePtr.get pixelsPtr (i+2)
+            NativePtr.set pixelsPtr i b
+            NativePtr.set pixelsPtr (i+2) r
+        
+        let texture = this.UploadTexture(pixels, imgData.Width, imgData.Height)
         bmp.UnlockBits(imgData)
         texture
     
