@@ -65,6 +65,8 @@
     <AndroidAsset Include="Assets\shaders\materials\normalmap+ao.frag" />
     <AndroidAsset Include="Assets\shaders\materials\coloredtexture.vert" />
     <AndroidAsset Include="Assets\shaders\materials\coloredtexture.frag" />
+    <AndroidAsset Include="Assets\shaders\materials\roughSurface.frag" />
+    <AndroidAsset Include="Assets\shaders\materials\metal.frag" />
     <AndroidAsset Include="Assets\shaders\effects\plain.frag" />
     <AndroidAsset Include="Assets\shaders\effects\shadow.frag" />
     <AndroidAsset Include="Assets\shaders\effects\outline.frag" />
