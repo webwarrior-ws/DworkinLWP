@@ -259,7 +259,6 @@ type NormalmapAndAOMaterial(platform : AbstractPlatform,
         // screen dimensions
         GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
 
-
 type ColoredTextureMaterial(platform : AbstractPlatform, 
                             color : Graphics.Color4, 
                             shadeMap : string, 
@@ -279,6 +278,46 @@ type ColoredTextureMaterial(platform : AbstractPlatform,
         GL.Uniform1(this.Shader.GetUniformLocation("shadeMap"), 0)
         // screen dimensions
         GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
+
+type RoughSurfaceMaterial(platform : AbstractPlatform, color : Graphics.Color4, bumpHeight : float32, dim : float32, featureScale : float32, flatArea : float32) =
+    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/roughSurface.frag"))
+    
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+        GL.Uniform1(this.Shader.GetUniformLocation("bumpHeight"), bumpHeight)
+        GL.Uniform1(this.Shader.GetUniformLocation("dim"), dim)
+        GL.Uniform1(this.Shader.GetUniformLocation("featureScale"), featureScale)
+        GL.Uniform1(this.Shader.GetUniformLocation("flatArea"), flatArea)
+        GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), Vector2.Normalize(Vector2(0.5f, 0.75f)))
+        GL.Uniform1(this.Shader.GetUniformLocation("lightHeight"), 1.0f)
+        GL.Uniform2(this.Shader.GetUniformLocation("scale"), this.Scale)
+
+
+type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlight : float32, scale : float32, offset : Vector2, angle : float32, stretch : float32,
+                   strokeFreq : float32, strokeLength : float32, strokeIntensity : float32, strokeAngle : float32) =
+    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/metal.frag"))
+    
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+        GL.Uniform1(this.Shader.GetUniformLocation("highlight"), highlight)
+        GL.Uniform1(this.Shader.GetUniformLocation("scale"), scale)
+        GL.Uniform2(this.Shader.GetUniformLocation("offset"), offset)
+        GL.Uniform1(this.Shader.GetUniformLocation("stretch"), stretch)
+        GL.Uniform1(this.Shader.GetUniformLocation("strokeFreq"), strokeFreq)
+        GL.Uniform1(this.Shader.GetUniformLocation("strokeLength"), strokeLength)
+        GL.Uniform1(this.Shader.GetUniformLocation("strokeIntensity"), strokeIntensity)
+#if __ANDROID__
+        let mutable rotation = Matrix2.Identity
+        rotation.Rotate(angle)
+        let mutable strokeRotation = Matrix2.Identity
+        strokeRotation.Rotate(strokeAngle)
+#else
+        let rotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad angle)
+        let strokeRotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad strokeAngle)
+#endif
+        GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation)
+        GL.UniformMatrix2(this.Shader.GetUniformLocation("strokeRotation"), false, ref strokeRotation)
+        GL.Uniform1(this.Shader.GetUniformLocation("aspectRatio"), this.Scale.Y / this.Scale.X)
 
 
 /// Component that is responsible for drawing image using SDF, background, and foreground textures.
