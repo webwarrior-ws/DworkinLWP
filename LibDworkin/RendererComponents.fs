@@ -25,6 +25,13 @@ module Helpers =
         -1.0f;  1.0f;
         -1.0f; -1.0f;|]
 
+#if __ANDROID__
+module Matrix2 =
+    let CreateRotation (angle : float32) : Matrix2 =
+        let mutable rotation = Matrix2.Identity
+        rotation.Rotate(MathHelper.RadiansToDegrees(angle))
+        rotation
+#endif
 
 // NOTE: to get OpenGL version, use GL.GetString(StringName.Version) 
 // OpenGL<space>ES<space><version number><space><vendor-specific information>
@@ -306,15 +313,8 @@ type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlig
         GL.Uniform1(this.Shader.GetUniformLocation("strokeFreq"), strokeFreq)
         GL.Uniform1(this.Shader.GetUniformLocation("strokeLength"), strokeLength)
         GL.Uniform1(this.Shader.GetUniformLocation("strokeIntensity"), strokeIntensity)
-#if __ANDROID__
-        let mutable rotation = Matrix2.Identity
-        rotation.Rotate(angle)
-        let mutable strokeRotation = Matrix2.Identity
-        strokeRotation.Rotate(strokeAngle)
-#else
         let rotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad angle)
         let strokeRotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad strokeAngle)
-#endif
         GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation)
         GL.UniformMatrix2(this.Shader.GetUniformLocation("strokeRotation"), false, ref strokeRotation)
         GL.Uniform1(this.Shader.GetUniformLocation("aspectRatio"), this.Scale.Y / this.Scale.X)
