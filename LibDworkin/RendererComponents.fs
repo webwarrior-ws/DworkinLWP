@@ -220,6 +220,7 @@ type ShaderBasedComponent(shader : ResettableLazy<Shader>) =
     default this.Use() =
         this.Shader.Use()        
 
+
 /// Component that is responsible for rendering background/foreground textures
 [<AbstractClass>]
 type Material(shader : ResettableLazy<Shader>) = 
@@ -231,11 +232,13 @@ type Material(shader : ResettableLazy<Shader>) =
         base.Use()
         this.SetUniforms()
     
+
 type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
     inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/solidColor.frag"))
 
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+
 
 type NormalmapAndAOMaterial(platform : AbstractPlatform, 
                             color : Graphics.Color4, 
@@ -266,6 +269,7 @@ type NormalmapAndAOMaterial(platform : AbstractPlatform,
         // screen dimensions
         GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
 
+
 type ColoredTextureMaterial(platform : AbstractPlatform, 
                             color : Graphics.Color4, 
                             shadeMap : string, 
@@ -284,7 +288,8 @@ type ColoredTextureMaterial(platform : AbstractPlatform,
         GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(shadeMap).Value)
         GL.Uniform1(this.Shader.GetUniformLocation("shadeMap"), 0)
         // screen dimensions
-        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
+        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), 1.0f/this.Scale.X, 1.0f/this.Scale.Y)
+
 
 type RoughSurfaceMaterial(platform : AbstractPlatform, color : Graphics.Color4, bumpHeight : float32, dim : float32, featureScale : float32, flatArea : float32) =
     inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/roughSurface.frag"))
@@ -320,6 +325,23 @@ type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlig
         GL.Uniform1(this.Shader.GetUniformLocation("aspectRatio"), this.Scale.Y / this.Scale.X)
 
 
+type WoodMaterial(platform : AbstractPlatform, color : Graphics.Color4, angle : float32, ringsScale : float32, ringsStretch : float32, contrast : float32) =
+    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/wood.frag"))
+    
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+        GL.Uniform1(this.Shader.GetUniformLocation("ringsScale"), ringsScale)
+        GL.Uniform1(this.Shader.GetUniformLocation("ringsStretch"), ringsStretch)
+        GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
+        let rotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad angle)
+        GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation)
+        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), 1.0f/this.Scale.X, 1.0f/this.Scale.Y)
+        // grain texture
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("Wood_grain.png").Value)
+        GL.Uniform1(this.Shader.GetUniformLocation("grainTexture"), 0)
+
+
 /// Component that is responsible for drawing image using SDF, background, and foreground textures.
 /// No two Effect subclasses should share a shader.
 [<AbstractClass>]
@@ -349,8 +371,10 @@ type SDFVisualizerEffect(platform : AbstractPlatform, frequency : float32) =
     override this.SetUniforms() =
         GL.Uniform1(this.Shader.GetUniformLocation("frequency"), frequency)
 
+
 type PlainEffect(platform : AbstractPlatform) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/plain.frag"))
+
 
 type ShadowEffect(platform : AbstractPlatform, 
                   shadowDir : Vector2, 
@@ -376,6 +400,7 @@ type OutlineEffect(platform : AbstractPlatform, outlineWidth : float32) =
     override this.SetUniforms() =
         GL.Uniform1(this.Shader.GetUniformLocation("outlineWidth"), outlineWidth)
 
+
 type BevelProfile =
     | Linear = 0
     | Hyperbolic = 1
@@ -400,12 +425,14 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
         GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
         GL.Uniform1(this.Shader.GetUniformLocation("mode"), int mode)
 
+
 type HighlightEffect(platform : AbstractPlatform, lightPos : Geometry.Point, lightIntensity : float32) =
     inherit Effect(platform.GetShader("effects/highlight.vert", "effects/highlight.frag"))
     
     override this.SetUniforms() =
         GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), lightPos)  
         GL.Uniform1(this.Shader.GetUniformLocation("lightIntensity"), lightIntensity)
+
 
 type GlowType =
     | Outer = 0

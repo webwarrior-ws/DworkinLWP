@@ -203,6 +203,14 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
                     "strokeIntensity", box 0.35f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
                     "strokeAngle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
                 ];
+            Builders.makeShaderBasedComponentEditor<WoodMaterial> setter "wood"
+                [ 
+                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
+                    "angle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
+                    "ringsScale", box 2.7f, Builders.ShaderComponents.floatSliderEditor 2.0f 5.0f 0.1f;
+                    "ringsStretch", box 15.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 50.0f 5.0f;
+                    "contrast", box 0.25f, Builders.ShaderComponents.floatSliderEditor 0.0f 0.5f 0.05f;
+                ];
         ]
     match kind with 
         | Foreground(bgChooser) -> 
