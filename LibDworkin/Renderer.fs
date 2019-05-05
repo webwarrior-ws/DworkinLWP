@@ -274,8 +274,13 @@ type BaseRenderer(platform : AbstractPlatform) =
         let dimensions = this.GetDimensions(width, height)
         this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
 
+        let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         this.InitializeSDF()
         this.InitializeMaterialTextures()
+        stopWatch.Stop()
+#if __ANDROID__
+        Android.Util.Log.Debug("frameTime", sprintf "(re-)creating textures: %gms" stopWatch.Elapsed.TotalMilliseconds) |> ignore
+#endif
         
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
@@ -601,12 +606,6 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
     override this.OnSurfaceChanged(width, height) =
         if this.WallpaperSize <> (width, height) then
             base.OnSurfaceChanged(width, height)
-            
-            
-            
-            // update foreground and background textures
-            //this.Background <- this.Background
-            //this.Foreground <- this.Foreground
         elif framesAfterStop > 0 then
             // Fixes issue of black screen after pause (e.g. waking after sleep). 
             // Value of -1 was determined experimentally
