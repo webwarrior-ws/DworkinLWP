@@ -67,6 +67,7 @@
     <AndroidAsset Include="Assets\shaders\materials\coloredtexture.frag" />
     <AndroidAsset Include="Assets\shaders\materials\roughSurface.frag" />
     <AndroidAsset Include="Assets\shaders\materials\metal.frag" />
+    <AndroidAsset Include="Assets\shaders\materials\wood.frag" />
     <AndroidAsset Include="Assets\shaders\effects\plain.frag" />
     <AndroidAsset Include="Assets\shaders\effects\shadow.frag" />
     <AndroidAsset Include="Assets\shaders\effects\outline.frag" />
@@ -77,6 +78,7 @@
     <AndroidAsset Include="Assets\shaders\effects\glow.frag" />
     <AndroidAsset Include="Assets\textures\TexturesCom_Leather_Plain_512_normal.png" />
     <AndroidAsset Include="Assets\textures\knitted-netting_%402X.png" />
+    <AndroidAsset Include="Assets\textures\Wood_grain.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
