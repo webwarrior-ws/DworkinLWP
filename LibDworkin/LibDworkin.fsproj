@@ -19,6 +19,7 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <TargetFrameworkProfile />
     <Name>LibDworkin</Name>
+    <AndroidDesignerPreferredDevice>Nexus 4</AndroidDesignerPreferredDevice>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
@@ -81,6 +82,10 @@
     <AndroidAsset Include="Assets\textures\Wood_grain.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
+    <AndroidResource Include="Resources\values\attrs.xml" />
+    <AndroidResource Include="Resources\drawable\dice.png" />
+    <AndroidResource Include="Resources\layout\Main.axml" />
+    <AndroidResource Include="Resources\layout\RandomizedSpinner.axml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="packages.config" />
     <Compile Include="Aether.fs" />
@@ -96,6 +101,9 @@
     <Compile Include="Probes.fs" />
     <Compile Include="Brushes.fs" />
     <Compile Include="Configs.fs" />
+    <Compile Include="ToggleImageButton.fs" />
+    <Compile Include="SettingsViews.fs" />
+    <Compile Include="Settings.fs" />
     <Compile Include="Lenses.fs" />
     <Compile Include="RendererComponents.fs" />
     <Compile Include="Renderer.fs" />
