@@ -1,8 +1,8 @@
-﻿module Settings.Settings
+﻿namespace Settings
 
 #if __ANDROID__
 open Android.Views
-open SettingsViews
+open Views
 #endif
 open Randomizeable
 
@@ -71,9 +71,8 @@ type MaterialSettings() =
     inherit Settings()
     abstract member Build : unit -> LibDworkin.RendererComponents.Material
 
-
-type Randomizeable<'T> with
-    static member GetValue (random : System.Random) (propertyExpr : Quotations.Expr<Randomizeable<'T>>) : 'T =
+module Randomizeable =
+    let getValue (random : System.Random) (propertyExpr : Quotations.Expr<Randomizeable<'T>>) : 'T =
         match propertyExpr with
         | Quotations.Patterns.PropertyGet(Some(innerExpr), prop, _) -> 
             match innerExpr with

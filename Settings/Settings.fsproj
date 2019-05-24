@@ -59,7 +59,7 @@
     <Content Include="packages.config" />
     <Compile Include="Randomizeable.fs" />
     <Compile Include="ToggleImageButton.fs" />
-    <Compile Include="SettingsViews.fs" />
+    <Compile Include="Views.fs" />
     <Compile Include="Settings.fs" />
   </ItemGroup>
   <ItemGroup>
