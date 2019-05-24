@@ -21,7 +21,6 @@
     <Compile Include="../LibDworkin/Configs.fs" />
 	  <Compile Include="../LibDworkin/Lenses.fs" />
     <Compile Include="../LibDworkin/RendererComponents.fs" />
-    <Compile Include="../LibDworkin/Settings.fs" />
     <Compile Include="../LibDworkin/Renderer.fs" />
   </ItemGroup>
 

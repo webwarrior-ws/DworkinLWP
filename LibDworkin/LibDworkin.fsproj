@@ -82,10 +82,6 @@
     <AndroidAsset Include="Assets\textures\Wood_grain.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
-    <AndroidResource Include="Resources\values\attrs.xml" />
-    <AndroidResource Include="Resources\drawable\dice.png" />
-    <AndroidResource Include="Resources\layout\Main.axml" />
-    <AndroidResource Include="Resources\layout\RandomizedSpinner.axml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="packages.config" />
     <Compile Include="Aether.fs" />
@@ -103,9 +99,6 @@
     <Compile Include="Configs.fs" />
     <Compile Include="Lenses.fs" />
     <Compile Include="RendererComponents.fs" />
-    <Compile Include="ToggleImageButton.fs" />
-    <Compile Include="SettingsViews.fs" />
-    <Compile Include="Settings.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
