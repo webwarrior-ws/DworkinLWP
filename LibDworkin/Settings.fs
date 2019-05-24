@@ -61,6 +61,17 @@ and [<AbstractClass>]
             attr.UseView(editor, this, prop) )
 #endif
 
+[<AbstractClass>] 
+type EnvironmentSettings() =
+    inherit Settings()
+    abstract member Build : unit -> Configs.DworkinEnvironmentConfig
+
+
+[<AbstractClass>] 
+type MaterialSettings() =
+    inherit Settings()
+    abstract member Build : unit -> RendererComponents.Material
+
 
 type Randomizeable<'T> with
     static member GetValue (random : System.Random) (propertyExpr : Quotations.Expr<Randomizeable<'T>>) : 'T =

@@ -101,11 +101,11 @@
     <Compile Include="Probes.fs" />
     <Compile Include="Brushes.fs" />
     <Compile Include="Configs.fs" />
+    <Compile Include="Lenses.fs" />
+    <Compile Include="RendererComponents.fs" />
     <Compile Include="ToggleImageButton.fs" />
     <Compile Include="SettingsViews.fs" />
     <Compile Include="Settings.fs" />
-    <Compile Include="Lenses.fs" />
-    <Compile Include="RendererComponents.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>

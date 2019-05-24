@@ -25,11 +25,13 @@ type Accessor =
             | Empty -> ()
             | Accessor(setter=f) -> f value
 
+
 type ISettingEditor =
     /// Update current value and bind value change events to use setter in new accessor
     abstract member Accessor : Accessor with set
     abstract member Title : string with set
     abstract member Changed : IEvent<unit>
+
 
 type ISettingsView =
     abstract member Editors : System.Collections.Generic.IList<ISettingEditor>
