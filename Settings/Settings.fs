@@ -1,10 +1,10 @@
-﻿module LibDworkin.Settings
+﻿module Settings.Settings
 
 #if __ANDROID__
 open Android.Views
 open SettingsViews
 #endif
-open SpecializedCollections
+open Randomizeable
 
 
 [<AbstractClass>]
@@ -64,13 +64,12 @@ and [<AbstractClass>]
 [<AbstractClass>] 
 type EnvironmentSettings() =
     inherit Settings()
-    abstract member Build : unit -> Configs.DworkinEnvironmentConfig
-
+    abstract member Build : unit -> LibDworkin.Configs.DworkinEnvironmentConfig
 
 [<AbstractClass>] 
 type MaterialSettings() =
     inherit Settings()
-    abstract member Build : unit -> RendererComponents.Material
+    abstract member Build : unit -> LibDworkin.RendererComponents.Material
 
 
 type Randomizeable<'T> with
@@ -132,6 +131,19 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
 
     override this.RandomValue(random) =
         (float32(random.NextDouble()) * (maxVal - minVal) + minVal) |> box
+#if __ANDROID__
+    override this.CreateView(context, property) = 
+        failwith "notimplemented"
+#endif
+
+type ColorAttribute() =
+    inherit SettingAttribute()
+
+    override this.RandomValue(random) =
+        let r = float32(random.NextDouble())
+        let g = float32(random.NextDouble())
+        let b = float32(random.NextDouble())
+        OpenTK.Graphics.Color4(r, g, b, 1.0f) |> box
 #if __ANDROID__
     override this.CreateView(context, property) = 
         failwith "notimplemented"

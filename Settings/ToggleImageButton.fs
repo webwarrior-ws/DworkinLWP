@@ -1,4 +1,4 @@
-﻿namespace LibDworkin
+﻿namespace Settings
 
 // based on https://gist.github.com/akshaydashrath/9662072
 
@@ -9,7 +9,7 @@ open Android.Widget
 open Android.OS
 open Java.Interop
 
-type private Resources = LibDworkin.Resource
+type private Resources = Settings.Resource
 
 
 and ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int) =

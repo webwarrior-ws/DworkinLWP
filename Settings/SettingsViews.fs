@@ -1,13 +1,13 @@
-﻿module LibDworkin.SettingsViews
+﻿module Settings.SettingsViews
 
 open Android.Content
 open Android.Util
 open Android.Widget
 open Android.Views
 
-open SpecializedCollections
+open Randomizeable
 
-type private Resources = LibDworkin.Resource
+type private Resources = Settings.Resource
 
 
 // interfaces for setting-editing viwes

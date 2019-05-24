@@ -219,16 +219,6 @@ module OneOrTwo =
         | _ -> failwith "Size mismatch"
 
 
-// Used in settings
-type Randomizeable<'T> =
-    | Randomized
-    | Defined of 'T
-
-let isRandomizableType (typ : System.Type) =
-    Microsoft.FSharp.Reflection.FSharpType.IsUnion typ && 
-    (Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typ |> Array.map (fun x -> x.Name) = [| "Random"; "Defined" |])
-
-
 // Backport of ValueOption for F# 4.0 (used in Xamarin Android)
 #if __ANDROID__
 #nowarn "42"
