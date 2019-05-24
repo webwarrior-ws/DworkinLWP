@@ -1,4 +1,4 @@
-﻿module Settings.SettingsViews
+﻿module Settings.Views
 
 open Android.Content
 open Android.Util

@@ -12,7 +12,7 @@ open Java.Interop
 type private Resources = Settings.Resource
 
 
-and ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int) =
+type ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int) =
     inherit ImageButton(context, attrs, defStyle)
     
     static let CHECKED_STATE_SET = [| Android.Resource.Attribute.StateChecked |]
