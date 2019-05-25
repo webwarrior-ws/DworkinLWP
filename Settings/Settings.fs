@@ -4,7 +4,6 @@
 open Android.Views
 open Views
 #endif
-open Randomizeable
 
 
 [<AbstractClass>]
@@ -61,17 +60,12 @@ and [<AbstractClass>]
             attr.UseView(editor, this, prop) )
 #endif
 
-[<AbstractClass>] 
-type EnvironmentSettings() =
-    inherit Settings()
-    abstract member Build : unit -> LibDworkin.Configs.DworkinEnvironmentConfig
-
-[<AbstractClass>] 
-type MaterialSettings() =
-    inherit Settings()
-    abstract member Build : unit -> LibDworkin.RendererComponents.Material
 
 module Randomizeable =
+    let isRandomizableType (typ : System.Type) =
+        Microsoft.FSharp.Reflection.FSharpType.IsUnion typ && 
+        (Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typ |> Array.map (fun x -> x.Name) = [| "Random"; "Defined" |])
+
     let getValue (random : System.Random) (propertyExpr : Quotations.Expr<Randomizeable<'T>>) : 'T =
         match propertyExpr with
         | Quotations.Patterns.PropertyGet(Some(innerExpr), prop, _) -> 
@@ -104,7 +98,7 @@ type EnumAttribute(options: obj[]) =
         view :> ISettingEditor
     
     override this.CreateView(context, property) = 
-        if isRandomizableType property.PropertyType then
+        if Randomizeable.isRandomizableType property.PropertyType then
             let method = this.GetType().GetMethod("CreateRandomizeableView").MakeGenericMethod([| itemType |])
             method.Invoke(this, [| context; options |]) :?> ISettingEditor
         else

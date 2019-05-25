@@ -5,7 +5,6 @@ open Android.Util
 open Android.Widget
 open Android.Views
 
-open Randomizeable
 
 type private Resources = Settings.Resource
 

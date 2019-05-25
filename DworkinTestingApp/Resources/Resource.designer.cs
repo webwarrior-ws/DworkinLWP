@@ -89,7 +89,7 @@ namespace DworkinTestingApp
 			public const int Main = 2130968576;
 			
 			// aapt resource value: 0x7f040001
-			public const int randomizedspinner = 2130968577;
+			public const int RandomizedSpinner = 2130968577;
 			
 			static Layout()
 			{
