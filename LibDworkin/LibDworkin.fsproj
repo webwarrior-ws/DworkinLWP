@@ -99,6 +99,7 @@
     <Compile Include="Configs.fs" />
     <Compile Include="Lenses.fs" />
     <Compile Include="RendererComponents.fs" />
+    <Compile Include="DworkinSettings.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
@@ -114,5 +115,12 @@
     <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
       <HintPath>..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.14\lib\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Settings\Settings.fsproj">
+      <Name>Settings</Name>
+      <Project>{8149a570-4624-42b7-a0bb-1992b19dc25a}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
 </Project>

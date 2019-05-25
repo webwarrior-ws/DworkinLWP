@@ -27,6 +27,9 @@ namespace LibDworkin
 		public partial class Attribute
 		{
 			
+			// aapt resource value: 0x7f010000
+			public static int @checked = 2130771968;
+			
 			static Attribute()
 			{
 				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
@@ -37,11 +40,74 @@ namespace LibDworkin
 			}
 		}
 		
-		public partial class String
+		public partial class Drawable
 		{
 			
 			// aapt resource value: 0x7f020000
-			public static int library_name = 2130837504;
+			public static int dice = 2130837504;
+			
+			static Drawable()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Drawable()
+			{
+			}
+		}
+		
+		public partial class Id
+		{
+			
+			// aapt resource value: 0x7f050004
+			public static int dice = 2131034116;
+			
+			// aapt resource value: 0x7f050001
+			public static int myButton = 2131034113;
+			
+			// aapt resource value: 0x7f050000
+			public static int root = 2131034112;
+			
+			// aapt resource value: 0x7f050003
+			public static int spinner1 = 2131034115;
+			
+			// aapt resource value: 0x7f050002
+			public static int title = 2131034114;
+			
+			static Id()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Id()
+			{
+			}
+		}
+		
+		public partial class Layout
+		{
+			
+			// aapt resource value: 0x7f030000
+			public static int Main = 2130903040;
+			
+			// aapt resource value: 0x7f030001
+			public static int RandomizedSpinner = 2130903041;
+			
+			static Layout()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Layout()
+			{
+			}
+		}
+		
+		public partial class String
+		{
+			
+			// aapt resource value: 0x7f040000
+			public static int library_name = 2130968576;
 			
 			static String()
 			{
@@ -49,6 +115,25 @@ namespace LibDworkin
 			}
 			
 			private String()
+			{
+			}
+		}
+		
+		public partial class Styleable
+		{
+			
+			public static int[] ToogleImageButton = new int[] {
+					2130771968};
+			
+			// aapt resource value: 0
+			public static int ToogleImageButton_checked = 0;
+			
+			static Styleable()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Styleable()
 			{
 			}
 		}
