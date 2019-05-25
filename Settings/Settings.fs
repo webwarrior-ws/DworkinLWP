@@ -40,6 +40,10 @@ and [<AbstractClass>]
         this.SettingProperties 
         |> Array.fold (fun acc prop -> prop.GetValue(this).GetHashCode() ^^^ acc) 0
     
+    override this.ToString() =
+        let propertyStrings = this.SettingProperties |> Array.map(fun prop -> sprintf "%s=%A" prop.Name (prop.GetValue(this)))
+        sprintf "%s(%s)" (this.GetType().Name) (System.String.Join(", ", propertyStrings))
+
 #if __ANDROID__
     abstract member CreateView : Android.Content.Context -> SettingsView
     default this.CreateView(context) =
