@@ -140,7 +140,11 @@ type ColorAttribute() =
         let r = float32(random.NextDouble())
         let g = float32(random.NextDouble())
         let b = float32(random.NextDouble())
+#if __ANDROID__
         OpenTK.Graphics.Color4(r, g, b, 1.0f) |> box
+#else
+        (r, g, b) |> box // just to make things compile without OpenTK
+#endif
 #if __ANDROID__
     override this.CreateView(context, property) = 
         failwith "notimplemented"
