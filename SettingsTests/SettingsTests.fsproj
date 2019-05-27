@@ -9,7 +9,8 @@
   <ItemGroup>
     <Compile Include="../Settings/Randomizeable.fs" />
     <Compile Include="../Settings/Settings.fs" />
-    <Compile Include="Sample.fs" />
+    <Compile Include="SettingsTests.fs" />
+    <Compile Include="RandomizeableTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 
