@@ -133,6 +133,8 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
         failwith "notimplemented"
 #endif
 
+/// Color (RGB float32 triple). Each component is in range [1; 0].
+/// float32*float32*float32 is chosen to be independent of different color implementations
 type ColorAttribute() =
     inherit SettingAttribute()
 
@@ -140,11 +142,7 @@ type ColorAttribute() =
         let r = float32(random.NextDouble())
         let g = float32(random.NextDouble())
         let b = float32(random.NextDouble())
-#if __ANDROID__
-        OpenTK.Graphics.Color4(r, g, b, 1.0f) |> box
-#else
-        (r, g, b) |> box // just to make things compile without OpenTK
-#endif
+        (r, g, b) |> box
 #if __ANDROID__
     override this.CreateView(context, property) = 
         failwith "notimplemented"
