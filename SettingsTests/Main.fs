@@ -1,4 +1,5 @@
 ﻿module SettingsTests
+
 open Expecto
 
 [<EntryPoint>]
