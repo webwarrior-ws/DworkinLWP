@@ -11,10 +11,12 @@
     <Compile Include="../Settings/Settings.fs" />
     <Compile Include="SettingsTests.fs" />
     <Compile Include="RandomizeableTests.fs" />
+    <Compile Include="SettingAttributeTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Accord.Statistics" Version="3.8.0" />
     <PackageReference Include="Expecto" Version="8.*" />
     <PackageReference Include="Expecto.VisualStudio.TestAdapter" Version="10.0.2" />
     <PackageReference Include="FSharp.Core" Version="4.*" />
