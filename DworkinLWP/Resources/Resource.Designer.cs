@@ -31,6 +31,9 @@ namespace DworkinLWP
 		public partial class Attribute
 		{
 			
+			// aapt resource value: 0x7f010000
+			public const int @checked = 2130771968;
+			
 			static Attribute()
 			{
 				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
@@ -41,17 +44,80 @@ namespace DworkinLWP
 			}
 		}
 		
+		public partial class Drawable
+		{
+			
+			// aapt resource value: 0x7f020000
+			public const int dice = 2130837504;
+			
+			static Drawable()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Drawable()
+			{
+			}
+		}
+		
+		public partial class Id
+		{
+			
+			// aapt resource value: 0x7f060004
+			public const int dice = 2131099652;
+			
+			// aapt resource value: 0x7f060001
+			public const int myButton = 2131099649;
+			
+			// aapt resource value: 0x7f060000
+			public const int root = 2131099648;
+			
+			// aapt resource value: 0x7f060003
+			public const int spinner1 = 2131099651;
+			
+			// aapt resource value: 0x7f060002
+			public const int title = 2131099650;
+			
+			static Id()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Id()
+			{
+			}
+		}
+		
+		public partial class Layout
+		{
+			
+			// aapt resource value: 0x7f030000
+			public const int Main = 2130903040;
+			
+			// aapt resource value: 0x7f030001
+			public const int RandomizedSpinner = 2130903041;
+			
+			static Layout()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Layout()
+			{
+			}
+		}
+		
 		public partial class String
 		{
 			
-			// aapt resource value: 0x7f030001
-			public const int app_name = 2130903041;
+			// aapt resource value: 0x7f050001
+			public const int app_name = 2131034113;
 			
-			// aapt resource value: 0x7f030000
-			public const int library_name = 2130903040;
+			// aapt resource value: 0x7f050000
+			public const int library_name = 2131034112;
 			
-			// aapt resource value: 0x7f030002
-			public const int wallpaper_description = 2130903042;
+			// aapt resource value: 0x7f050002
+			public const int wallpaper_description = 2131034114;
 			
 			static String()
 			{
@@ -66,8 +132,8 @@ namespace DworkinLWP
 		public partial class Xml
 		{
 			
-			// aapt resource value: 0x7f020000
-			public const int Wallpaper = 2130837504;
+			// aapt resource value: 0x7f040000
+			public const int Wallpaper = 2130968576;
 			
 			static Xml()
 			{
@@ -75,6 +141,25 @@ namespace DworkinLWP
 			}
 			
 			private Xml()
+			{
+			}
+		}
+		
+		public partial class Styleable
+		{
+			
+			public static int[] ToogleImageButton = new int[] {
+					2130771968};
+			
+			// aapt resource value: 0
+			public const int ToogleImageButton_checked = 0;
+			
+			static Styleable()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Styleable()
 			{
 			}
 		}
