@@ -67,8 +67,8 @@ let randomValueTests =
                 let sSamples = colorSamples |> Array.map (fun c -> c.GetSaturation() |> float)
                 let bSamples = colorSamples |> Array.map (fun c -> c.GetBrightness() |> float)
                 let uniform0to1distribution = UniformContinuousDistribution(0.0, 1.0)
-                Expect.isFalse (ChiSquareTest(hSamples, uniform0to1distribution)).Significant "hue pass chi-squared test"
-                // TODO: make color random generator that passes saturation and brightness chi-squared tests
+                Expect.isFalse (ChiSquareTest(hSamples, uniform0to1distribution)).Significant "hue must pass chi-squared test"
+                // TODO: make color random generator that passes saturation and brightness chi-squared tests (?)
                 //Expect.isFalse (ChiSquareTest(sSamples, uniform0to1distribution)).Significant "saturation must pass chi-squared test"
                 //Expect.isFalse (ChiSquareTest(bSamples, uniform0to1distribution)).Significant "values must pass chi-squared test"
         ]
