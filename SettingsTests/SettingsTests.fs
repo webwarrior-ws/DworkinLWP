@@ -28,6 +28,9 @@ let equalityTests =
         testCase "Two Settings objects created with default constructor should equal" <| fun _ ->
             Expect.equal (A()) (A()) "equal"
         
+        testCase "Equal Settings objects should equal if cast to superclass" <| fun _ ->
+            Expect.equal (A() :> Settings) (A() :> Settings) "equal"
+        
         testCase "Settings object should be equal to itself" <| fun _ ->
             let a = A(Foo=5, Bar=33)
             Expect.equal a a "equal"
