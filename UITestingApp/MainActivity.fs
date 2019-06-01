@@ -25,7 +25,6 @@ module XamarinCrutch =
             if isNull appResField |> not then 
                 let correctValue = appResField.GetValue(null)
                 field.SetValue(null, correctValue)
-                assert ( field.GetValue(null) = correctValue )
         
         let appResourcesInnerClassNames = 
             appResources.GetNestedTypes() 
@@ -79,4 +78,3 @@ type MainActivity () =
             settings.UseView(settingsView)
             this.UpdateDisplay()
         )
-
