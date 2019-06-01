@@ -6,8 +6,6 @@ open Android.Widget
 open Android.Views
 
 
-type private Resources = Settings.Resource
-
 
 // interfaces for setting-editing viwes
 type Accessor = 

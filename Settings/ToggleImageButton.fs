@@ -9,7 +9,6 @@ open Android.Widget
 open Android.OS
 open Java.Interop
 
-type private Resources = Settings.Resource
 
 
 type ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int) =
