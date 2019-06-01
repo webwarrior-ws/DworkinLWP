@@ -1,12 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <resources>
+
   <style name="AppTheme" parent="AppTheme.Base">
   </style>
   <!-- inherit from the AppCompat theme -->
   <style name="AppTheme.Base" parent="@style/Theme.AppCompat">
     
   </style>
+  
   <style name="SettingTitle" parent="TextAppearance.AppCompat.Headline">
-    <item name="android:textAllCaps">true</item>
+    
   </style>
+
 </resources>
