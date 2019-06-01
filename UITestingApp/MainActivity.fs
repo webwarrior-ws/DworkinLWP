@@ -1,0 +1,74 @@
+﻿namespace UITestingApp
+
+open System
+
+open Android.App
+open Android.Content
+open Android.OS
+open Android.Runtime
+open Android.Views
+open Android.Widget
+
+open Settings
+
+type Resources = UITestingApp.Resource
+
+
+module XamarinCrutch =
+    /// Transfer values of resource ids from app resources class to library resources class.
+    let rec updateLibraryResourceIds (appResources : System.Type) (libraryResources : System.Type) =
+        let ids = 
+            libraryResources.GetFields()
+            |> Array.filter (fun fi -> fi.IsStatic && fi.IsPublic)
+        for field in ids do
+            let appResField = appResources.GetField(field.Name)
+            if isNull appResField |> not then 
+                let correctValue = appResField.GetValue(null)
+                field.SetValue(null, correctValue)
+                assert ( field.GetValue(null) = correctValue )
+        
+        let appResourcesInnerClassNames = 
+            appResources.GetNestedTypes() 
+            |> Array.map (fun cls -> cls.Name) 
+            |> Set.ofArray
+        let innerClasses = 
+            libraryResources.GetNestedTypes() 
+            |> Array.filter (fun cls -> appResourcesInnerClassNames.Contains cls.Name)
+        
+        for cls in innerClasses do
+            updateLibraryResourceIds (appResources.GetNestedType(cls.Name)) cls
+
+
+type AllKindsOfSettings() =
+    inherit Settings()
+
+    [<Enum([| 1; 2; 3; 4; |])>]
+    member val IntEnum = Defined(1) with get, set
+
+
+[<Activity (Label = "UITestingApp", MainLauncher = true, Icon = "@mipmap/icon")>]
+type MainActivity () =
+    inherit Activity ()
+
+    let settings = AllKindsOfSettings()
+
+    override this.OnCreate (bundle) =
+
+        base.OnCreate (bundle)
+
+        // Set our view from the "main" layout resource
+        this.SetContentView (Resources.Layout.Main)
+
+        // TODO: see if this is no longer needed
+        XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
+
+        let settingsView = settings.CreateView(this)
+        settings.UseView(settingsView)
+        this.FindViewById<ViewGroup>(Resources.Id.root).AddView(settingsView)
+
+        // Get our button from the layout resource, and attach an event to it
+        let button = this.FindViewById<Button>(Resources.Id.reloadButton)
+        button.Click.Add (fun args -> 
+            ()
+        )
+
