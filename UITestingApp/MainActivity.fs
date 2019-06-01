@@ -50,7 +50,11 @@ type AllKindsOfSettings() =
 type MainActivity () =
     inherit Activity ()
 
-    let settings = AllKindsOfSettings()
+    let mutable settings = AllKindsOfSettings()
+
+    member this.UpdateDisplay() =
+        let display = this.FindViewById<TextView>(Resources.Id.textDisplay)
+        display.Text <- settings.ToString()
 
     override this.OnCreate (bundle) =
 
@@ -66,9 +70,13 @@ type MainActivity () =
         settings.UseView(settingsView)
         this.FindViewById<ViewGroup>(Resources.Id.root).AddView(settingsView)
 
-        // Get our button from the layout resource, and attach an event to it
+        settingsView.Changed.Add(fun _ -> 
+            this.UpdateDisplay() )
+
         let button = this.FindViewById<Button>(Resources.Id.reloadButton)
         button.Click.Add (fun args -> 
-            ()
+            settings <- AllKindsOfSettings()
+            settings.UseView(settingsView)
+            this.UpdateDisplay()
         )
 

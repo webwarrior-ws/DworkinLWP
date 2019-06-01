@@ -9,8 +9,9 @@
     android:layout_height="wrap_content"
     android:text="Reload settings" />
   <TextView 
-		android:text="Title"
+		android:text="Current edited object"
 		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:id="@+id/title" />
+		android:layout_height="60dp"
+		android:textSize="18dp"
+		android:id="@+id/textDisplay" />
 </LinearLayout>
