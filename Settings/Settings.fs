@@ -68,7 +68,7 @@ and [<AbstractClass>]
 module Randomizeable =
     let isRandomizableType (typ : System.Type) =
         Microsoft.FSharp.Reflection.FSharpType.IsUnion typ && 
-        (Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typ |> Array.map (fun x -> x.Name) = [| "Random"; "Defined" |])
+        (Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typ |> Array.map (fun x -> x.Name) = ((Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typeof<Randomizeable<_>>) |> Array.map (fun x -> x.Name)))
 
     let getValue (random : System.Random) (propertyExpr : Quotations.Expr<Randomizeable<'T>>) : 'T =
         match propertyExpr with
