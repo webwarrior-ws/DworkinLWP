@@ -20,3 +20,7 @@ TestResult.xml
 *.psess
 *.vsp
 *.vspx
+
+## Xamarin Android Designer File
+
+Resource.designer.cs
