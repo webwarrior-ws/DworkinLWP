@@ -118,7 +118,13 @@ type IntRangeAttribute(minVal: int, maxVal: int) =
         random.Next(minVal, maxVal+1) |> box
 #if __ANDROID__
     override this.CreateView(context, property) = 
-        failwith "notimplemented"
+        if Randomizeable.isRandomizableType property.PropertyType then
+            let view = new RandomizedIntSeekBar(context)
+            view.Initialize()
+            view.SetRange(minVal, maxVal)
+            view :> ISettingEditor
+        else
+            failwith "Non-randomizeable version of int range editor is not implemented"
 #endif
 
 /// Float range (single precision)
@@ -130,7 +136,13 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
         (float32(random.NextDouble()) * (maxVal - minVal) + minVal) |> box
 #if __ANDROID__
     override this.CreateView(context, property) = 
-        failwith "notimplemented"
+        if Randomizeable.isRandomizableType property.PropertyType then
+            let view = new RandomizedFloatSeekBar(context)
+            view.Initialize()
+            view.SetRange(minVal, maxVal, 10)
+            view :> ISettingEditor
+        else
+            failwith "Non-randomizeable version of int range editor is not implemented"
 #endif
 
 /// Color (RGB float32 triple). Each component is in range [1; 0].

@@ -41,8 +41,14 @@ module XamarinCrutch =
 type AllKindsOfSettings() =
     inherit Settings()
 
-    [<Enum([| 1; 2; 3; 4; |])>]
+    [<Enum([| 1; 2; 3; 4; |], Name="Integer Spinner (randomized)")>]
     member val IntEnum = Defined(1) with get, set
+
+    [<IntRange(2, 5)>]
+    member val IntRange = Defined(3) with get, set
+
+    [<FloatRange(1.0f, 2.0f)>]
+    member val FloatRange = Defined(1.2f) with get, set
 
 
 [<Activity (Label = "UITestingApp", MainLauncher = true, Icon = "@mipmap/icon")>]

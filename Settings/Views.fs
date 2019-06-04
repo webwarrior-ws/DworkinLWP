@@ -36,8 +36,11 @@ type ISettingsView =
 
 
 /// View that contains setting editors. Doesn't include title.
-type SettingsView(context : Context, attrs : IAttributeSet, defStyle : int) =
+type SettingsView(context : Context, attrs : IAttributeSet, defStyle : int) as this =
     inherit LinearLayout(context, attrs, defStyle)
+    do
+        this.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
+        this.Orientation <- Orientation.Vertical
 
     let mutable editors : ISettingEditor[] = [||]
     let changedEvent = Event<unit>()
@@ -123,3 +126,99 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
     override this.OnFinishInflate() =
         this.Initialize()
         base.OnFinishInflate()
+
+
+[<AbstractClass>]
+type RandomizedSeekBar<'TItem>(context : Context, attrs : IAttributeSet, defStyle : int) =
+    inherit LinearLayout(context, attrs, defStyle)
+
+    let changedEvent = Event<unit>()
+    let mutable accessor = Empty
+
+    new(context, attrs) = new RandomizedSeekBar<'TItem>(context, attrs, 0)
+    new(context) = new RandomizedSeekBar<'TItem>(context, null)
+
+    abstract ValueToProgress : 'TItem -> int
+    abstract ProgressToValue : int -> 'TItem
+    
+    member private this.Button = this.FindViewById<ToggleImageButton>(Resources.Id.dice)
+    member internal this.SeekBar : SeekBar = this.FindViewById<SeekBar>(Resources.Id.seek_bar)
+
+    interface ISettingEditor with
+        member this.Changed = this.Changed
+        member this.Title 
+            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+        member this.Accessor 
+            with set(newAccessor) =
+                match newAccessor with
+                | Empty -> ()
+                | Accessor(getter, _) ->
+                    let currValue = getter() :?> Randomizeable<'TItem>
+                    match currValue with
+                    | Randomized -> this.Button.Checked <- true
+                    | Defined(value) -> 
+                        this.Button.Checked <- false
+                        this.SeekBar.Progress <- this.ValueToProgress(value)
+                accessor <- newAccessor
+    
+    member val Changed = changedEvent.Publish
+
+    member this.Initialize() =
+        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSeekbar, this)
+        view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
+        (view :?> LinearLayout).Orientation <- Orientation.Vertical
+        let button = this.Button
+        let seekbar = this.SeekBar
+        button.OnCheckedChangeListener <- 
+            fun (button, isChecked) ->
+                if seekbar.Enabled <> not isChecked then
+                    seekbar.Enabled <- not isChecked
+                    changedEvent.Trigger()
+        seekbar.ProgressChanged.Add(fun args -> changedEvent.Trigger())
+        this.Changed.Add(
+            fun () -> 
+                let newVal = if this.Button.Checked then Randomized else Defined(this.ProgressToValue(seekbar.Progress))
+                accessor.Set(newVal))
+    
+    override this.OnFinishInflate() =
+        this.Initialize()
+        base.OnFinishInflate()
+
+
+type RandomizedIntSeekBar(context : Context, attrs : IAttributeSet, defStyle : int) =
+    inherit RandomizedSeekBar<int>(context, attrs, defStyle)
+
+    let mutable minVal, maxVal = 0, 1
+
+    new(context, attrs) = new RandomizedIntSeekBar(context, attrs, 0)
+    new(context) = new RandomizedIntSeekBar(context, null)
+
+    member this.SetRange(low : int, high : int) =
+        assert (low < high)
+        this.SeekBar.Max <- high - low
+        minVal <- low
+        maxVal <- high
+
+    override this.ValueToProgress(value) = value - minVal
+    override this.ProgressToValue(progress) = progress + minVal
+
+
+type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle : int) =
+    inherit RandomizedSeekBar<float32>(context, attrs, defStyle)
+
+    let mutable minVal, maxVal = 0.0f, 1.0f
+    let mutable steps = 1
+
+    new(context, attrs) = new RandomizedFloatSeekBar(context, attrs, 0)
+    new(context) = new RandomizedFloatSeekBar(context, null)
+
+    member this.SetRange(low : float32, high : float32, numSteps : int) =
+        assert (low < high)
+        this.SeekBar.Min <- 0
+        this.SeekBar.Max <- numSteps
+        steps <- numSteps
+        minVal <- low
+        maxVal <- high
+
+    override this.ValueToProgress(value) = (value / (maxVal - minVal) - minVal) * float32(steps) |> int
+    override this.ProgressToValue(progress) = float32(progress) / float32(steps) * (maxVal - minVal) + minVal

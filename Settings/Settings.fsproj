@@ -59,6 +59,7 @@
     <AndroidResource Include="Resources\values\style.xml" />
     <AndroidResource Include="Resources\drawable\dice.png" />
     <AndroidResource Include="Resources\layout\RandomizedSpinner.axml" />
+    <AndroidResource Include="Resources\layout\RandomizedSeekbar.axml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="Resources.fs" />
