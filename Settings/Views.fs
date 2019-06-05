@@ -129,20 +129,22 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
 
 
 [<AbstractClass>]
-type RandomizedSeekBar<'TItem>(context : Context, attrs : IAttributeSet, defStyle : int) =
+type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defStyle : int) =
     inherit LinearLayout(context, attrs, defStyle)
 
     let changedEvent = Event<unit>()
     let mutable accessor = Empty
 
-    new(context, attrs) = new RandomizedSeekBar<'TItem>(context, attrs, 0)
-    new(context) = new RandomizedSeekBar<'TItem>(context, null)
+    new(context, attrs) = new RandomizedSeekBar<'TValue>(context, attrs, 0)
+    new(context) = new RandomizedSeekBar<'TValue>(context, null)
 
-    abstract ValueToProgress : 'TItem -> int
-    abstract ProgressToValue : int -> 'TItem
+    abstract ValueToProgress : 'TValue -> int
+    abstract ProgressToValue : int -> 'TValue
+    abstract ValueToString : 'TValue -> string
     
     member private this.Button = this.FindViewById<ToggleImageButton>(Resources.Id.dice)
     member internal this.SeekBar : SeekBar = this.FindViewById<SeekBar>(Resources.Id.seek_bar)
+    member private this.NumberDisplay = this.FindViewById<TextView>(Resources.Id.number_display)
 
     interface ISettingEditor with
         member this.Changed = this.Changed
@@ -153,12 +155,13 @@ type RandomizedSeekBar<'TItem>(context : Context, attrs : IAttributeSet, defStyl
                 match newAccessor with
                 | Empty -> ()
                 | Accessor(getter, _) ->
-                    let currValue = getter() :?> Randomizeable<'TItem>
+                    let currValue = getter() :?> Randomizeable<'TValue>
                     match currValue with
                     | Randomized -> this.Button.Checked <- true
                     | Defined(value) -> 
                         this.Button.Checked <- false
                         this.SeekBar.Progress <- this.ValueToProgress(value)
+                        this.NumberDisplay.Text <- this.ValueToString(value)
                 accessor <- newAccessor
     
     member val Changed = changedEvent.Publish
@@ -177,8 +180,14 @@ type RandomizedSeekBar<'TItem>(context : Context, attrs : IAttributeSet, defStyl
         seekbar.ProgressChanged.Add(fun args -> changedEvent.Trigger())
         this.Changed.Add(
             fun () -> 
-                let newVal = if this.Button.Checked then Randomized else Defined(this.ProgressToValue(seekbar.Progress))
-                accessor.Set(newVal))
+                let newVal = 
+                    if this.Button.Checked then 
+                        Randomized 
+                    else 
+                        let value = this.ProgressToValue(seekbar.Progress)
+                        this.NumberDisplay.Text <- this.ValueToString(value)
+                        Defined(value)
+                accessor.Set(newVal) )
     
     override this.OnFinishInflate() =
         this.Initialize()
@@ -201,6 +210,7 @@ type RandomizedIntSeekBar(context : Context, attrs : IAttributeSet, defStyle : i
 
     override this.ValueToProgress(value) = value - minVal
     override this.ProgressToValue(progress) = progress + minVal
+    override this.ValueToString(value) = string value
 
 
 type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle : int) =
@@ -223,3 +233,4 @@ type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle :
 
     override this.ValueToProgress(value) = (value / (maxVal - minVal) - minVal) * float32(steps) |> int
     override this.ProgressToValue(progress) = float32(progress) / float32(steps) * (maxVal - minVal) + minVal
+    override this.ValueToString(value) = sprintf "%2.4g" value // TODO: use info about range
