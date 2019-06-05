@@ -47,7 +47,7 @@ type AllKindsOfSettings() =
     [<IntRange(2, 5)>]
     member val IntRange = Defined(3) with get, set
 
-    [<FloatRange(1.0f, 2.0f)>]
+    [<FloatRange(1.0f, 2.0f, Step=0.1f)>]
     member val FloatRange = Defined(1.2f) with get, set
 
 

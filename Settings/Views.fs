@@ -214,6 +214,7 @@ type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle :
 
     member this.SetRange(low : float32, high : float32, numSteps : int) =
         assert (low < high)
+        assert (numSteps > 0)
         this.SeekBar.Min <- 0
         this.SeekBar.Max <- numSteps
         steps <- numSteps

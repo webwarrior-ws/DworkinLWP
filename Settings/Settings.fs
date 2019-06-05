@@ -132,6 +132,15 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
     inherit SettingAttribute()
     do assert(maxVal > minVal)
 
+    member val Step = 0.0f with get, set
+
+    member private this.NumSteps =
+        let extent = maxVal - minVal
+        if this.Step > 0.0f then
+            int(extent / this.Step)
+        else
+            20
+
     override this.RandomValue(random) =
         (float32(random.NextDouble()) * (maxVal - minVal) + minVal) |> box
 #if __ANDROID__
@@ -139,7 +148,7 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
         if Randomizeable.isRandomizableType property.PropertyType then
             let view = new RandomizedFloatSeekBar(context)
             view.Initialize()
-            view.SetRange(minVal, maxVal, 10)
+            view.SetRange(minVal, maxVal, this.NumSteps)
             view :> ISettingEditor
         else
             failwith "Non-randomizeable version of int range editor is not implemented"
