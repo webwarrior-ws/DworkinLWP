@@ -50,6 +50,9 @@ type AllKindsOfSettings() =
     [<FloatRange(1.0f, 2.0f, Step=0.1f)>]
     member val FloatRange = Defined(1.2f) with get, set
 
+    [<Color>]
+    member val Color = Defined(0.1f, 0.5f, 0.5f) with get, set
+
 
 [<Activity (Label = "UITestingApp", MainLauncher = true, Icon = "@mipmap/icon")>]
 type MainActivity () =
@@ -70,6 +73,7 @@ type MainActivity () =
 
         // TODO: see if this is no longer needed
         XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
+        XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.ColorPickerResources>
 
         let settingsView = settings.CreateView(this)
         settings.UseView(settingsView)

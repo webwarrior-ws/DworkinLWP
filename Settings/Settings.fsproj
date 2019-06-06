@@ -60,6 +60,9 @@
     <AndroidResource Include="Resources\drawable\dice.png" />
     <AndroidResource Include="Resources\layout\RandomizedSpinner.axml" />
     <AndroidResource Include="Resources\layout\RandomizedSeekbar.axml" />
+    <AndroidResource Include="Resources\layout\RandomizedColorPicker.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="Resources.fs" />
@@ -69,15 +72,24 @@
     <Compile Include="Settings.fs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="CheckerboardDrawable">
+      <HintPath>..\packages\Karamunting.Android.DuanHong169.CheckerboardDrawable.1.0.2.1\lib\monoandroid71\CheckerboardDrawable.dll</HintPath>
+    </Reference>
+    <Reference Include="ColorPicker">
+      <HintPath>..\packages\Karamunting.Android.DuanHong169.ColorPicker.1.1.1\lib\monoandroid71\ColorPicker.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\portable-net45+monoandroid10+monotouch10+xamarinios10\FSharp.Core.dll</HintPath>
     </Reference>
+    <Reference Include="Java.Interop" />
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="OpenTK-1.0" />
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="mscorlib" />
     <Reference Include="Mono.Android" />
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="Xamarin.Android.Arch.Core.Common">
       <HintPath>..\packages\Xamarin.Android.Arch.Core.Common.1.1.1.1\lib\monoandroid80\Xamarin.Android.Arch.Core.Common.dll</HintPath>
     </Reference>
@@ -98,6 +110,12 @@
     </Reference>
     <Reference Include="Xamarin.Android.Support.Compat">
       <HintPath>..\packages\Xamarin.Android.Support.Compat.28.0.0.1\lib\monoandroid80\Xamarin.Android.Support.Compat.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Android.Support.Constraint.Layout">
+      <HintPath>..\packages\Xamarin.Android.Support.Constraint.Layout.1.1.2\lib\MonoAndroid70\Xamarin.Android.Support.Constraint.Layout.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Android.Support.Constraint.Layout.Solver">
+      <HintPath>..\packages\Xamarin.Android.Support.Constraint.Layout.Solver.1.1.2\lib\MonoAndroid70\Xamarin.Android.Support.Constraint.Layout.Solver.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Android.Support.Core.UI">
       <HintPath>..\packages\Xamarin.Android.Support.Core.UI.28.0.0.1\lib\monoandroid80\Xamarin.Android.Support.Core.UI.dll</HintPath>
