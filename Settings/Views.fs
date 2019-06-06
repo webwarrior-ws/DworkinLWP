@@ -5,6 +5,7 @@ open Android.Util
 open Android.Widget
 open Android.Views
 
+open Top.Defaults.ColorPickerLib
 
 
 // interfaces for setting-editing viwes
@@ -234,3 +235,83 @@ type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle :
     override this.ValueToProgress(value) = (value / (maxVal - minVal) - minVal) * float32(steps) |> int
     override this.ProgressToValue(progress) = float32(progress) / float32(steps) * (maxVal - minVal) + minVal
     override this.ValueToString(value) = sprintf "%2.4g" value // TODO: use info about range
+
+
+type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : int) =
+    inherit LinearLayout(context, attrs, defStyle)
+
+    let changedEvent = Event<unit>()
+    let mutable accessor = Empty
+    let mutable color : RGBTriple = (0.0f, 0.0f, 0.0f)
+
+    new(context, attrs) = new RandomizedColorPicker(context, attrs, 0)
+    new(context) = new RandomizedColorPicker(context, null)
+
+    interface ISettingEditor with
+        member this.Changed = this.Changed
+        member this.Title 
+            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+        member this.Accessor 
+            with set(newAccessor) =
+                match newAccessor with
+                | Empty -> ()
+                | Accessor(getter, _) ->
+                    let currItem = getter() :?> Randomizeable<RGBTriple>
+                    match currItem with
+                    | Randomized -> this.Button.Checked <- true
+                    | Defined(r, g, b) -> 
+                        this.Button.Checked <- false
+                        this.AndroidColor <- Android.Graphics.Color(byte(r*255.0f), byte(g*255.0f), byte(b*255.0f))
+                accessor <- newAccessor
+    
+    member val Changed = changedEvent.Publish
+
+    member private this.Button = this.FindViewById<ToggleImageButton>(Resources.Id.dice)
+    member private this.Swatch = this.FindViewById<Button>(Resources.Id.swatch)
+
+    member private this.SetSwatchColor(color) =
+        this.Swatch.SetBackgroundColor(color)
+    
+    member private this.AndroidColor 
+        with get() = 
+            let r, g, b = color
+            Android.Graphics.Color(byte(r*255.0f), byte(g*255.0f), byte(b*255.0f))
+        and set(value : Android.Graphics.Color) = 
+            color <- (float32 value.R) / 255.0f, (float32 value.G) / 255.0f, (float32 value.B) / 255.0f
+            this.SetSwatchColor(value)
+
+    member this.Initialize() =
+        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedColorPicker, this)
+        view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
+        (view :?> LinearLayout).Orientation <- Orientation.Horizontal
+        let button = this.Button
+        let swatch = this.Swatch
+        button.OnCheckedChangeListener <- 
+            fun (button, isChecked) ->
+                if swatch.Enabled <> not isChecked then
+                    swatch.Enabled <- not isChecked
+                    changedEvent.Trigger()
+        this.Swatch.Click.Add(fun args ->
+            let dialog = 
+                ColorPickerPopup.Builder(context)
+                    .InitialColor(this.AndroidColor.ToArgb())
+                    .OkTitle("Choose")
+                    .CancelTitle("Cancel")
+                    .ShowValue(true)
+                    .Build()
+            let handler = 
+                { new ColorPickerPopup.IColorPickerObserver with 
+                    override popup.OnColorPicked(c) = 
+                        this.AndroidColor <- Android.Graphics.Color(c)
+                        changedEvent.Trigger()
+                    override popup.OnColor(c, fromUser) = () }
+            dialog.Show(this, handler) )
+        this.Changed.Add(fun () -> 
+            let newVal = 
+                if this.Button.Checked then Randomized 
+                else Defined(color)
+            accessor.Set(newVal))
+    
+    override this.OnFinishInflate() =
+        this.Initialize()
+        base.OnFinishInflate()

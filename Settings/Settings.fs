@@ -166,5 +166,10 @@ type ColorAttribute() =
         (r, g, b) |> box
 #if __ANDROID__
     override this.CreateView(context, property) = 
-        failwith "notimplemented"
+        if Randomizeable.isRandomizableType property.PropertyType then
+            let view = new RandomizedColorPicker(context)
+            view.Initialize()
+            view :> ISettingEditor
+        else
+            failwith "Non-randomizeable version of int range editor is not implemented"
 #endif
