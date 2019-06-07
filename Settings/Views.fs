@@ -64,39 +64,78 @@ type SettingsView(context : Context, attrs : IAttributeSet, defStyle : int) as t
     interface ISettingsView with
         member this.Editors = this.Editors :> System.Collections.Generic.IList<ISettingEditor>
         member this.Changed = this.Changed
-    
 
-type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs : IAttributeSet, defStyle : int) =
+
+type IRandomizedEditor<'TItem> =
+    abstract CurrentValue : 'TItem with get, set
+    abstract IsEnabled : bool with get, set
+
+
+type RandomizedEditorComponent<'TEditor, 'TItem when 'TEditor :> View and 'TEditor :> IRandomizedEditor<'TItem>> (editor : 'TEditor) =
+    let changedEvent = Event<unit>()
+    let mutable accessor = Empty
+    
+    member this.Initialize() =
+        this.RandomButton.OnCheckedChangeListener <- 
+            fun (button, isChecked) ->
+                if editor.IsEnabled <> not isChecked then
+                    editor.IsEnabled <- not isChecked
+                    changedEvent.Trigger()
+        this.Changed.Add(fun () -> 
+            let value = 
+                if this.RandomButton.Checked then
+                    Randomized
+                else
+                    Defined(editor.CurrentValue)
+            accessor.Set(value))
+
+    member val Changed : IEvent<unit> = changedEvent.Publish
+
+    member this.FireChangedEvent() = changedEvent.Trigger()
+
+    member this.RandomButton : ToggleImageButton = editor.FindViewById<ToggleImageButton>(Resources.Id.dice)
+
+    member this.Accessor
+        with set(newAccessor : Accessor) =
+            match newAccessor with
+            | Empty -> ()
+            | Accessor(getter, _) ->
+                let currItem = getter() :?> Randomizeable<'TItem>
+                match currItem with
+                | Randomized -> this.RandomButton.Checked <- true
+                | Defined(value) -> 
+                    this.RandomButton.Checked <- false
+                    editor.CurrentValue <- value
+            accessor <- newAccessor
+
+
+type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs : IAttributeSet, defStyle : int) as this =
     inherit LinearLayout(context, attrs, defStyle)
 
-    let changedEvent = Event<unit>()
+    let randomizedEditorComponent = RandomizedEditorComponent<RandomizedSpinner<'TItem>, 'TItem>(this)
     let mutable items : 'TItem[] = [||]
-    let mutable accessor = Empty
 
     new(context, attrs) = new RandomizedSpinner<'TItem>(context, attrs, 0)
     new(context) = new RandomizedSpinner<'TItem>(context, null)
 
+    interface IRandomizedEditor<'TItem> with
+        member this.CurrentValue 
+            with get() = items.[this.Spinner.SelectedItemPosition]
+            and set(value) = 
+                let index = items |> Array.findIndex (fun x -> x = value)
+                this.Spinner.SetSelection(index)
+        
+        member this.IsEnabled
+            with get() = this.Spinner.Enabled
+            and set(value) = this.Spinner.Enabled <- value
+
     interface ISettingEditor with
-        member this.Changed = this.Changed
+        member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
             with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
         member this.Accessor 
-            with set(newAccessor) =
-                match newAccessor with
-                | Empty -> ()
-                | Accessor(getter, _) ->
-                    let currItem = getter() :?> Randomizeable<'TItem>
-                    match currItem with
-                    | Randomized -> this.Button.Checked <- true
-                    | Defined(value) -> 
-                        this.Button.Checked <- false
-                        let index = items |> Array.findIndex (fun x -> x = value)
-                        this.Spinner.SetSelection(index)
-                accessor <- newAccessor
-    
-    member val Changed = changedEvent.Publish
+            with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
-    member private this.Button = this.FindViewById<ToggleImageButton>(Resources.Id.dice)
     member private this.Spinner = this.FindViewById<Spinner>(Resources.Id.spinner1)
 
     member this.SetItems(itemLabelPairs : ('TItem * string)[]) =
@@ -104,25 +143,12 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
         let labels = itemLabelPairs |> Array.map snd
         this.Spinner.Adapter <- new ArrayAdapter(context, Android.Resource.Layout.SimpleSpinnerDropDownItem, labels)
 
-    member this.SelectedItem : Randomizeable<'TItem> = 
-        if this.Button.Checked then
-            Randomized
-        else
-            Defined(items.[this.Spinner.SelectedItemPosition])
-
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSpinner, this)
         view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
         (view :?> LinearLayout).Orientation <- Orientation.Vertical
-        let button = this.Button
-        let spinner = this.Spinner
-        button.OnCheckedChangeListener <- 
-            fun (button, isChecked) ->
-                if spinner.Enabled <> not isChecked then
-                    spinner.Enabled <- not isChecked
-                    changedEvent.Trigger()
-        spinner.ItemSelected.Add(fun args -> changedEvent.Trigger())
-        this.Changed.Add(fun () -> accessor.Set(this.SelectedItem))
+        randomizedEditorComponent.Initialize()
+        this.Spinner.ItemSelected.Add(fun args -> randomizedEditorComponent.FireChangedEvent())
     
     override this.OnFinishInflate() =
         this.Initialize()
@@ -130,11 +156,10 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
 
 
 [<AbstractClass>]
-type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defStyle : int) =
+type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defStyle : int) as this =
     inherit LinearLayout(context, attrs, defStyle)
 
-    let changedEvent = Event<unit>()
-    let mutable accessor = Empty
+    let randomizedEditorComponent = RandomizedEditorComponent<RandomizedSeekBar<'TValue>, 'TValue>(this)
 
     new(context, attrs) = new RandomizedSeekBar<'TValue>(context, attrs, 0)
     new(context) = new RandomizedSeekBar<'TValue>(context, null)
@@ -143,52 +168,37 @@ type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defSty
     abstract ProgressToValue : int -> 'TValue
     abstract ValueToString : 'TValue -> string
     
-    member private this.Button = this.FindViewById<ToggleImageButton>(Resources.Id.dice)
     member internal this.SeekBar : SeekBar = this.FindViewById<SeekBar>(Resources.Id.seek_bar)
     member private this.NumberDisplay = this.FindViewById<TextView>(Resources.Id.number_display)
 
+    interface IRandomizedEditor<'TValue> with
+        member this.CurrentValue
+            with get() = this.ProgressToValue(this.SeekBar.Progress)
+            and set(value) = 
+                this.SeekBar.Progress <- this.ValueToProgress(value)
+                this.NumberDisplay.Text <- this.ValueToString(value)
+        
+        member this.IsEnabled 
+            with get() = this.SeekBar.Enabled
+            and set(value) = this.SeekBar.Enabled <- value
+
     interface ISettingEditor with
-        member this.Changed = this.Changed
+        member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
             with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
         member this.Accessor 
-            with set(newAccessor) =
-                match newAccessor with
-                | Empty -> ()
-                | Accessor(getter, _) ->
-                    let currValue = getter() :?> Randomizeable<'TValue>
-                    match currValue with
-                    | Randomized -> this.Button.Checked <- true
-                    | Defined(value) -> 
-                        this.Button.Checked <- false
-                        this.SeekBar.Progress <- this.ValueToProgress(value)
-                        this.NumberDisplay.Text <- this.ValueToString(value)
-                accessor <- newAccessor
-    
-    member val Changed = changedEvent.Publish
+            with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSeekbar, this)
         view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
         (view :?> LinearLayout).Orientation <- Orientation.Vertical
-        let button = this.Button
+        randomizedEditorComponent.Initialize()
         let seekbar = this.SeekBar
-        button.OnCheckedChangeListener <- 
-            fun (button, isChecked) ->
-                if seekbar.Enabled <> not isChecked then
-                    seekbar.Enabled <- not isChecked
-                    changedEvent.Trigger()
-        seekbar.ProgressChanged.Add(fun args -> changedEvent.Trigger())
-        this.Changed.Add(
-            fun () -> 
-                let newVal = 
-                    if this.Button.Checked then 
-                        Randomized 
-                    else 
-                        let value = this.ProgressToValue(seekbar.Progress)
-                        this.NumberDisplay.Text <- this.ValueToString(value)
-                        Defined(value)
-                accessor.Set(newVal) )
+        seekbar.ProgressChanged.Add(fun args -> 
+            let value = this.ProgressToValue(args.Progress)
+            this.NumberDisplay.Text <- this.ValueToString(value)
+            randomizedEditorComponent.FireChangedEvent())
     
     override this.OnFinishInflate() =
         this.Initialize()
@@ -237,36 +247,36 @@ type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle :
     override this.ValueToString(value) = sprintf "%2.4g" value // TODO: use info about range
 
 
-type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : int) =
+type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : int) as this =
     inherit LinearLayout(context, attrs, defStyle)
 
-    let changedEvent = Event<unit>()
-    let mutable accessor = Empty
+    let randomizedEditorComponent = RandomizedEditorComponent<RandomizedColorPicker, RGBTriple>(this)
     let mutable color : RGBTriple = (0.0f, 0.0f, 0.0f)
 
     new(context, attrs) = new RandomizedColorPicker(context, attrs, 0)
     new(context) = new RandomizedColorPicker(context, null)
 
+    interface IRandomizedEditor<RGBTriple> with
+        member this.CurrentValue
+            with get() = color
+            and set(value) = 
+                color <- value
+                let r, g, b = color
+                this.AndroidColor <- Android.Graphics.Color(byte(r*255.0f), byte(g*255.0f), byte(b*255.0f))
+        
+        member this.IsEnabled 
+            with get() = this.Swatch.Enabled
+            and set(value) = 
+                //...
+                this.Swatch.Enabled <- value
+
     interface ISettingEditor with
-        member this.Changed = this.Changed
+        member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
             with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
         member this.Accessor 
-            with set(newAccessor) =
-                match newAccessor with
-                | Empty -> ()
-                | Accessor(getter, _) ->
-                    let currItem = getter() :?> Randomizeable<RGBTriple>
-                    match currItem with
-                    | Randomized -> this.Button.Checked <- true
-                    | Defined(r, g, b) -> 
-                        this.Button.Checked <- false
-                        this.AndroidColor <- Android.Graphics.Color(byte(r*255.0f), byte(g*255.0f), byte(b*255.0f))
-                accessor <- newAccessor
-    
-    member val Changed = changedEvent.Publish
+            with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
-    member private this.Button = this.FindViewById<ToggleImageButton>(Resources.Id.dice)
     member private this.Swatch = this.FindViewById<Button>(Resources.Id.swatch)
 
     member private this.SetSwatchColor(color) =
@@ -284,33 +294,22 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedColorPicker, this)
         view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
         (view :?> LinearLayout).Orientation <- Orientation.Horizontal
-        let button = this.Button
-        let swatch = this.Swatch
-        button.OnCheckedChangeListener <- 
-            fun (button, isChecked) ->
-                if swatch.Enabled <> not isChecked then
-                    swatch.Enabled <- not isChecked
-                    changedEvent.Trigger()
+        randomizedEditorComponent.Initialize()
         this.Swatch.Click.Add(fun args ->
             let dialog = 
                 ColorPickerPopup.Builder(context)
                     .InitialColor(this.AndroidColor.ToArgb())
                     .OkTitle("Choose")
                     .CancelTitle("Cancel")
-                    .ShowValue(true)
+                    .ShowValue(false)
                     .Build()
             let handler = 
                 { new ColorPickerPopup.IColorPickerObserver with 
                     override popup.OnColorPicked(c) = 
                         this.AndroidColor <- Android.Graphics.Color(c)
-                        changedEvent.Trigger()
+                        randomizedEditorComponent.FireChangedEvent()
                     override popup.OnColor(c, fromUser) = () }
             dialog.Show(this, handler) )
-        this.Changed.Add(fun () -> 
-            let newVal = 
-                if this.Button.Checked then Randomized 
-                else Defined(color)
-            accessor.Set(newVal))
     
     override this.OnFinishInflate() =
         this.Initialize()
