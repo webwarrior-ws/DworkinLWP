@@ -173,3 +173,14 @@ type ColorAttribute() =
         else
             failwith "Non-randomizeable version of int range editor is not implemented"
 #endif
+
+
+type BoolAttribute() =
+    inherit SettingAttribute()
+
+    override this.RandomValue(random) =
+        (random.NextDouble() < 0.5)  |> box
+#if __ANDROID__
+    override this.CreateView(context, property) = 
+        failwith "not implemented"
+#endif

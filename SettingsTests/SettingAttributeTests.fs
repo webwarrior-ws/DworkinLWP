@@ -71,4 +71,11 @@ let randomValueTests =
                 // TODO: make color random generator that passes saturation and brightness chi-squared tests (?)
                 //Expect.isFalse (ChiSquareTest(sSamples, uniform0to1distribution)).Significant "saturation must pass chi-squared test"
                 //Expect.isFalse (ChiSquareTest(bSamples, uniform0to1distribution)).Significant "values must pass chi-squared test"
+            
+            testCase "BoolAttribute" <| fun _ ->
+                let samples = acquireSamples (BoolAttribute()) |> Array.map unbox<bool>
+                let distribution = getDistribution samples
+                let chiSquaredTest = 
+                    ChiSquareTest(distribution |> Array.map (snd >> float), Array.create 2 (float (sampleSize/2)), 1)
+                Expect.isFalse chiSquaredTest.Significant "must pass chi-squared test"
         ]
