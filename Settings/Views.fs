@@ -266,9 +266,9 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
         
         member this.IsEnabled 
             with get() = this.Swatch.Enabled
-            and set(value) = 
-                //...
-                this.Swatch.Enabled <- value
+            and set(enabled) = 
+                this.Swatch.Text <- if enabled then "" else "🔒"
+                this.Swatch.Enabled <- enabled
 
     interface ISettingEditor with
         member this.Changed = randomizedEditorComponent.Changed
