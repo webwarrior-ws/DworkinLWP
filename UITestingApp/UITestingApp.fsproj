@@ -71,12 +71,6 @@
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="CheckerboardDrawable">
-      <HintPath>..\packages\Karamunting.Android.DuanHong169.CheckerboardDrawable.1.0.2.1\lib\monoandroid71\CheckerboardDrawable.dll</HintPath>
-    </Reference>
-    <Reference Include="ColorPicker">
-      <HintPath>..\packages\Karamunting.Android.DuanHong169.ColorPicker.1.1.1\lib\monoandroid71\ColorPicker.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\portable-net45+monoandroid10+monotouch10+xamarinios10\FSharp.Core.dll</HintPath>
     </Reference>
