@@ -73,7 +73,8 @@ type MainActivity () =
 
         // TODO: see if this is no longer needed
         XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
-        XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.ColorPickerResources>
+        for each in Settings.AdditionalResourceValues.resourceTypesToBeUpdated do
+            XamarinCrutch.updateLibraryResourceIds typeof<Resources> each
 
         let settingsView = settings.CreateView(this)
         settings.UseView(settingsView)
