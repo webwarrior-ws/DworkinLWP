@@ -53,6 +53,8 @@ type AllKindsOfSettings() =
     [<Color>]
     member val Color = Defined(0.1f, 0.5f, 0.5f) with get, set
 
+    static member AllRandom = AllKindsOfSettings(IntEnum=Randomized, IntRange=Randomized, FloatRange=Randomized, Color=Randomized)
+
 
 [<Activity (Label = "UITestingApp", MainLauncher = true, Icon = "@mipmap/icon")>]
 type MainActivity () =
@@ -83,9 +85,14 @@ type MainActivity () =
         settingsView.Changed.Add(fun _ -> 
             this.UpdateDisplay() )
 
-        let button = this.FindViewById<Button>(Resources.Id.reloadButton)
-        button.Click.Add (fun args -> 
+        this.FindViewById<Button>(Resources.Id.reloadButton).Click.Add (fun args -> 
             settings <- AllKindsOfSettings()
+            settings.UseView(settingsView)
+            this.UpdateDisplay()
+        )
+
+        this.FindViewById<Button>(Resources.Id.setRandomizedButton).Click.Add (fun args -> 
+            settings <- AllKindsOfSettings.AllRandom
             settings.UseView(settingsView)
             this.UpdateDisplay()
         )
