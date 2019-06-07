@@ -53,7 +53,10 @@ type AllKindsOfSettings() =
     [<Color>]
     member val Color = Defined(0.1f, 0.5f, 0.5f) with get, set
 
-    static member AllRandom = AllKindsOfSettings(IntEnum=Randomized, IntRange=Randomized, FloatRange=Randomized, Color=Randomized)
+    [<Bool>]
+    member val Bool = Defined(false) with get, set
+
+    static member AllRandom = AllKindsOfSettings(IntEnum=Randomized, IntRange=Randomized, FloatRange=Randomized, Color=Randomized, Bool=Randomized)
 
 
 [<Activity (Label = "UITestingApp", MainLauncher = true, Icon = "@mipmap/icon")>]

@@ -63,6 +63,9 @@
     <AndroidResource Include="Resources\layout\RandomizedColorPicker.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\RandomizedCheckbox.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="Resources.fs" />

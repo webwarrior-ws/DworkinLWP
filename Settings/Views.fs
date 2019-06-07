@@ -314,3 +314,41 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
     override this.OnFinishInflate() =
         this.Initialize()
         base.OnFinishInflate()
+
+
+type RandomizedCheckbox(context : Context, attrs : IAttributeSet, defStyle : int) as this =
+    inherit LinearLayout(context, attrs, defStyle)
+
+    let randomizedEditorComponent = RandomizedEditorComponent<RandomizedCheckbox, bool>(this)
+
+    new(context, attrs) = new RandomizedCheckbox(context, attrs, 0)
+    new(context) = new RandomizedCheckbox(context, null)
+
+    interface IRandomizedEditor<bool> with
+        member this.CurrentValue 
+            with get() = this.Checkbox.Checked
+            and set(value) = this.Checkbox.Checked <- value
+        
+        member this.IsEnabled
+            with get() = this.Checkbox.Enabled
+            and set(value) = this.Checkbox.Enabled <- value
+
+    interface ISettingEditor with
+        member this.Changed = randomizedEditorComponent.Changed
+        member this.Title 
+            with set(value) = this.Checkbox.Text <- value
+        member this.Accessor 
+            with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
+
+    member private this.Checkbox = this.FindViewById<CheckBox>(Resources.Id.checkbox)
+
+    member this.Initialize() =
+        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedCheckbox, this)
+        view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
+        (view :?> LinearLayout).Orientation <- Orientation.Horizontal
+        randomizedEditorComponent.Initialize()
+        this.Checkbox.CheckedChange.Add(fun args -> randomizedEditorComponent.FireChangedEvent())
+    
+    override this.OnFinishInflate() =
+        this.Initialize()
+        base.OnFinishInflate()    

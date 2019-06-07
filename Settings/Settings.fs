@@ -171,7 +171,7 @@ type ColorAttribute() =
             view.Initialize()
             view :> ISettingEditor
         else
-            failwith "Non-randomizeable version of int range editor is not implemented"
+            failwith "Non-randomizeable version of color picker editor is not implemented"
 #endif
 
 
@@ -182,5 +182,10 @@ type BoolAttribute() =
         (random.NextDouble() < 0.5)  |> box
 #if __ANDROID__
     override this.CreateView(context, property) = 
-        failwith "not implemented"
+        if Randomizeable.isRandomizableType property.PropertyType then
+            let view = new RandomizedCheckbox(context)
+            view.Initialize()
+            view :> ISettingEditor
+        else
+            failwith "Non-randomizeable version of bool editor is not implemented"
 #endif
