@@ -22,7 +22,7 @@
 	<TextView 
 		android:text="Current edited object"
 		android:layout_width="match_parent"
-		android:layout_height="80dp"
+		android:layout_height="90dp"
 		android:textSize="18dp"
 		android:id="@+id/textDisplay" />
 </LinearLayout>
