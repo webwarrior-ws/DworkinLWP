@@ -3,15 +3,20 @@
 
 open Android.App
 open Android.Content.PM
+open Android.Views
 open Android.Opengl
 open Android.OS
 
 
-[<Activity (Label = "DworkinTestingApp", ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), Icon = "@mipmap/icon", MainLauncher = true)>]
+[<Activity(Label = "DworkinTestingApp", ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), Icon = "@mipmap/icon", MainLauncher = true)>]
 type MainActivity () =
-    inherit Activity ()
+    inherit Android.Support.V7.App.AppCompatActivity()
 
     let mutable view : GLSurfaceView = null
+
+    member this.OpenSettings() =
+        let intent = new Android.Content.Intent(this, typeof<SettingsActivity>)
+        this.StartActivity(intent)
 
     override this.OnCreate (bundle) =
 
@@ -66,10 +71,13 @@ type MainActivity () =
             view.SetRenderer(renderer)
         else
             Android.Widget.Toast.MakeText(this, "This device does not support OpenGL ES 2.0.", Android.Widget.ToastLength.Long).Show()
-
         
-        this.SetContentView(view)
-
+        //this.SetContentView(view)
+        this.SetContentView(Resources.Layout.Main)
+        this.FindViewById<ViewGroup>(Resources.Id.app_root).AddView(view, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent))
+        let toolbar = this.FindViewById<Android.Support.V7.Widget.Toolbar>(Resources.Id.app_toolbar)
+        this.SetSupportActionBar(toolbar)
+    
     override this.OnPause() =
         // never forget to do this!
         base.OnPause()
@@ -79,4 +87,15 @@ type MainActivity () =
         // never forget to do this!
         base.OnResume()
         view.OnResume()
+
+    override this.OnCreateOptionsMenu(menu) =
+        this.MenuInflater.Inflate(Resources.Menu.menu, menu)
+        true
+    
+    override this.OnOptionsItemSelected(item) =
+        if item.ItemId = Resources.Id.settings_menuitem then
+            this.OpenSettings()
+            true
+        else
+            base.OnOptionsItemSelected(item)
 
