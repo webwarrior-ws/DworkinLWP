@@ -19,8 +19,8 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
     <Name>DworkinTestingApp</Name>
-    <SelectedDevice>Samsung GT-I9500</SelectedDevice>
-    <DefaultDevice>android_5_phone</DefaultDevice>
+    <SelectedDevice>AVD_for_4_65_720p_Galaxy_Nexus</SelectedDevice>
+    <DefaultDevice>AVD_for_4_65_720p_Galaxy_Nexus</DefaultDevice>
     <AndroidDesignerPreferredDevice>Nexus 4</AndroidDesignerPreferredDevice>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
@@ -65,12 +65,16 @@
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\layout\Main.axml" />
+    <AndroidResource Include="Resources\layout\SettingsScreen.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\mipmap-hdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-mdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-xhdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-xxhdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-xxxhdpi\Icon.png" />
+    <AndroidResource Include="Resources\menu\menu.xml" />
     <None Include="Properties\AndroidManifest.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <AndroidAsset Include="Assets\AboutAssets.txt" />
@@ -78,6 +82,9 @@
     <Compile Include="TestRenderers.fs" />
     <Compile Include="GeneratedConfigs.fs" />
     <Compile Include="TestConfigs.fs" />
+    <Compile Include="SettingsActivity.fs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="MainActivity.fs" />
   </ItemGroup>
   <ItemGroup>
@@ -140,6 +147,11 @@
     <ProjectReference Include="..\LibDworkin\LibDworkin.fsproj">
       <Project>{207f165c-d87c-455d-b366-4d76aa03e760}</Project>
       <Name>LibDworkin</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Settings\Settings.fsproj">
+      <Name>Settings</Name>
+      <Project>{8149a570-4624-42b7-a0bb-1992b19dc25a}</Project>
+      <Private>True</Private>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\packages\Xamarin.Android.Support.Annotations.28.0.0.1\build\monoandroid80\Xamarin.Android.Support.Annotations.targets" Condition="Exists('..\packages\Xamarin.Android.Support.Annotations.28.0.0.1\build\monoandroid80\Xamarin.Android.Support.Annotations.targets')" />
