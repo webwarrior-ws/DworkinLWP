@@ -18,9 +18,7 @@ type SettingsActivity() =
     
     member this.SetRandomSeed(newSeed : int) =
         let oldSettings = CurrentSettings.get()
-        CurrentSettings.set({ 
-            oldSettings with 
-                EnvironmentConfig=(oldSettings.EnvironmentConfig |> Optic.set randomSeed_ newSeed) })
+        CurrentSettings.set({ oldSettings with Seed=newSeed })
 
     override this.OnCreate(bundle) =
         base.OnCreate (bundle)
@@ -28,7 +26,7 @@ type SettingsActivity() =
         this.SetContentView(Resources.Layout.SettingsScreen)
         let seedDisplay = this.FindViewById<EditText>(Resources.Id.seed_display)
         let nextSeedButton = this.FindViewById<Button>(Resources.Id.next_seed_button)
-        seedDisplay.Text <- CurrentSettings.get().EnvironmentConfig.RandomSeed |> string
+        seedDisplay.Text <- CurrentSettings.get().Seed |> string
         seedDisplay.TextChanged.Add(fun args -> this.SetRandomSeed(int seedDisplay.Text))
         nextSeedButton.Click.Add(fun args -> 
             let nextSeed : int = System.Random().Next()

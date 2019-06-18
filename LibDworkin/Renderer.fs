@@ -570,12 +570,18 @@ type BaseRenderer(platform : AbstractPlatform) =
         Point(float32(width) / multiple, float32(height) / multiple)
 
 
-type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentConfig) =
+type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref) as this =
     inherit BaseRenderer(platform)
 
-    let mutable environmentConfig = environmentConfig
+    let mutable currentSettings = !settingsRef
+    let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
     let mutable environment : Agents.DworkinEnvironment option = None
     let mutable framesAfterStop = 0
+    do
+        let random = System.Random(currentSettings.Seed)
+        this.Effect <- currentSettings.Effect.Build(platform, random)
+        this.Foreground <- currentSettings.Foreground.Build(platform, random)
+        this.Background <- currentSettings.Background.Build(platform, random)
 #if __ANDROID__    
     member val StatsPrinted = false with get, set
 #endif
@@ -587,6 +593,24 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
             environmentConfig <- config
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
+    member private this.ApplyChangesInSettings() =
+        if currentSettings <> !settingsRef then
+            let previousSettings = currentSettings
+            currentSettings <- !settingsRef
+            let random = System.Random(currentSettings.Seed)
+
+            if previousSettings.Seed <> currentSettings.Seed || previousSettings.Environment <> currentSettings.Environment then
+                this.EnvironmentConfig <- currentSettings.Environment.Build(currentSettings.Seed)
+            
+            if previousSettings.Effect <> currentSettings.Effect then
+                this.Effect <- currentSettings.Effect.Build(platform, random)
+            
+            if previousSettings.Background <> currentSettings.Background then
+                this.Background <- currentSettings.Background.Build(platform, random)
+            
+            if previousSettings.Foreground <> currentSettings.Foreground then
+                this.Foreground <- currentSettings.Foreground.Build(platform, random)
+
     override this.ResetEnvironment(dimensions : Point) =
         framesAfterStop <- 0
         this.ClearSDF()
@@ -613,6 +637,8 @@ type DworkinRenderer(platform, environmentConfig : Agents.IDworkinEnvironmentCon
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)
+
+        this.ApplyChangesInSettings()
 
         let mutable agentsCount = 0
         let mutable activeAgentsCount = 0

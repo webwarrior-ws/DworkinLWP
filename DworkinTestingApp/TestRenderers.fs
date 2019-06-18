@@ -208,8 +208,8 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
         this.DrawImage()
 
 
-type BenchmarkRenderer(context, environmentConfig : LibDworkin.Agents.IDworkinEnvironmentConfig)  =
-    inherit DworkinRenderer(context, environmentConfig)
+type BenchmarkRenderer(context, settingsRef) =
+    inherit DworkinRenderer(context, settingsRef)
 
     let shapesQueue = System.Collections.Generic.Queue<int * ShapeAndPaint[]>()
 

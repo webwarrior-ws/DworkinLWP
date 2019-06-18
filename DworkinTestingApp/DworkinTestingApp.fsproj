@@ -82,6 +82,7 @@
     <Compile Include="TestRenderers.fs" />
     <Compile Include="GeneratedConfigs.fs" />
     <Compile Include="TestConfigs.fs" />
+    <Compile Include="ConfigSettings.fs" />
     <Compile Include="SettingsActivity.fs">
       <SubType>Code</SubType>
     </Compile>
