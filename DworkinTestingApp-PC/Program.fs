@@ -8,7 +8,8 @@ open LibDworkin.Renderer
 open LibDworkin.RendererComponents
 open GUI
 open LibDworkin
-
+open LibDworkin.DworkinSettings
+open Settings
 
 
 type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRenderer, ?guis : GUI.Widgets.AbstractGui list) =
@@ -48,8 +49,16 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
 
  
 let pcbConfig = GeneratedConfigs.PCB_RandomPosChips()
+let defaultSettings = 
+    { 
+        Environment=ConfigSettings.PCB_RandomPosChips(); 
+        Effect=PlainEffectSettings();
+        Foreground=SolidColorMaterialSettings(Color=Defined(OpenTK.Graphics.Color4.Black));
+        Background=SolidColorMaterialSettings(Color=Defined(OpenTK.Graphics.Color4.White));
+        Seed=42;
+    }
 let platform = DotNETPlatform()
-let renderer = DworkinRenderer(platform, pcbConfig)
+let renderer = DworkinRenderer(platform, ref defaultSettings)
 
 module Builders =
     let internal makeShaderBasedComponentEditor<'T when 'T :> ShaderBasedComponent> (setter : DworkinRenderer -> 'T -> unit) name (children : (string * obj * (string -> ConfigPropertyEditor<RendererComponentFactory<'T>>)) list) : IRendererPropertyEditor = 

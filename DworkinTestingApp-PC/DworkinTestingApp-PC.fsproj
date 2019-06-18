@@ -18,6 +18,7 @@
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
 	<Compile Include="../DworkinTestingApp/GeneratedConfigs.fs" />
+    <Compile Include="../DworkinTestingApp/ConfigSettings.fs" />
 	<Compile Include="GUI.fs" />
 	<Compile Include="Program.fs" />
   </ItemGroup>
