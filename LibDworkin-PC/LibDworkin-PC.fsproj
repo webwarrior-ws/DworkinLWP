@@ -21,6 +21,9 @@
     <Compile Include="../LibDworkin/Configs.fs" />
 	  <Compile Include="../LibDworkin/Lenses.fs" />
     <Compile Include="../LibDworkin/RendererComponents.fs" />
+    <Compile Include="../Settings/Randomizeable.fs" />
+    <Compile Include="../Settings/Settings.fs" />
+    <Compile Include="../LibDworkin/DworkinSettings.fs" />
     <Compile Include="../LibDworkin/Renderer.fs" />
   </ItemGroup>
 

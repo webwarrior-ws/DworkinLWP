@@ -9,6 +9,7 @@ open Android.OS
 
 open LibDworkin.RendererComponents
 open LibDworkin.DworkinSettings
+open Settings
 
 
 [<Activity(Label = "DworkinTestingApp", ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), Icon = "@mipmap/icon", MainLauncher = true)>]
@@ -16,14 +17,30 @@ type MainActivity() =
     inherit Android.Support.V7.App.AppCompatActivity()
     
     let mutable view : GLSurfaceView = null
-    static member val RendererContainer : LibDworkin.Renderer.DworkinRenderer option = None with get, set
+    static let settingsHolder = 
+        ref { 
+            Environment=ConfigSettings.PCB_RandomPosChips(); 
+            Effect=PlainEffectSettings();
+            Foreground=SolidColorMaterialSettings(Color=Defined(OpenTK.Graphics.Color4.Black));
+            Background=SolidColorMaterialSettings(Color=Defined(OpenTK.Graphics.Color4.White));
+            Seed=42;
+        }
+    static member val private RendererContainer : LibDworkin.Renderer.DworkinRenderer option = None with get, set
+    static member val private PlatformContainer : AndroidPlatform option = None with get, set
+
+    member this.Platform = 
+        match MainActivity.PlatformContainer with
+        | Some(p) -> p
+        | None ->
+            let p = AndroidPlatform(this)
+            MainActivity.PlatformContainer <- Some(p)
+            p
     
     member this.OpenSettings() =
         let intent = new Android.Content.Intent(this, typeof<SettingsActivity>)
         this.StartActivity(intent)
 
     override this.OnCreate (bundle) =
-
         base.OnCreate (bundle)
 
         // Create our OpenGL view, and display it
@@ -41,19 +58,16 @@ type MainActivity() =
             || Build.Model.Contains("Emulator") 
             || Build.Model.Contains("Android SDK built for x86")))
         
-        let platform = AndroidPlatform(this)
         if not <| CurrentSettings.isSet() then
-            CurrentSettings.set({ 
-                    EnvironmentConfig=GeneratedConfigs.PCB_RandomPosChips(); 
-                    Effect=PlainEffect(platform);
-                    Foreground=SolidColorMaterial(platform, OpenTK.Graphics.Color4.Black);
-                    Background=SolidColorMaterial(platform, OpenTK.Graphics.Color4.White); 
-                })
+            CurrentSettings.set(!settingsHolder)
+        else
+            settingsHolder := CurrentSettings.get()
+        
         let renderer = 
             match MainActivity.RendererContainer with
             | Some(r) -> r
             | None ->
-                let r = new LibDworkin.Renderer.DworkinRenderer(platform, CurrentSettings.get().EnvironmentConfig)
+                let r = new LibDworkin.Renderer.DworkinRenderer(this.Platform, settingsHolder)
                 MainActivity.RendererContainer <- Some(r)
                 r
         //let renderer = //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
@@ -68,14 +82,13 @@ type MainActivity() =
             //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.brushesAndSpeedsTest) 
             //new TestRenderers.ShapesTestRenderer(platform) 
             //new TestRenderers.CollidingAgentsTestRenderer(platform)
-        renderer.Effect <- CurrentSettings.get().Effect
+        
         //renderer.Effect <- GlowEffect(platform, OpenTK.Graphics.Color4.BlueViolet, 0.5f, LibDworkin.RendererComponents.GlowType.Outer)
         //renderer.Effect <- LibDworkin.RendererComponents.ShadowEffect(platform, LibDworkin.Geometry.Point(1.0f, -1.0f), 10.0f, 0.2f, 0.5f, 0.5f, false)
         //renderer.Effect <- LibDworkin.RendererComponents.BevelEffect(platform, 5.0f, 0.5f, LibDworkin.Geometry.Point(1.0f, -1.0f), 
         //                                                             LibDworkin.RendererComponents.BevelProfile.Linear,
         //                                                             LibDworkin.RendererComponents.BevelMode.Ridge)
-        renderer.Background <- CurrentSettings.get().Background
-        renderer.Foreground <- CurrentSettings.get().Foreground
+        
         //renderer.Background <- LibDworkin.RendererComponents.NormalmapAndAOMaterial(platform, OpenTK.Graphics.Color4.LightGray, "TexturesCom_Leather_Plain_512_normal.png",
         //                                                                            LibDworkin.Geometry.Point(0.0f, 1.0f), 1.0f, 1.0f, None)
         //renderer.Background <- LibDworkin.RendererComponents.ColoredTextureMaterial(platform, OpenTK.Graphics.Color4.DarkGray, "knitted-netting_@2X.png",
@@ -105,6 +118,7 @@ type MainActivity() =
     override this.OnResume() =
         // never forget to do this!
         base.OnResume()
+        settingsHolder := CurrentSettings.get()
         view.OnResume()
 
     override this.OnCreateOptionsMenu(menu) =
