@@ -21,6 +21,15 @@ type B() =
     [<StubSetting>]
     member val Baz = 10 with get, set
 
+type WithRand() =
+    inherit Settings()
+    [<StubSetting>]
+    member val Foo = Defined(0) with get, set
+    [<StubSetting>]
+    member val Bar = Defined(1) with get, set
+    [<StubSetting>]
+    member val Baz = 42 with get, set
+
 
 [<Tests>]
 let equalityTests =
@@ -40,4 +49,21 @@ let equalityTests =
 
         testCase "Settings objects of different types shouldn't equal" <| fun _ ->
             Expect.notEqual (A() :> Settings) (B() :> Settings) "different types"
+    ]
+
+[<Tests>]
+let hasRandomizedValuesTests =
+    testList "HasRandomizedValues property" [
+        testCase "HasRandomizedValues on object with no Randomizeable<'T> properties should return false" <| fun _ ->
+            Expect.isFalse (A().HasRandomizedValues) "no Randomizeable<'T> properties"
+        
+        testCase "HasRandomizedValues on object with Randomizeable<'T> properties with Defined values should return false" <| fun _ ->
+            let x = WithRand()
+            Expect.isFalse x.HasRandomizedValues "no randomized values"
+        
+        testCase "HasRandomizedValues on object with Randomizeable<'T> properties with Randomized values should return true" <| fun _ ->
+            let x = WithRand(Bar=Randomized)
+            Expect.isTrue x.HasRandomizedValues "randomized values"
+            let y = WithRand(Foo=Randomized, Bar=Randomized)
+            Expect.isTrue y.HasRandomizedValues "randomized values"
     ]

@@ -26,6 +26,18 @@ and [<AbstractClass>]
     member this.SettingProperties =
         this.GetType().GetProperties()
         |> Array.filter (fun prop -> prop.CanRead && prop.CanWrite && prop.GetCustomAttributes(typeof<SettingAttribute>, true).Length > 0)
+    
+    /// Return true if any setting has Randomized value
+    member this.HasRandomizedValues : bool =
+        this.SettingProperties
+        |> Array.exists (fun prop -> 
+            let value = prop.GetValue(this)
+            let typ = value.GetType()
+            if Randomizeable<_>.IsRandomizableType typ then
+                let case, _ = Microsoft.FSharp.Reflection.FSharpValue.GetUnionFields(value, typ)
+                case.Name = "Randomized"
+            else 
+                false)
 
     override this.Equals(other : obj) =
         if LanguagePrimitives.PhysicalEquality (this :> obj) other then
@@ -67,8 +79,7 @@ and [<AbstractClass>]
 
 module Randomizeable =
     let isRandomizableType (typ : System.Type) =
-        Microsoft.FSharp.Reflection.FSharpType.IsUnion typ && 
-        (Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typ |> Array.map (fun x -> x.Name) = ((Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typeof<Randomizeable<_>>) |> Array.map (fun x -> x.Name)))
+        Randomizeable<_>.IsRandomizableType typ
 
     let getValue (random : System.Random) (propertyExpr : Quotations.Expr<Randomizeable<'T>>) : 'T =
         match propertyExpr with
