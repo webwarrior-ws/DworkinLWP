@@ -597,18 +597,22 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
         if currentSettings <> !settingsRef then
             let previousSettings = currentSettings
             currentSettings <- !settingsRef
+            let seedChanged = previousSettings.Seed <> currentSettings.Seed
             let random = System.Random(currentSettings.Seed)
 
-            if previousSettings.Seed <> currentSettings.Seed || previousSettings.Environment <> currentSettings.Environment then
+            if seedChanged || previousSettings.Environment <> currentSettings.Environment then
                 this.EnvironmentConfig <- currentSettings.Environment.Build(currentSettings.Seed)
             
-            if previousSettings.Effect <> currentSettings.Effect then
+            if previousSettings.Effect <> currentSettings.Effect || 
+               (seedChanged && currentSettings.Effect.HasRandomizedValues) then
                 this.Effect <- currentSettings.Effect.Build(platform, random)
             
-            if previousSettings.Background <> currentSettings.Background then
+            if previousSettings.Background <> currentSettings.Background || 
+               (seedChanged && currentSettings.Background.HasRandomizedValues) then
                 this.Background <- currentSettings.Background.Build(platform, random)
             
-            if previousSettings.Foreground <> currentSettings.Foreground then
+            if previousSettings.Foreground <> currentSettings.Foreground || 
+               (seedChanged && currentSettings.Foreground.HasRandomizedValues) then
                 this.Foreground <- currentSettings.Foreground.Build(platform, random)
 
     override this.ResetEnvironment(dimensions : Point) =
