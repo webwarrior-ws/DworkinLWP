@@ -24,6 +24,7 @@
     <AndroidDesignerPreferredDevice>Nexus 4</AndroidDesignerPreferredDevice>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <AndroidDesignerPreferredTheme>Theme.AppCompat.NoActionBar</AndroidDesignerPreferredTheme>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>

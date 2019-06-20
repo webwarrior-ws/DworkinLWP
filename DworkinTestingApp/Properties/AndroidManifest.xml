@@ -5,7 +5,4 @@
                android:label="@string/app_name"
                android:theme="@style/Theme.AppCompat.NoActionBar">
   </application>
-  <activity android:name=".SettingsActivity"
-          android:parentActivityName=".MainActivity">
-  </activity>
 </manifest>
