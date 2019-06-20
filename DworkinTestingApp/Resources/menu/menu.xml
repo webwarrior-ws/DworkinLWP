@@ -3,10 +3,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" >
 
   <item
-      android:id="@+id/settings_menuitem"
+      android:id="@+id/menuitem_nextseed"
+      android:title="Next"
+      app:showAsAction="ifRoom" />
+
+  <item
+      android:id="@+id/menuitem_settings"
       android:title="Settings"
-      app:showAsAction="always"
-      android:enabled="true"
-      android:visible="true" />
+      app:showAsAction="ifRoom" />
 
 </menu>

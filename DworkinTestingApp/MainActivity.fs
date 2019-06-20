@@ -12,7 +12,10 @@ open LibDworkin.DworkinSettings
 open Settings
 
 
-[<Activity(Label = "DworkinTestingApp", ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), Icon = "@mipmap/icon", MainLauncher = true)>]
+[<Activity(Label = "Dworkin", 
+           ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), 
+           Icon = "@mipmap/icon", 
+           MainLauncher = true)>]
 type MainActivity() =
     inherit Android.Support.V7.App.AppCompatActivity()
     
@@ -126,8 +129,12 @@ type MainActivity() =
         true
     
     override this.OnOptionsItemSelected(item) =
-        if item.ItemId = Resources.Id.settings_menuitem then
+        if item.ItemId = Resources.Id.menuitem_settings then
             this.OpenSettings()
+            true
+        elif item.ItemId = Resources.Id.menuitem_nextseed then
+            CurrentSettings.set({ CurrentSettings.get() with Seed = System.Random().Next() })
+            settingsHolder := CurrentSettings.get()
             true
         else
             base.OnOptionsItemSelected(item)
