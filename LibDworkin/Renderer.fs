@@ -9,6 +9,7 @@ open SpecializedCollections
 open AgentAbstractions
 open RendererComponents
 open RendererComponents.Helpers
+open DworkinSettings
 
 #if __ANDROID__
 open Android.Opengl
@@ -594,26 +595,29 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
     member private this.ApplyChangesInSettings() =
-        if currentSettings <> !settingsRef then
+        let changes = CurrentSettings.getChanges()
+        if changes <> 0 || currentSettings <> !settingsRef then
             let previousSettings = currentSettings
             currentSettings <- !settingsRef
             let seedChanged = previousSettings.Seed <> currentSettings.Seed
             let random = System.Random(currentSettings.Seed)
 
-            if seedChanged || previousSettings.Environment <> currentSettings.Environment then
+            if seedChanged || (changes &&& int(SettingsChange.EnvironmentChanged) <> 0) then
                 this.EnvironmentConfig <- currentSettings.Environment.Build(currentSettings.Seed)
             
-            if previousSettings.Effect <> currentSettings.Effect || 
+            if changes &&& int(SettingsChange.EffectChanged) <> 0 || 
                (seedChanged && currentSettings.Effect.HasRandomizedValues) then
                 this.Effect <- currentSettings.Effect.Build(platform, random)
             
-            if previousSettings.Background <> currentSettings.Background || 
+            if changes &&& int(SettingsChange.BackgroundChanged) <> 0 || 
                (seedChanged && currentSettings.Background.HasRandomizedValues) then
                 this.Background <- currentSettings.Background.Build(platform, random)
             
-            if previousSettings.Foreground <> currentSettings.Foreground || 
+            if changes &&& int(SettingsChange.ForegroundChanged) <> 0 || 
                (seedChanged && currentSettings.Foreground.HasRandomizedValues) then
                 this.Foreground <- currentSettings.Foreground.Build(platform, random)
+            
+            CurrentSettings.resetChanges()
 
     override this.ResetEnvironment(dimensions : Point) =
         framesAfterStop <- 0
