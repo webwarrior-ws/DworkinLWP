@@ -138,7 +138,7 @@ let effectGui =
                 ];
             Builders.effectEditor<OutlineEffect> "outline"
                 [ 
-                    "outlineWidth", box 5.0f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;
+                    "outlineWidth", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;
                 ];
             Builders.effectEditor<BevelEffect> "bevel"
                 [ 
