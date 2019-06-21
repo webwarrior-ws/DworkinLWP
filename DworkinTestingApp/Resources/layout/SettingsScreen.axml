@@ -10,6 +10,11 @@
 	   android:elevation="4dp"
 	   android:theme="@style/ThemeOverlay.AppCompat.ActionBar" />
 	<LinearLayout
+		android:id="@+id/editors_group"
+		android:orientation="vertical"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content" />
+	<LinearLayout
 		android:orientation="horizontal"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content">

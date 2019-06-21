@@ -2,6 +2,7 @@
 
 open Android.App
 open Android.Widget
+open Android.Views
 
 open Settings
 open LibDworkin.DworkinSettings
@@ -17,6 +18,7 @@ type SettingsActivity() =
     inherit Android.Support.V7.App.AppCompatActivity()
     
     let mutable seedDisplay : EditText = null
+    let mutable effectChooser : SettingsClassChooser<EffectSettings> = null
 
     member this.SetRandomSeed(newSeed : int) =
         let oldSettings = CurrentSettings.get()
@@ -24,6 +26,11 @@ type SettingsActivity() =
 
     override this.OnCreate(bundle) =
         base.OnCreate (bundle)
+        // TODO: see if this is no longer needed
+        XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
+        for each in Settings.AdditionalResourceValues.resourceTypesToBeUpdated do
+            XamarinCrutch.updateLibraryResourceIds typeof<Resources> each
+
         // Create your application here
         this.SetContentView(Resources.Layout.SettingsScreen)
         seedDisplay <- this.FindViewById<EditText>(Resources.Id.seed_display)
@@ -37,6 +44,22 @@ type SettingsActivity() =
         let toolbar = this.FindViewById<Android.Support.V7.Widget.Toolbar>(Resources.Id.app_toolbar)
         this.SetSupportActionBar(toolbar)
         this.SupportActionBar.SetDisplayHomeAsUpEnabled(true)
+        // settings editors
+        effectChooser <- SettingsClassChooser<EffectSettings>.Create(
+            this, 
+            [| 
+                typeof<PlainEffectSettings>, "solid color"
+                typeof<OutlineEffectSettings>, "outline"
+            |]
+        )
+        effectChooser.Title <- "Effect"
+        effectChooser.Accessor <- 
+            Views.Accessor(
+                (fun () -> CurrentSettings.get().Effect |> box), 
+                (fun value -> CurrentSettings.set { CurrentSettings.get() with Effect=unbox<EffectSettings>(value) } ))
+        effectChooser.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.EffectChanged))
+        this.FindViewById<ViewGroup>(Resources.Id.editors_group).AddView(effectChooser)
+        
     
     override this.OnOptionsItemSelected(item) =
         if item.ItemId = Android.Resource.Id.Home then
