@@ -59,7 +59,7 @@ and [<AbstractClass>]
 #if __ANDROID__
     abstract member CreateView : Android.Content.Context -> SettingsView
     default this.CreateView(context) =
-        let view = new SettingsView(context)
+        let view = new SettingsView(context, SettingsClass=this.GetType())
         view.Editors <- 
             this.SettingProperties 
             |> Array.map (fun prop -> 
