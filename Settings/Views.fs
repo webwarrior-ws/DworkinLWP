@@ -44,10 +44,15 @@ type SettingsView(context : Context, attrs : IAttributeSet, defStyle : int) as t
         this.Orientation <- Orientation.Vertical
 
     let mutable editors : ISettingEditor[] = [||]
+    let mutable settingsClass : System.Type = null
     let changedEvent = Event<unit>()
 
     new(context, attrs) = new SettingsView(context, attrs, 0)
     new(context) = new SettingsView(context, null)
+
+    member this.SettingsClass 
+        with get() = settingsClass
+        and internal set(value) = settingsClass <- value
 
     member val Changed = changedEvent.Publish
 
