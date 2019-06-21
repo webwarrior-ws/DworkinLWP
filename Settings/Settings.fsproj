@@ -66,6 +66,9 @@
     <AndroidResource Include="Resources\layout\RandomizedCheckbox.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\SettingsClassChooser.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="Resources.fs" />
@@ -73,6 +76,7 @@
     <Compile Include="ToggleImageButton.fs" />
     <Compile Include="Views.fs" />
     <Compile Include="Settings.fs" />
+    <Compile Include="SettingsClassChooser.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="CheckerboardDrawable">
