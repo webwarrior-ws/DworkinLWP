@@ -12,7 +12,7 @@ open LibDworkin.DworkinSettings
 open Settings
 
 
-[<Activity(Label = "Dworkin", 
+[<Activity(Label = "DworkinTestingApp", 
            ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), 
            Icon = "@mipmap/icon", 
            MainLauncher = true)>]
@@ -43,8 +43,8 @@ type MainActivity() =
         let intent = new Android.Content.Intent(this, typeof<SettingsActivity>)
         this.StartActivity(intent)
 
-    override this.OnCreate (bundle) =
-        base.OnCreate (bundle)
+    override this.OnCreate(bundle) =
+        base.OnCreate(bundle)
 
         // Create our OpenGL view, and display it
         view <- new GLSurfaceView(this)
@@ -111,6 +111,7 @@ type MainActivity() =
         this.SetContentView(Resources.Layout.Main)
         this.FindViewById<ViewGroup>(Resources.Id.app_root).AddView(view, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent))
         let toolbar = this.FindViewById<Android.Support.V7.Widget.Toolbar>(Resources.Id.app_toolbar)
+        toolbar.Title <- "Dworkin"
         this.SetSupportActionBar(toolbar)
     
     override this.OnPause() =
