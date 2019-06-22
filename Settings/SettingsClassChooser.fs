@@ -20,12 +20,12 @@ type SettingsClassChooser<'T when 'T :> Settings>(context : Context, attrs : IAt
     new(context, attrs) = new SettingsClassChooser<'T>(context, attrs, 0)
     new(context) = new SettingsClassChooser<'T>(context, null)
 
-    static member Create(context : Context, classLabelPairs : (System.Type * string)[]) =
+    static member Create(context : Context, classes : System.Type[]) =
         let res = new SettingsClassChooser<'T>(context)
         res.Initialize()
-        res.SetClasses(classLabelPairs)
+        res.SetClasses(classes)
         res
-
+    
     member private this.Spinner = this.FindViewById<Spinner>(Resources.Id.spinner)
 
     member private this.SetItemView(view : SettingsView) =
@@ -64,12 +64,20 @@ type SettingsClassChooser<'T when 'T :> Settings>(context : Context, attrs : IAt
     
     member val Changed = changedEvent.Publish
 
-    member this.SetClasses(classLabelPairs : (System.Type * string)[]) = 
-        if not (classLabelPairs |> Array.forall (fun (cls, _) -> cls.IsSubclassOf(typeof<'T>))) then
+    member this.SetClasses(newClasses : System.Type[]) = 
+        if not (newClasses |> Array.forall (fun cls -> cls.IsSubclassOf(typeof<'T>))) then
             failwithf "all classes must be subclass of %A" (typeof<'T>)
-        classes <- classLabelPairs |> Array.map fst
-        let labels = classLabelPairs |> Array.map snd
+        let labels = 
+            newClasses 
+            |> Array.map (fun cls -> 
+                let name = 
+                    cls.GetCustomAttributes(false)
+                    |> Array.tryPick (fun attr -> match attr with | :? NameAttribute as na -> Some(na.Name) | _ -> None)
+                match name with
+                | Some(x) -> x
+                | None -> cls.Name )
         this.Spinner.Adapter <- new ArrayAdapter(context, Android.Resource.Layout.SimpleSpinnerDropDownItem, labels)
+        classes <- newClasses
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.SettingsClassChooser, this)

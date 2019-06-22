@@ -28,11 +28,7 @@ type SettingsActivity() =
         let effectEditor = 
             SettingsClassChooser<EffectSettings>.Create(
                 this, 
-                [| 
-                    typeof<PlainEffectSettings>, "plain"
-                    typeof<OutlineEffectSettings>, "outline"
-                |]
-            )
+                [| typeof<PlainEffectSettings>; typeof<OutlineEffectSettings> |] )
         effectEditor.Title <- "Effect"
         effectEditor.Accessor <- 
             Views.Accessor(

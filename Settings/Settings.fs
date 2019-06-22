@@ -6,6 +6,12 @@ open Views
 #endif
 
 
+/// Attribute used to give custom names to classes (specifically concrete Settings subclasses) to be used in UI etc.
+type NameAttribute(name : string) =
+    inherit System.Attribute()
+    member this.Name = name
+
+
 [<AbstractClass>]
 type SettingAttribute() =
     inherit System.Attribute()
