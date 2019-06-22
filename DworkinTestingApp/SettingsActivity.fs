@@ -25,14 +25,34 @@ type SettingsActivity() =
         CurrentSettings.set({ oldSettings with Seed=newSeed })
     
     member private this.GetEffectEditor() =
-        let effectEditor = SettingsClassChooser<EffectSettings>.Create(this, Effects.allTypes )
-        effectEditor.Title <- "Effect"
-        effectEditor.Accessor <- 
+        let editor = SettingsClassChooser<EffectSettings>.Create(this, Effects.allTypes )
+        editor.Title <- "Effect"
+        editor.Accessor <- 
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Effect |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Effect=unbox<EffectSettings>(value) } ))
-        effectEditor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.EffectChanged))
-        effectEditor
+        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.EffectChanged))
+        editor
+    
+    member private this.GetForegroundEditor() =
+        let editor = SettingsClassChooser<MaterialSettings>.Create(this, Materials.allTypes )
+        editor.Title <- "Foreground"
+        editor.Accessor <- 
+            Views.Accessor(
+                (fun () -> CurrentSettings.get().Foreground |> box), 
+                (fun value -> CurrentSettings.set { CurrentSettings.get() with Foreground=unbox<MaterialSettings>(value) } ))
+        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.ForegroundChanged))
+        editor
+    
+    member private this.GetBackgroundEditor() =
+        let editor = SettingsClassChooser<MaterialSettings>.Create(this, Materials.allTypes )
+        editor.Title <- "Background"
+        editor.Accessor <- 
+            Views.Accessor(
+                (fun () -> CurrentSettings.get().Background |> box), 
+                (fun value -> CurrentSettings.set { CurrentSettings.get() with Background=unbox<MaterialSettings>(value) } ))
+        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.BackgroundChanged))
+        editor
 
     override this.OnCreate(bundle) =
         base.OnCreate (bundle)
@@ -58,6 +78,8 @@ type SettingsActivity() =
         // settings editors
         let editorsGroup = this.FindViewById<ViewGroup>(Resources.Id.editors_group)
         editorsGroup.AddView(this.GetEffectEditor())
+        editorsGroup.AddView(this.GetBackgroundEditor())
+        editorsGroup.AddView(this.GetForegroundEditor())
         
     
     override this.OnOptionsItemSelected(item) =
