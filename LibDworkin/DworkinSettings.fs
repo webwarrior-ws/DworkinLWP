@@ -5,6 +5,13 @@ open RendererComponents
 open Settings
 
 
+type OpenTK.Graphics.Color4 with
+    member this.AsRGBTriple = this.R, this.G, this.B
+    static member FromRGBTriple(r : float32, g : float32, b : float32) =
+        OpenTK.Graphics.Color4(r, g, b, 1.0f)
+
+
+
 [<AbstractClass>] 
 type EnvironmentSettings() =
     inherit Settings()
@@ -27,10 +34,15 @@ module Materials =
         inherit MaterialSettings()
 
         [<Color>]
-        member val Color = Defined(OpenTK.Graphics.Color4.White) with get, set
+        member val Color = Defined(OpenTK.Graphics.Color4.White.AsRGBTriple) with get, set
 
         override this.Build(platform, random) =
-            SolidColorMaterial(platform, Randomizeable.getValue random <@ this.Color @>) :> Material
+            SolidColorMaterial(
+                platform, 
+                OpenTK.Graphics.Color4.FromRGBTriple(Randomizeable.getValue random <@ this.Color @>)) 
+            :> Material
+    
+    let allTypes = [| typeof<SolidColor>; |]
 
 
 module Effects =

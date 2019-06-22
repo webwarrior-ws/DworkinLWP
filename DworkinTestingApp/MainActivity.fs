@@ -24,8 +24,8 @@ type MainActivity() =
         ref { 
             Environment=ConfigSettings.PCB_RandomPosChips(); 
             Effect=Effects.Plain();
-            Foreground=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.Black));
-            Background=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.White));
+            Foreground=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.Black.AsRGBTriple));
+            Background=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.White.AsRGBTriple));
             Seed=42;
         }
     static member val private RendererContainer : LibDworkin.Renderer.DworkinRenderer option = None with get, set
