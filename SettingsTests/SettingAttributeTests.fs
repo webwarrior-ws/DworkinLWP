@@ -54,6 +54,20 @@ let randomValueTests =
                     ChiSquareTest(samples |> Array.map float, UniformContinuousDistribution(float low, float high))
                 Expect.isFalse chiSquaredTest.Significant "must pass chi-squared test"
             
+            testCase "FloatRangeAttribute (with step)" <| fun _ ->
+                // if Step is given, random values should be in increments of Step
+                let low, high = -1.0f, 1.0f
+                let step = 0.5f
+                let expectedValues = [| low .. step .. high |] // [|-1.0f; -0.5f; 0.0f; 0.5f; 1.0f|]
+                let itemsCount = expectedValues.Length
+                let samples = acquireSamples (FloatRangeAttribute(low, high, Step=step)) |> Array.map unbox<float32>
+                Expect.all samples (fun x -> x >= low && x <= high) "must be within range"
+                let distribution = getDistribution samples
+                let chiSquaredTest = 
+                    ChiSquareTest(distribution |> Array.map (snd >> float), 
+                                  Array.create itemsCount (float (sampleSize/itemsCount)), itemsCount-1)
+                Expect.isFalse chiSquaredTest.Significant "must pass chi-squared test"
+            
             testCase "ColorAttribute" <| fun _ ->
                 let samples = acquireSamples (ColorAttribute()) |> Array.map unbox<float32*float32*float32>
                 Expect.all 

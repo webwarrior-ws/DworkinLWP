@@ -148,18 +148,21 @@ type IntRangeAttribute(minVal: int, maxVal: int) =
 type FloatRangeAttribute(minVal: float32, maxVal: float32) =
     inherit SettingAttribute()
     do assert(maxVal > minVal)
+    let extent = maxVal - minVal
 
     member val Step = 0.0f with get, set
-
+    
     member private this.NumSteps =
-        let extent = maxVal - minVal
         if this.Step > 0.0f then
             int(extent / this.Step)
         else
             20
 
     override this.RandomValue(random) =
-        (float32(random.NextDouble()) * (maxVal - minVal) + minVal) |> box
+        if this.Step <= 0.0f then
+            (float32(random.NextDouble()) * (maxVal - minVal) + minVal) |> box
+        else
+            minVal + float32(random.Next(this.NumSteps+1)) / float32(this.NumSteps) * extent |> box
 #if __ANDROID__
     override this.CreateView(context, property) = 
         if Randomizeable.isRandomizableType property.PropertyType then
