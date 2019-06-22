@@ -24,6 +24,16 @@ type SettingsActivity() =
         let oldSettings = CurrentSettings.get()
         CurrentSettings.set({ oldSettings with Seed=newSeed })
     
+    member private this.GetEnvironmentEditor() =
+        let editor = SettingsClassChooser<EnvironmentSettings>.Create(this, ConfigSettings.allEnvironmentSettingsTypes )
+        editor.Title <- "Environment"
+        editor.Accessor <- 
+            Views.Accessor(
+                (fun () -> CurrentSettings.get().Environment |> box), 
+                (fun value -> CurrentSettings.set { CurrentSettings.get() with Environment=unbox<EnvironmentSettings>(value) } ))
+        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.EnvironmentChanged))
+        editor
+
     member private this.GetEffectEditor() =
         let editor = SettingsClassChooser<EffectSettings>.Create(this, Effects.allTypes )
         editor.Title <- "Effect"
@@ -77,10 +87,10 @@ type SettingsActivity() =
         this.SupportActionBar.SetDisplayHomeAsUpEnabled(true)
         // settings editors
         let editorsGroup = this.FindViewById<ViewGroup>(Resources.Id.editors_group)
+        editorsGroup.AddView(this.GetEnvironmentEditor())
         editorsGroup.AddView(this.GetEffectEditor())
         editorsGroup.AddView(this.GetBackgroundEditor())
         editorsGroup.AddView(this.GetForegroundEditor())
-        
     
     override this.OnOptionsItemSelected(item) =
         if item.ItemId = Android.Resource.Id.Home then
