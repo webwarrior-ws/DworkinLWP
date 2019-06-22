@@ -11,3 +11,6 @@ type PCB_RandomPosChips() =
 
     override this.Build(seed) =
         GeneratedConfigs.PCB_RandomPosChips(RandomSeed=seed) :> EnvironmentConfig
+
+
+let allEnvironmentSettingsTypes = [| typeof<PCB_RandomPosChips>; |]
