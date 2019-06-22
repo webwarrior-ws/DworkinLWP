@@ -267,7 +267,7 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
             and set(value) = 
                 color <- value
                 let r, g, b = color
-                this.AndroidColor <- Android.Graphics.Color(byte(r*255.0f), byte(g*255.0f), byte(b*255.0f))
+                this.SetSwatchColor(Android.Graphics.Color(byte(r*255.0f), byte(g*255.0f), byte(b*255.0f)))
         
         member this.IsEnabled 
             with get() = this.Swatch.Enabled
