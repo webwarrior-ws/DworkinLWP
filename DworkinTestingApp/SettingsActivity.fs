@@ -25,10 +25,7 @@ type SettingsActivity() =
         CurrentSettings.set({ oldSettings with Seed=newSeed })
     
     member private this.GetEffectEditor() =
-        let effectEditor = 
-            SettingsClassChooser<EffectSettings>.Create(
-                this, 
-                [| typeof<PlainEffectSettings>; typeof<OutlineEffectSettings> |] )
+        let effectEditor = SettingsClassChooser<EffectSettings>.Create(this, Effects.allTypes )
         effectEditor.Title <- "Effect"
         effectEditor.Accessor <- 
             Views.Accessor(

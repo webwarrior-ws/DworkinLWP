@@ -21,31 +21,35 @@ type EffectSettings() =
     abstract member Build : AbstractPlatform * System.Random -> Effect
 
 
-[<Name("solid color")>]
-type SolidColorMaterialSettings() =
-    inherit MaterialSettings()
+module Materials =
+    [<Name("solid color")>]
+    type SolidColor() =
+        inherit MaterialSettings()
 
-    [<Color>]
-    member val Color = Defined(OpenTK.Graphics.Color4.White) with get, set
+        [<Color>]
+        member val Color = Defined(OpenTK.Graphics.Color4.White) with get, set
 
-    override this.Build(platform, random) =
-        SolidColorMaterial(platform, Randomizeable.getValue random <@ this.Color @>) :> Material
+        override this.Build(platform, random) =
+            SolidColorMaterial(platform, Randomizeable.getValue random <@ this.Color @>) :> Material
 
 
-[<Name("plain")>]    
-type PlainEffectSettings() =
-    inherit EffectSettings()
-    override this.Build(platform, random) = PlainEffect(platform) :> Effect
+module Effects =
+    [<Name("plain")>]    
+    type Plain() =
+        inherit EffectSettings()
+        override this.Build(platform, random) = PlainEffect(platform) :> Effect
 
-[<Name("outline")>]
-type OutlineEffectSettings() =
-    inherit EffectSettings()
+    [<Name("outline")>]
+    type Outline() =
+        inherit EffectSettings()
 
-    [<FloatRange(0.01f, 0.5f)>]
-    member val OutlineWidth = Defined(0.1f) with get, set
+        [<FloatRange(0.01f, 0.5f)>]
+        member val OutlineWidth = Defined(0.1f) with get, set
 
-    override this.Build(platform, random) = 
-        OutlineEffect(platform, Randomizeable.getValue random <@ this.OutlineWidth @>) :> Effect
+        override this.Build(platform, random) = 
+            OutlineEffect(platform, Randomizeable.getValue random <@ this.OutlineWidth @>) :> Effect
+     
+    let allTypes = [| typeof<Plain>; typeof<Outline>; |]
 
 
 type SettingsHolder =
