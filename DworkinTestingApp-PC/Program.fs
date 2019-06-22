@@ -52,9 +52,9 @@ let pcbConfig = GeneratedConfigs.PCB_RandomPosChips()
 let defaultSettings = 
     { 
         Environment=ConfigSettings.PCB_RandomPosChips(); 
-        Effect=PlainEffectSettings();
-        Foreground=SolidColorMaterialSettings(Color=Defined(OpenTK.Graphics.Color4.Black));
-        Background=SolidColorMaterialSettings(Color=Defined(OpenTK.Graphics.Color4.White));
+        Effect=Effects.Plain();
+        Foreground=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.Black));
+        Background=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.White));
         Seed=42;
     }
 let platform = DotNETPlatform()
