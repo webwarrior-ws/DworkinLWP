@@ -21,6 +21,7 @@ type EffectSettings() =
     abstract member Build : AbstractPlatform * System.Random -> Effect
 
 
+[<Name("solid color")>]
 type SolidColorMaterialSettings() =
     inherit MaterialSettings()
 
@@ -31,10 +32,12 @@ type SolidColorMaterialSettings() =
         SolidColorMaterial(platform, Randomizeable.getValue random <@ this.Color @>) :> Material
 
 
+[<Name("plain")>]    
 type PlainEffectSettings() =
     inherit EffectSettings()
     override this.Build(platform, random) = PlainEffect(platform) :> Effect
 
+[<Name("outline")>]
 type OutlineEffectSettings() =
     inherit EffectSettings()
 
