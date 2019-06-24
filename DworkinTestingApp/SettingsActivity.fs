@@ -87,10 +87,11 @@ type SettingsActivity() =
         this.SupportActionBar.SetDisplayHomeAsUpEnabled(true)
         // settings editors
         let editorsGroup = this.FindViewById<ViewGroup>(Resources.Id.editors_group)
-        editorsGroup.AddView(this.GetEnvironmentEditor())
-        editorsGroup.AddView(this.GetEffectEditor())
-        editorsGroup.AddView(this.GetBackgroundEditor())
-        editorsGroup.AddView(this.GetForegroundEditor())
+        // editorsGroup already contains random seed control, so add all editors before it
+        editorsGroup.AddView(this.GetEnvironmentEditor(), 0)
+        editorsGroup.AddView(this.GetEffectEditor(), 1)
+        editorsGroup.AddView(this.GetBackgroundEditor(), 2)
+        editorsGroup.AddView(this.GetForegroundEditor(), 3)
     
     override this.OnOptionsItemSelected(item) =
         if item.ItemId = Android.Resource.Id.Home then
