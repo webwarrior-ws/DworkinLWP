@@ -1,6 +1,7 @@
 ﻿module LibDworkin.DworkinSettings
 
 open RendererComponents
+open Geometry
 
 open Settings
 
@@ -60,8 +61,43 @@ module Effects =
 
         override this.Build(platform, random) = 
             OutlineEffect(platform, Randomizeable.getValue random <@ this.OutlineWidth @>) :> Effect
+    
+    [<Name("shadow")>]    
+    type Shadow() =
+        inherit EffectSettings()
+
+        [<FloatRange(0.0f, 360.0f, Step=5.0f, Name="Direction")>]
+        member val Dir = Defined(0.0f) with get, set
+
+        [<FloatRange(0.0f, 20.0f, Step=1.0f)>]
+        member val Offset = Defined(5.0f) with get, set
+
+        [<FloatRange(0.0f, 1.0f)>]
+        member val Size = Defined(0.5f) with get, set
+
+        [<FloatRange(0.005f, 1.0f, Step=0.05f)>]
+        member val Softness = Defined(1.0f) with get, set
+
+        [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
+        member val Strength = Defined(1.0f) with get, set
+
+        [<Bool(Name="Is inner")>]
+        member val Inner = Defined(false) with get, set
+        
+        override this.Build(platform, random) = 
+            let getValue expr = Randomizeable.getValue random expr
+            let shadowDir = Point.One.Rotate(deg2rad <| getValue <@ this.Dir @>)
+            ShadowEffect(
+                platform,
+                shadowDir,
+                getValue <@ this.Offset @>,
+                getValue <@ this.Size @>,
+                getValue <@ this.Softness @>,
+                getValue <@ this.Strength @>,
+                getValue <@ this.Inner @>) 
+            :> Effect
      
-    let allTypes = [| typeof<Plain>; typeof<Outline>; |]
+    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; |]
 
 
 type SettingsHolder =
