@@ -75,11 +75,11 @@ and [<AbstractClass>]
     
     abstract member UseView : ISettingsView -> unit
     default this.UseView(view) =
-        let editors = view.Editors
-        this.SettingProperties |> Array.iteri (fun i prop ->
-            let editor = editors.[i]
+        Seq.iter2 (fun (editor : ISettingEditor) (prop : System.Reflection.PropertyInfo) ->
             let attr = prop.GetCustomAttributes(typeof<SettingAttribute>, true).[0] :?> SettingAttribute
             attr.UseView(editor, this, prop) )
+            view.Editors 
+            this.SettingProperties
 #endif
 
 
