@@ -246,9 +246,11 @@ type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle :
         steps <- numSteps
         minVal <- low
         maxVal <- high
+    
+    member private this.Extent = maxVal - minVal
 
-    override this.ValueToProgress(value) = (value / (maxVal - minVal) - minVal) * float32(steps) |> int
-    override this.ProgressToValue(progress) = float32(progress) / float32(steps) * (maxVal - minVal) + minVal
+    override this.ValueToProgress(value) = (value - minVal) / this.Extent * float32(steps) |> int
+    override this.ProgressToValue(progress) = float32(progress) / float32(steps) * this.Extent + minVal
     override this.ValueToString(value) = sprintf "%2.4g" value // TODO: use info about range
 
 
