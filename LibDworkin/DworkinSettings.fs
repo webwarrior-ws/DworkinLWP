@@ -30,7 +30,7 @@ type EffectSettings() =
 
 
 module Materials =
-    [<Name("solid color")>]
+    [<Name("Solid color")>]
     type SolidColor() =
         inherit MaterialSettings()
 
@@ -43,7 +43,37 @@ module Materials =
                 OpenTK.Graphics.Color4.FromRGBTriple(Randomizeable.getValue random <@ this.Color @>)) 
             :> Material
     
-    let allTypes = [| typeof<SolidColor>; |]
+    [<Name("Rough surface")>]
+    type RoughSurface() =
+        inherit MaterialSettings()
+
+        [<Color>]
+        member val Color = Defined(OpenTK.Graphics.Color4.White.AsRGBTriple) with get, set
+
+        [<FloatRange(0.0f, 0.25f, Step=0.05f, Name="Bump height")>]
+        member val BumpHeight = Defined(0.1f) with get, set
+
+        [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
+        member val Dim = Defined(0.1f) with get, set
+
+        [<FloatRange(10.0f, 100.0f, Step=1.0f, Name="Feature scale")>]
+        member val FeatureScale = Defined(50.0f) with get, set
+
+        [<FloatRange(0.5f, 2.5f, Step=0.1f, Name="Flat area")>]
+        member val FlatArea = Defined(0.5f) with get, set
+
+        override this.Build(platform, random) =
+            let getValue expr = Randomizeable.getValue random expr
+            RoughSurfaceMaterial(
+                platform, 
+                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
+                getValue <@ this.BumpHeight @>,
+                getValue <@ this.Dim @>,
+                getValue <@ this.FeatureScale @>,
+                getValue <@ this.FlatArea @>) 
+            :> Material
+
+    let allTypes = [| typeof<SolidColor>; typeof<RoughSurface>; |]
 
 
 module Effects =
