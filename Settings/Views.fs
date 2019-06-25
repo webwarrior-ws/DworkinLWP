@@ -105,7 +105,8 @@ type RandomizedEditorComponent<'TEditor, 'TItem when 'TEditor :> View and 'TEdit
             match newAccessor with
             | Empty -> ()
             | Accessor(getter, _) ->
-                let currItem = getter() :?> Randomizeable<'TItem>
+                let currItemUntyped = getter()
+                let currItem = currItemUntyped :?> Randomizeable<'TItem>
                 match currItem with
                 | Randomized -> this.RandomButton.Checked <- true
                 | Defined(value) -> 

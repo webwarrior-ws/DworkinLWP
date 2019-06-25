@@ -106,7 +106,7 @@ module Randomizeable =
 type EnumAttribute(options: obj[]) = 
     inherit SettingAttribute()
 
-    let itemType = options |> Seq.map (fun each -> each.GetType()) |> Seq.distinct |> Seq.exactlyOne
+    member val ItemType = options |> Seq.map (fun each -> each.GetType()) |> Seq.distinct |> Seq.exactlyOne with get, set
 
     override this.RandomValue(random) =
         options.[random.Next(options.Length)]
@@ -120,7 +120,7 @@ type EnumAttribute(options: obj[]) =
     
     override this.CreateView(context, property) = 
         if Randomizeable.isRandomizableType property.PropertyType then
-            let method = this.GetType().GetMethod("CreateRandomizeableView").MakeGenericMethod([| itemType |])
+            let method = this.GetType().GetMethod("CreateRandomizeableView").MakeGenericMethod([| this.ItemType |])
             method.Invoke(this, [| context; options |]) :?> ISettingEditor
         else
             failwith "Non-randomizeable version of enum editor is not implemented"
