@@ -30,8 +30,14 @@ type SettingAttribute() =
 and [<AbstractClass>] 
     Settings() = 
     member this.SettingProperties =
-        this.GetType().GetProperties()
+        let thisType = this.GetType()
+        let rec distanceFromThisType (typ : System.Type) =
+            if typ = typeof<obj> then 999
+            elif typ = thisType then 0
+            else 1 + distanceFromThisType typ.BaseType
+        thisType.GetProperties()
         |> Array.filter (fun prop -> prop.CanRead && prop.CanWrite && prop.GetCustomAttributes(typeof<SettingAttribute>, true).Length > 0)
+        |> Array.sortByDescending (fun prop -> distanceFromThisType prop.DeclaringType)
     
     /// Return true if any setting has Randomized value
     member this.HasRandomizedValues : bool =
