@@ -109,7 +109,7 @@ module Effects =
         member val Profile = Defined(BevelProfile.Linear) with get, set
 
         [<Enum([| BevelMode.Inner; BevelMode.Outer; BevelMode.Ridge; BevelMode.Trench |], ItemType=typeof<BevelMode>)>]
-        member val Mode = Defined(BevelMode.Inner) with get, set
+        member val Mode = Defined(BevelMode.Outer) with get, set
 
         override this.Build(platform, random) =
             let getValue expr = Randomizeable.getValue random expr
@@ -121,8 +121,45 @@ module Effects =
                 getValue <@ this.Profile @>,
                 getValue <@ this.Mode @>)
             :> Effect
+    
+    type Glow() =
+        inherit EffectSettings()
 
-    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; |]
+        [<Color>]
+        member val Color = Defined(OpenTK.Graphics.Color4.Aquamarine.AsRGBTriple) with get, set
+
+        [<FloatRange(0.05f, 1.0f, Step=0.05f)>]
+        member val Strength = Defined(1.0f) with get, set
+
+        [<Enum([| GlowType.Outer; GlowType.Inner |], ItemType=typeof<GlowType>)>]
+        member val Type = Defined(GlowType.Outer) with get, set
+
+        override this.Build(platform, random) =
+            let getValue expr = Randomizeable.getValue random expr
+            GlowEffect(
+                platform,
+                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
+                getValue <@ this.Strength @>,
+                getValue <@ this.Type @>)
+            :> Effect
+    
+    type Highlight() =
+        inherit EffectSettings()
+
+        [<FloatRange(0.05f, 1.0f, Step=0.05f)>]
+        member val LightIntensity = Defined(0.5f) with get, set
+
+        [<FloatRange(0.0f, 1.0f)>]
+        member val LightPosition = Defined(0.75f) with get, set
+
+        override this.Build(platform, random) =
+            HighlightEffect(
+                platform, 
+                Geometry.Point(0.0f, Randomizeable.getValue random <@ this.LightPosition @>), 
+                Randomizeable.getValue random <@ this.LightIntensity @>)
+            :> Effect
+
+    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<Highlight>; |]
 
 
 type SettingsHolder =
