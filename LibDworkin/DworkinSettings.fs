@@ -98,8 +98,31 @@ module Materials =
                 getValue <@ this.RingsStretch @>,
                 getValue <@ this.Contrast @>) 
             :> Material
+    
+    type Leather() =
+        inherit ColoredMaterial()
 
-    let allTypes = [| typeof<SolidColor>; typeof<RoughSurface>; typeof<Wood>; |]
+        [<FloatRange(0.0f, 1.0f)>]
+        member val Contrast = Defined(0.5f) with get, set
+
+        [<FloatRange(1.0f, 3.0f)>]
+        member val Scale = Defined(2.0f) with get, set
+
+        override this.Build(platform, random) =
+            let getValue expr = Randomizeable.getValue random expr
+            let lightHeight = 3.0f - 2.0f * (getValue <@ this.Contrast @>)
+            let scaleFactor = 3.0f / (getValue <@ this.Scale @>)
+            NormalmapAndAOMaterial(
+                platform, 
+                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
+                "TexturesCom_Leather_Plain_512_normal.png",
+                Point(1.0f, 1.0f),
+                lightHeight,
+                scaleFactor,
+                None) 
+            :> Material
+    
+    let allTypes = [| typeof<SolidColor>; typeof<RoughSurface>; typeof<Wood>; typeof<Leather>; |]
 
 
 module Effects =
