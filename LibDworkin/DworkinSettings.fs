@@ -30,12 +30,15 @@ type EffectSettings() =
 
 
 module Materials =
-    [<Name("Solid color")>]
-    type SolidColor() =
+    [<AbstractClass>]
+    type ColoredMaterial() =
         inherit MaterialSettings()
-
         [<Color>]
         member val Color = Defined(OpenTK.Graphics.Color4.White.AsRGBTriple) with get, set
+
+    [<Name("Solid color")>]
+    type SolidColor() =
+        inherit ColoredMaterial()
 
         override this.Build(platform, random) =
             SolidColorMaterial(
@@ -45,10 +48,7 @@ module Materials =
     
     [<Name("Rough surface")>]
     type RoughSurface() =
-        inherit MaterialSettings()
-
-        [<Color>]
-        member val Color = Defined(OpenTK.Graphics.Color4.White.AsRGBTriple) with get, set
+        inherit ColoredMaterial()
 
         [<FloatRange(0.0f, 0.25f, Step=0.05f, Name="Bump height")>]
         member val BumpHeight = Defined(0.1f) with get, set
@@ -72,8 +72,34 @@ module Materials =
                 getValue <@ this.FeatureScale @>,
                 getValue <@ this.FlatArea @>) 
             :> Material
+    
+    type Wood() =
+        inherit ColoredMaterial()
 
-    let allTypes = [| typeof<SolidColor>; typeof<RoughSurface>; |]
+        [<FloatRange(0.0f, 180.0f, Step=5.0f)>]
+        member val Angle = Defined(0.0f) with get, set
+
+        [<FloatRange(2.0f, 5.0f, Step=0.1f, Name="Rings scale")>]
+        member val RingsScale = Defined(2.7f) with get, set
+
+        [<FloatRange(0.0f, 50.0f, Step=5.0f, Name="Rings stretch")>]
+        member val RingsStretch = Defined(15.0f) with get, set
+
+        [<FloatRange(0.0f, 0.5f, Step=0.05f)>]
+        member val Contrast = Defined(0.25f) with get, set
+
+        override this.Build(platform, random) =
+            let getValue expr = Randomizeable.getValue random expr
+            WoodMaterial(
+                platform, 
+                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
+                getValue <@ this.Angle @>,
+                getValue <@ this.RingsScale @>,
+                getValue <@ this.RingsStretch @>,
+                getValue <@ this.Contrast @>) 
+            :> Material
+
+    let allTypes = [| typeof<SolidColor>; typeof<RoughSurface>; typeof<Wood>; |]
 
 
 module Effects =
