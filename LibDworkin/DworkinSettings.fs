@@ -47,12 +47,10 @@ module Materials =
 
 
 module Effects =
-    [<Name("plain")>]    
     type Plain() =
         inherit EffectSettings()
         override this.Build(platform, random) = PlainEffect(platform) :> Effect
 
-    [<Name("outline")>]
     type Outline() =
         inherit EffectSettings()
 
@@ -62,7 +60,6 @@ module Effects =
         override this.Build(platform, random) = 
             OutlineEffect(platform, Randomizeable.getValue random <@ this.OutlineWidth @>) :> Effect
     
-    [<Name("shadow")>]    
     type Shadow() =
         inherit EffectSettings()
 
@@ -96,8 +93,36 @@ module Effects =
                 getValue <@ this.Strength @>,
                 getValue <@ this.Inner @>) 
             :> Effect
-     
-    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; |]
+    
+    type Bevel() =
+        inherit EffectSettings()
+
+        [<FloatRange(1.0f, 10.0f, Step=1.0f)>]
+        member val Contrast = Defined(5.0f) with get, set
+
+        [<FloatRange(0.0f, 1.0f, Name="Max. distance")>]
+        member val MaxDistance = Defined(1.0f) with get, set
+
+        [<Enum([| BevelProfile.Linear; BevelProfile.Hyperbolic; BevelProfile.Parabola1; BevelProfile.Parabola2; BevelProfile.Exp |], 
+               ItemType=typeof<BevelProfile>, 
+               Name="Bevel profile")>]
+        member val Profile = Defined(BevelProfile.Linear) with get, set
+
+        [<Enum([| BevelMode.Inner; BevelMode.Outer; BevelMode.Ridge; BevelMode.Trench |], ItemType=typeof<BevelMode>)>]
+        member val Mode = Defined(BevelMode.Inner) with get, set
+
+        override this.Build(platform, random) =
+            let getValue expr = Randomizeable.getValue random expr
+            BevelEffect(
+                platform,
+                getValue <@ this.Contrast @>,
+                getValue <@ this.MaxDistance @>,
+                Point(1.0f, 1.0f),
+                getValue <@ this.Profile @>,
+                getValue <@ this.Mode @>)
+            :> Effect
+
+    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; |]
 
 
 type SettingsHolder =
