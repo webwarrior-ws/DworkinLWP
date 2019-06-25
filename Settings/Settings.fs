@@ -31,13 +31,13 @@ and [<AbstractClass>]
     Settings() = 
     member this.SettingProperties =
         let thisType = this.GetType()
-        let rec distanceFromThisType (typ : System.Type) =
-            if typ = typeof<obj> then 999
-            elif typ = thisType then 0
-            else 1 + distanceFromThisType typ.BaseType
+        let rec distance (fromType : System.Type) (toType : System.Type) =
+            if fromType = typeof<obj> then 999
+            elif fromType = toType then 0
+            else 1 + (distance fromType.BaseType toType)
         thisType.GetProperties()
         |> Array.filter (fun prop -> prop.CanRead && prop.CanWrite && prop.GetCustomAttributes(typeof<SettingAttribute>, true).Length > 0)
-        |> Array.sortByDescending (fun prop -> distanceFromThisType prop.DeclaringType)
+        |> Array.sortByDescending (fun prop -> distance thisType prop.DeclaringType)
     
     /// Return true if any setting has Randomized value
     member this.HasRandomizedValues : bool =
