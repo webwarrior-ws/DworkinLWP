@@ -71,34 +71,10 @@ type MainActivity() =
             | Some(r) -> r
             | None ->
                 let r = new LibDworkin.Renderer.DworkinRenderer(this.Platform, settingsHolder)
+                    //new TestRenderers.BenchmarkRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
                 MainActivity.RendererContainer <- Some(r)
                 r
-        //let renderer = //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
-            //new TestRenderers.BenchmarkRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
-            //new TestRenderers.BenchmarkRenderer(platform, GeneratedConfigs.PCB_RandomPosChips())
-            //new LibDworkin.Renderer.DworkinRenderer(platform, GeneratedConfigs.SpiralsProbesBranching1())
-            //new TestRenderers.CollidersTestRenderer(platform, TestConfigs.circleAdvancedTest)
-            //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.circleAdvancedTest)
-            //new TestRenderers.AdvancedShapesTestRenderer(platform)
-            //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.iGeoExample40) 
-            //new TestRenderers.CollidersTestRenderer(platform, TestConfigs.colliderStrategyTest)
-            //new LibDworkin.Renderer.DworkinRenderer(platform, TestConfigs.brushesAndSpeedsTest) 
-            //new TestRenderers.ShapesTestRenderer(platform) 
-            //new TestRenderers.CollidingAgentsTestRenderer(platform)
         
-        //renderer.Effect <- GlowEffect(platform, OpenTK.Graphics.Color4.BlueViolet, 0.5f, LibDworkin.RendererComponents.GlowType.Outer)
-        //renderer.Effect <- LibDworkin.RendererComponents.ShadowEffect(platform, LibDworkin.Geometry.Point(1.0f, -1.0f), 10.0f, 0.2f, 0.5f, 0.5f, false)
-        //renderer.Effect <- LibDworkin.RendererComponents.BevelEffect(platform, 5.0f, 0.5f, LibDworkin.Geometry.Point(1.0f, -1.0f), 
-        //                                                             LibDworkin.RendererComponents.BevelProfile.Linear,
-        //                                                             LibDworkin.RendererComponents.BevelMode.Ridge)
-        
-        //renderer.Background <- LibDworkin.RendererComponents.NormalmapAndAOMaterial(platform, OpenTK.Graphics.Color4.LightGray, "TexturesCom_Leather_Plain_512_normal.png",
-        //                                                                            LibDworkin.Geometry.Point(0.0f, 1.0f), 1.0f, 1.0f, None)
-        //renderer.Background <- LibDworkin.RendererComponents.ColoredTextureMaterial(platform, OpenTK.Graphics.Color4.DarkGray, "knitted-netting_@2X.png",
-        //                                                                            0.775f, 1.25f, 80.0f)
-        //renderer.Background <- LibDworkin.RendererComponents.MetalMaterial(platform, OpenTK.Graphics.Color4.LightGray, 0.13f, 1.0f, 
-        //                                                                   LibDworkin.Geometry.Point(1.0f, 0.0f), 0.0f, 0.0f, 500.0f, 1.0f, 0.5f, 45.0f)
-        //renderer.Background <- LibDworkin.RendererComponents.WoodMaterial(platform, OpenTK.Graphics.Color4.Sienna, 0.0f, 2.0f,  20.0f, 0.25f)
         if supportsEs2 then
             view.SetEGLContextClientVersion(2)
             view.PreserveEGLContextOnPause <- true
