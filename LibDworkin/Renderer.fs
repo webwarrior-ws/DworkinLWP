@@ -574,6 +574,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref) as this =
     inherit BaseRenderer(platform)
 
+    let mutable stepsPerFrame = 1
     let mutable currentSettings = !settingsRef
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
     let mutable environment : Agents.DworkinEnvironment option = None
@@ -587,6 +588,13 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
     member val StatsPrinted = false with get, set
 #endif
     member this.Environment = environment
+
+    member this.StepsPerFrame 
+        with get() : int = stepsPerFrame
+        and set(value : int) = 
+            if value <= 0 then
+                failwithf "Number of steps must be > 0, %d given" value
+            stepsPerFrame <- value
 
     member this.EnvironmentConfig 
         with get() : Agents.IDworkinEnvironmentConfig = environmentConfig
@@ -648,36 +656,39 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
 
         this.ApplyChangesInSettings()
 
-        let mutable agentsCount = 0
-        let mutable activeAgentsCount = 0
+        let mutable processedAgentsCount = 0
         let mutable shapes = [||]
+        let mutable steps = 0
 
         match environment with
         | Some(env) -> 
-            agentsCount <- env.AgentsCount
-            activeAgentsCount <- env.ActiveAgentsCount
-            if agentsCount > 0 then
-                for _ in TimeSamplers.Environment.Measure(activeAgentsCount) do
-                    shapes <- env.Step()
+            while env.AgentsCount > 0 && steps < stepsPerFrame do
+                processedAgentsCount <- processedAgentsCount + env.ActiveAgentsCount
+                for _ in TimeSamplers.Environment.Measure() do
+                    shapes <- 
+                        match shapes with
+                        | [||] -> env.Step() 
+                        | _ -> Array.append shapes (env.Step())
+                steps <- steps + 1
         | None -> ()
-        if agentsCount > 0 then
-            for _ in TimeSamplers.Shapes.Measure(activeAgentsCount) do this.RenderShapes(shapes)
-            for _ in TimeSamplers.Image.Measure(activeAgentsCount) do this.DrawImage()
+        if not (Array.isEmpty shapes) then
+            for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
+            for _ in TimeSamplers.Image.Measure() do this.DrawImage()
         elif framesAfterStop < 3 then // avoid flicker from triple buffering
             this.DrawImage()
             framesAfterStop <- framesAfterStop + 1
 
-        let dt = TimeSamplers.Environment.LastTime + TimeSamplers.Shapes.LastTime + TimeSamplers.Image.LastTime
+        let dt = (Array.sum <| TimeSamplers.Environment.GetLast(steps)) + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
         if dt < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
 #if __ANDROID__
-        if agentsCount > 0 then
+        if steps > 0 then
             Android.Util.Log.Debug("frameTime", 
                 sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
-                    agentsCount
-                    TimeSamplers.Environment.LastTime 
-                    TimeSamplers.Shapes.LastTime
-                    TimeSamplers.Image.LastTime ) |> ignore
+                    processedAgentsCount
+                    (Array.sum <| TimeSamplers.Environment.GetLast(steps)) 
+                    TimeSamplers.Shapes.Last
+                    TimeSamplers.Image.Last ) |> ignore
         elif not this.StatsPrinted then
             Android.Util.Log.Debug("avgTimes", 
                 sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
