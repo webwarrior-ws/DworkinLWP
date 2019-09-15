@@ -220,7 +220,7 @@ type Environment(bounds : Rectangle) =
     
     abstract member Delay : (Environment -> Agent option) * int -> unit
 
-    member this.AgentsCount = agents.Count
+    member this.AgentsCount = agents.Count + agentsToAdd.Count - agentsToRemove.Count
     
     member this.HasAgents = agents.Count > 0
     
