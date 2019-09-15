@@ -220,7 +220,7 @@ type BenchmarkRenderer(context, settingsRef) =
         | Some(env) -> 
             while env.HasAgents do
                 let agentsCount = env.ActiveAgentsCount
-                for _ in TimeSamplers.Environment.Measure(agentsCount) do
+                for _ in TimeSamplers.Environment.Measure() do
                     shapesQueue.Enqueue(agentsCount, env.Step())
         | None -> ()
 
@@ -229,11 +229,11 @@ type BenchmarkRenderer(context, settingsRef) =
             let mutable t = 0.0
             while t < 33.3 && shapesQueue.Count > 0 do
                 let agentsCount, shapes = shapesQueue.Dequeue()
-                for _ in TimeSamplers.Shapes.Measure(agentsCount) do this.RenderShapes(shapes)
-                for _ in TimeSamplers.Image.Measure(agentsCount) do this.DrawImage()
-                t <- t + TimeSamplers.Shapes.LastTime + TimeSamplers.Image.LastTime
+                for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
+                for _ in TimeSamplers.Image.Measure() do this.DrawImage()
+                t <- t + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
         elif not this.StatsPrinted then
-            let printStats (samples : TimeMeasurementSample[]) (name : string) =
+            let printStats (samples : float[]) (name : string) =
                 Android.Util.Log.Debug("avgTimes", 
                     sprintf "(%-6s) avg: %6.2f max: %6.2f top1%%: %6.2f stdev: %6.2f"
                         name

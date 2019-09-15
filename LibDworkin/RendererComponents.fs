@@ -446,25 +446,21 @@ type GlowEffect(platform : AbstractPlatform, glowColor : Graphics.Color4, glowSt
         GL.Uniform1(this.Shader.GetUniformLocation("glowStrength"), glowStrength)  
         GL.Uniform1(this.Shader.GetUniformLocation("glowType"), int glowType)
 
-    
-type TimeMeasurementSample = int * float
+
     
 /// Use Measure() method in for loops to take measurement.
-/// E.g.  for _ in sampler.Measure(0) do doSmth()
+/// E.g.  for _ in sampler.Measure() do doSmth()
 type TimeSampler(name : string) =
     let stopwatch = Diagnostics.Stopwatch()
-    let samples = ResizeArray<TimeMeasurementSample>() // (agents count, time in ms)
-        
-    let mutable currAgents = 0
+    let samples = ResizeArray<float>() // (time in ms)
 
-    member this.Measure(agentsCount) =
-        currAgents <- agentsCount
+    member this.Measure() =
         this
 
     member this.Name = name
     member this.Samples = samples.ToArray()
-    member this.Last = samples.Last
-    member this.LastTime = snd samples.Last
+    member this.Last = if samples.Length > 0 then samples.Last else 0.0
+    member this.GetLast(n : int) = samples.GetRange(samples.Length - n, n).ToArray()
         
     interface Collections.Generic.IEnumerable<TimeSampler> with
         member this.GetEnumerator() : Collections.Generic.IEnumerator<TimeSampler> = this :> Collections.Generic.IEnumerator<TimeSampler>
@@ -478,7 +474,7 @@ type TimeSampler(name : string) =
         member this.MoveNext(): bool = 
             if stopwatch.IsRunning then
                 stopwatch.Stop()
-                samples.Add(currAgents, stopwatch.Elapsed.TotalMilliseconds)
+                samples.Add(stopwatch.Elapsed.TotalMilliseconds)
                 stopwatch.Reset()
                 false
             else
@@ -489,24 +485,24 @@ type TimeSampler(name : string) =
 
 
 module TimeStats =
-    let average (samples : TimeMeasurementSample[]) = 
-        samples |> Seq.averageBy snd
+    let average (samples : float[]) = 
+        samples |> Array.average
 
-    let max (samples : TimeMeasurementSample[]) = 
-        samples |> Seq.map snd |> Seq.max
+    let max (samples : float[]) = 
+        samples |> Array.max
 
-    let stdev (samples : TimeMeasurementSample[]) = 
+    let stdev (samples : float[]) = 
         let avg = average samples
-        let squares = [ for (_, x) in samples -> (x - avg) * (x - avg) ]
-        sqrt ((Seq.sum squares) / (float samples.Length))
+        let squares = [| for x in samples -> (x - avg) * (x - avg) |]
+        sqrt ((Array.sum squares) / (float samples.Length))
 
-    let top (fraction : float) (samples : TimeMeasurementSample[]) =
-        let sorted = samples |> Seq.map snd |> Seq.sortDescending |> Seq.toArray
+    let top (fraction : float) (samples : float[]) =
+        let sorted = samples |> Seq.sortDescending |> Seq.toArray
         let top = sorted.[0..int(ceil(float samples.Length * fraction))]
         top |> Array.average
     
-    let add (a : TimeMeasurementSample[]) (b : TimeMeasurementSample[]) =
-        Array.map2 (fun (count, t1) (_, t2) -> (count, t1+t2)) a b
+    let add (a : float[]) (b : float[]) =
+        Array.map2 (fun t1 t2 -> t1 + t2) a b
     
 module TimeSamplers =
     let Environment = new TimeSampler("env")
