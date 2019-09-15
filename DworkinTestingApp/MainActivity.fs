@@ -71,7 +71,7 @@ type MainActivity() =
             | Some(r) -> r
             | None ->
                 let r = 
-                    new LibDworkin.Renderer.DworkinRenderer(this.Platform, settingsHolder (*, StepsPerFrame=3*) )
+                    new LibDworkin.Renderer.DworkinRenderer(this.Platform, settingsHolder (*, StepsPerFrame=10*) )
                     //new TestRenderers.BenchmarkRenderer(this.Platform, settingsHolder) 
                     :> LibDworkin.Renderer.BaseRenderer
                 MainActivity.RendererContainer <- Some(r)

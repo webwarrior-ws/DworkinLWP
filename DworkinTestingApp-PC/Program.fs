@@ -78,44 +78,51 @@ module Builders =
 
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
-    Builders.chooser
-        "Environment"
-        renderer
-        [
-            Builders.environmentEditor
-                "PCB-RandPosChips"
-                pcbConfig
-                [ 
-                    Builders.floatSliderEditor "Angle" GeneratedConfigs.PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
-                    Builders.checkboxEditor "Vias" GeneratedConfigs.PCB_RandomPosChips.Vias_;
-                    Builders.radioButtonEditor "Endpoints" GeneratedConfigs.PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
-                    Builders.checkboxEditor "Branch" GeneratedConfigs.PCB_RandomPosChips.Branch_;
-                    Builders.checkboxEditor "Octagonal" GeneratedConfigs.PCB_RandomPosChips.Octagonal_;
-                    Builders.dropdownListEditor "Angles" GeneratedConfigs.PCB_RandomPosChips.Angles_ possibleAnglesValues;
-                    Builders.floatSliderEditor "Thickness variance" GeneratedConfigs.PCB_RandomPosChips.ThicknessVariance_ 0.0f 1.0f 0.1f;
-                    Builders.floatSliderEditor "Density" GeneratedConfigs.PCB_RandomPosChips.Density_ 0.2f 0.8f 0.05f;
-                    Builders.floatSliderEditor "Size" GeneratedConfigs.PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
-                    Builders.floatSliderEditor "Speed" GeneratedConfigs.PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
-                    Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.PCB_RandomPosChips>;
-                ];
-            Builders.environmentEditor
-                "SpiralsProbesBranching1"
-                (GeneratedConfigs.SpiralsProbesBranching1())
-                [ 
-                    Builders.intSliderEditor "N" GeneratedConfigs.SpiralsProbesBranching1.N_ 1 8 1;
-                    Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.SpiralsProbesBranching1>;
-                ];
-            Builders.environmentEditor
-                "MagneticSpiralsBunch"
-                (GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
-                [ 
-                    Builders.floatSliderEditor "Scale" GeneratedConfigs.MagneticSpiralsBunchBranching2_3.Scale_ 1.0f 2.0f 0.1f;
-                    Builders.intSliderEditor "MaxInitialAgents" 
-                        (LibDworkin.Lenses.config_ >-> GeneratedConfigs.SpawnConfig.ProbeBunchMagneticSpirals2Branch3.MaxInitialAgents_) 3 15 1;
-                    Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.MagneticSpiralsBunchBranching2_3>;
-                ];
-        ]
-    |> Builders.singleControlWindow (Gwen.Pos.Top ||| Gwen.Pos.Left) guiWidth 0.65
+    let configChooser =
+        Builders.chooser
+            "Environment"
+            renderer
+            [
+                Builders.environmentEditor
+                    "PCB-RandPosChips"
+                    pcbConfig
+                    [ 
+                        Builders.floatSliderEditor "Angle" GeneratedConfigs.PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
+                        Builders.checkboxEditor "Vias" GeneratedConfigs.PCB_RandomPosChips.Vias_;
+                        Builders.radioButtonEditor "Endpoints" GeneratedConfigs.PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
+                        Builders.checkboxEditor "Branch" GeneratedConfigs.PCB_RandomPosChips.Branch_;
+                        Builders.checkboxEditor "Octagonal" GeneratedConfigs.PCB_RandomPosChips.Octagonal_;
+                        Builders.dropdownListEditor "Angles" GeneratedConfigs.PCB_RandomPosChips.Angles_ possibleAnglesValues;
+                        Builders.floatSliderEditor "Thickness variance" GeneratedConfigs.PCB_RandomPosChips.ThicknessVariance_ 0.0f 1.0f 0.1f;
+                        Builders.floatSliderEditor "Density" GeneratedConfigs.PCB_RandomPosChips.Density_ 0.2f 0.8f 0.05f;
+                        Builders.floatSliderEditor "Size" GeneratedConfigs.PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
+                        Builders.floatSliderEditor "Speed" GeneratedConfigs.PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.PCB_RandomPosChips>;
+                    ];
+                Builders.environmentEditor
+                    "SpiralsProbesBranching1"
+                    (GeneratedConfigs.SpiralsProbesBranching1())
+                    [ 
+                        Builders.intSliderEditor "N" GeneratedConfigs.SpiralsProbesBranching1.N_ 1 8 1;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.SpiralsProbesBranching1>;
+                    ];
+                Builders.environmentEditor
+                    "MagneticSpiralsBunch"
+                    (GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
+                    [ 
+                        Builders.floatSliderEditor "Scale" GeneratedConfigs.MagneticSpiralsBunchBranching2_3.Scale_ 1.0f 2.0f 0.1f;
+                        Builders.intSliderEditor "MaxInitialAgents" 
+                            (LibDworkin.Lenses.config_ >-> GeneratedConfigs.SpawnConfig.ProbeBunchMagneticSpirals2Branch3.MaxInitialAgents_) 3 15 1;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.MagneticSpiralsBunchBranching2_3>;
+                    ];
+            ]
+    let speedControl = 
+        Builders.radioButtonEditor 
+            "Steps/frame" 
+            ((fun (r : DworkinRenderer) -> r.StepsPerFrame), (fun (value : int) (r : DworkinRenderer) -> r.StepsPerFrame <- value; r))
+            [ 1; 2; 5; 20 ]
+    speedControl.ConfigRef <- ref renderer
+    Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Left) 0.65 guiWidth [ configChooser; speedControl ]
 
 let effectGui = 
     Builders.chooser
