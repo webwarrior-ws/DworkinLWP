@@ -28,7 +28,7 @@ type MainActivity() =
             Background=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.White.AsRGBTriple));
             Seed=42;
         }
-    static member val private RendererContainer : LibDworkin.Renderer.DworkinRenderer option = None with get, set
+    static member val private RendererContainer : LibDworkin.Renderer.BaseRenderer option = None with get, set
     static member val private PlatformContainer : AndroidPlatform option = None with get, set
 
     member this.Platform = 
@@ -70,8 +70,10 @@ type MainActivity() =
             match MainActivity.RendererContainer with
             | Some(r) -> r
             | None ->
-                let r = new LibDworkin.Renderer.DworkinRenderer(this.Platform, settingsHolder)
-                    //new TestRenderers.BenchmarkRenderer(platform, GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
+                let r = 
+                    new LibDworkin.Renderer.DworkinRenderer(this.Platform, settingsHolder (*, StepsPerFrame=3*) )
+                    //new TestRenderers.BenchmarkRenderer(this.Platform, settingsHolder) 
+                    :> LibDworkin.Renderer.BaseRenderer
                 MainActivity.RendererContainer <- Some(r)
                 r
         
