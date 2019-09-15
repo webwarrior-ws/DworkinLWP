@@ -222,7 +222,7 @@ type Environment(bounds : Rectangle) =
 
     member this.AgentsCount = agents.Count + agentsToAdd.Count - agentsToRemove.Count
     
-    member this.HasAgents = agents.Count > 0
+    member this.HasAgents = this.AgentsCount > 0
     
     abstract member HasActiveAgents : bool
     default this.HasActiveAgents = 
