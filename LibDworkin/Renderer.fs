@@ -421,6 +421,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
         // B channel acts as a stencil buffer for negative distances calculation (pixels with B>0 are skipped)
         if not (Array.isEmpty shapes) then
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                    TextureTarget.Texture2D, this.SDFTexture, 0) // needed for some reason
+            
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
             this.ClearBlueChannel()
 
@@ -499,6 +502,11 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.BlendEquation(BlendEquationMode.FuncAdd)
             GL.Disable(EnableCap.Blend)
             
+            this.CalculateNegativeDistances()
+            // cleanup
+            this.ClearBuffers()
+    
+    member private this.CalculateNegativeDistances() =
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
             // Since one cannot read from and write to the same texture, 
             // two textures are used and are swapped between horizontal and vertical passes.
@@ -528,9 +536,6 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                     TextureTarget.Texture2D, this.SDFTexture, 0)
             GL.DrawArrays(BeginMode.Triangles, 0, 6)
-            
-            // cleanup
-            this.ClearBuffers()
 
     member this.ClearBuffers() =
         shapeVertices.Reset()
@@ -659,26 +664,29 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
         let mutable processedAgentsCount = 0
         let mutable shapes = [||]
         let mutable steps = 0
+        let mutable dt = 0.0
 
         match environment with
         | Some(env) -> 
-            while env.AgentsCount > 0 && steps < stepsPerFrame do
+            while env.AgentsCount > 0 && steps < this.StepsPerFrame do
                 processedAgentsCount <- processedAgentsCount + env.ActiveAgentsCount
                 for _ in TimeSamplers.Environment.Measure() do
                     shapes <- 
                         match shapes with
                         | [||] -> env.Step() 
                         | _ -> Array.append shapes (env.Step())
+                        
+                dt <- dt + TimeSamplers.Environment.Last
                 steps <- steps + 1
         | None -> ()
         if not (Array.isEmpty shapes) then
             for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
             for _ in TimeSamplers.Image.Measure() do this.DrawImage()
+            dt <- dt + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
         elif framesAfterStop < 3 then // avoid flicker from triple buffering
             this.DrawImage()
             framesAfterStop <- framesAfterStop + 1
-
-        let dt = (Array.sum <| TimeSamplers.Environment.GetLast(steps)) + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
+        
         if dt < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
 #if __ANDROID__
