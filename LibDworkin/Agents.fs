@@ -812,7 +812,9 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         result
     
     member this.ActiveAgentsCount =
-        this.AgentsCount - numDelayAgents
+        let result = this.AgentsCount - numDelayAgents
+        assert(result >= 0)
+        result
 
     member this.AddCollider(aCollider) =
         this.AddColliderToLayer(aCollider, CollisionLayer.Default)
