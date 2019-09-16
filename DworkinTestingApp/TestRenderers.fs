@@ -211,24 +211,19 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
 type BenchmarkRenderer(context, settingsRef) =
     inherit DworkinRenderer(context, settingsRef)
 
-    let shapesQueue = System.Collections.Generic.Queue<int * ShapeAndPaint[]>()
+    let shapesQueue = System.Collections.Generic.Queue<ShapeAndPaint[]>()
 
     override this.OnSurfaceChanged(width, height) =
         base.OnSurfaceChanged(width, height)
         shapesQueue.Clear()
-        match this.Environment with
-        | Some(env) -> 
-            while env.HasAgents do
-                let agentsCount = env.ActiveAgentsCount
-                for _ in TimeSamplers.Environment.Measure() do
-                    shapesQueue.Enqueue(agentsCount, env.Step())
-        | None -> ()
+        while not this.EnvironmentStepper.IsEmpty do
+            shapesQueue.Enqueue(this.EnvironmentStepper.FetchShapesForNextStep())
 
     override this.OnDrawFrame() = 
         if shapesQueue.Count > 0 then
             let mutable t = 0.0
             while t < 33.3 && shapesQueue.Count > 0 do
-                let agentsCount, shapes = shapesQueue.Dequeue()
+                let shapes = shapesQueue.Dequeue()
                 for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
                 for _ in TimeSamplers.Image.Measure() do this.DrawImage()
                 t <- t + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last

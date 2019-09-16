@@ -582,17 +582,17 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
     let mutable stepsPerFrame = 1
     let mutable currentSettings = !settingsRef
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
-    let mutable environment : Agents.DworkinEnvironment option = None
     let mutable framesAfterStop = 0
     do
         let random = System.Random(currentSettings.Seed)
         this.Effect <- currentSettings.Effect.Build(platform, random)
         this.Foreground <- currentSettings.Foreground.Build(platform, random)
         this.Background <- currentSettings.Background.Build(platform, random)
+    
+    member val EnvironmentStepper = AsyncEnvironmentStepper()
 #if __ANDROID__    
     member val StatsPrinted = false with get, set
 #endif
-    member this.Environment = environment
 
     member this.StepsPerFrame 
         with get() : int = stepsPerFrame
@@ -637,16 +637,16 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
         this.ClearSDF()
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let env = environmentConfig.GetEnvironment(dimensions)
-        environment <- Some(env)
-        stopWatch.Stop()
-        let dt = stopWatch.Elapsed
-#if __ANDROID__
-        Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
-        this.StatsPrinted <- false
-#endif
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
             env.Step() |> ignore
+        stopWatch.Stop()
+        this.EnvironmentStepper.Environment <- env 
+#if __ANDROID__
+        let dt = stopWatch.Elapsed
+        Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
+        this.StatsPrinted <- false
+#endif
 
     override this.OnSurfaceChanged(width, height) =
         if this.WallpaperSize <> (width, height) then
@@ -661,24 +661,20 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
 
         this.ApplyChangesInSettings()
 
-        let mutable processedAgentsCount = 0
         let mutable shapes = [||]
         let mutable steps = 0
         let mutable dt = 0.0
+        let stopwatch = System.Diagnostics.Stopwatch.StartNew()
 
-        match environment with
-        | Some(env) -> 
-            while env.AgentsCount > 0 && steps < this.StepsPerFrame do
-                processedAgentsCount <- processedAgentsCount + env.ActiveAgentsCount
-                for _ in TimeSamplers.Environment.Measure() do
-                    shapes <- 
-                        match shapes with
-                        | [||] -> env.Step() 
-                        | _ -> Array.append shapes (env.Step())
-                        
-                dt <- dt + TimeSamplers.Environment.Last
-                steps <- steps + 1
-        | None -> ()
+        while not this.EnvironmentStepper.IsEmpty && steps < this.StepsPerFrame do
+            shapes <- 
+                match shapes with
+                | [||] -> this.EnvironmentStepper.FetchShapesForNextStep() 
+                | _ -> Array.append shapes (this.EnvironmentStepper.FetchShapesForNextStep() )
+            steps <- steps + 1
+        stopwatch.Stop()
+        dt <- stopwatch.Elapsed.TotalMilliseconds
+        
         if not (Array.isEmpty shapes) then
             for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
             for _ in TimeSamplers.Image.Measure() do this.DrawImage()
@@ -692,8 +688,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
 #if __ANDROID__
         if steps > 0 then
             Android.Util.Log.Debug("frameTime", 
-                sprintf "env.(%3d agents): %7.6g; shapes: %7.6g; img: %7.6g"
-                    processedAgentsCount
+                sprintf "env.: %7.6g; shapes: %7.6g; img: %7.6g"
                     (Array.sum <| TimeSamplers.Environment.GetLast(steps)) 
                     TimeSamplers.Shapes.Last
                     TimeSamplers.Image.Last ) |> ignore
