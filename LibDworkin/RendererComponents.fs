@@ -482,6 +482,8 @@ type TimeSampler(name : string) =
                 true
             
         member this.Reset(): unit = ()
+    
+    member this.Reset() = samples.Clear()
 
 
 module TimeStats =
@@ -509,14 +511,18 @@ module TimeSamplers =
     let Shapes = new TimeSampler("shapes")
     let Image = new TimeSampler("img")
 
+    let resetAll() =
+        for each in [| Environment; Shapes; Image |] do each.Reset()
 
-// Async environment stepping
 
-module BlockingQueue =
+// Environment stepping
+
+[<AutoOpen>]
+module internal BlockingQueue =
     open System.Collections.Generic
     // code from https://docs.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-2010/hh297096(v=vs.100)
 
-    type internal BlockingAgentMessage<'T> = 
+    type private BlockingAgentMessage<'T> = 
         | Get of AsyncReplyChannel<'T>
         | Add of 'T * AsyncReplyChannel<unit>
     
@@ -575,7 +581,7 @@ type AsyncEnvironmentStepper() =
     let mutable environment : Agents.DworkinEnvironment option = None
     let isStopped = ref false
     let environmentFinished = ref false
-    let mutable queueAgent = new BlockingQueue.BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
+    let mutable queueAgent = new BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
     
     let mutable cancelTokenSource : System.Threading.CancellationTokenSource = null
 
@@ -609,7 +615,7 @@ type AsyncEnvironmentStepper() =
             isStopped := true
             if not <| isNull cancelTokenSource then
                 cancelTokenSource.Cancel()
-            queueAgent <- new BlockingQueue.BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
+            queueAgent <- new BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
             environment <- Some(env)
             environmentFinished := false
             isStopped := false
@@ -620,7 +626,7 @@ type AsyncEnvironmentStepper() =
     member this.QueueLength = queueAgent.Length
 
     member this.IsEmpty =
-        this.QueueLength = 0 && (!environmentFinished || this.IsStopped)
+        this.QueueLength = 0 && (!environmentFinished || !isStopped)
 
     member this.Start() = 
         isStopped := false
