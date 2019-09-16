@@ -635,6 +635,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
     override this.ResetEnvironment(dimensions : Point) =
         framesAfterStop <- 0
         this.ClearSDF()
+        TimeSamplers.resetAll()
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let env = environmentConfig.GetEnvironment(dimensions)
         // skip steps when nothing happens
