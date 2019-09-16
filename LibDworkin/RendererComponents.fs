@@ -508,3 +508,125 @@ module TimeSamplers =
     let Environment = new TimeSampler("env")
     let Shapes = new TimeSampler("shapes")
     let Image = new TimeSampler("img")
+
+
+// Async environment stepping
+
+module BlockingQueue =
+    open System.Collections.Generic
+    // code from https://docs.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-2010/hh297096(v=vs.100)
+
+    type internal BlockingAgentMessage<'T> = 
+        | Get of AsyncReplyChannel<'T>
+        | Add of 'T * AsyncReplyChannel<unit>
+    
+    /// Agent-based implementation of producer/consumer problem 
+    type BlockingQueueAgent<'T>(maxLength : int) =
+        let queue = new Queue<'T>()
+
+        let agent = MailboxProcessor.Start(fun agent ->
+            // State machine running inside the agent
+            let rec emptyQueue() = 
+                agent.Scan(fun msg ->
+                    match msg with 
+                    | Add(value, reply) -> Some(enqueueAndContinue(value, reply))
+                    | _ -> None )
+            and fullQueue() = 
+                agent.Scan(fun msg ->
+                    match msg with 
+                    | Get(reply) -> Some(dequeueAndContinue(reply))
+                    | _ -> None )
+            and runningQueue() = async {
+                let! msg = agent.Receive() 
+                match msg with 
+                | Add(value, reply) -> return! enqueueAndContinue(value, reply)
+                | Get(reply) -> return! dequeueAndContinue(reply) }
+            and enqueueAndContinue (value, reply) = async {
+                queue.Enqueue(value)
+                reply.Reply() 
+                return! chooseState() }
+            and dequeueAndContinue (reply) = async { 
+                reply.Reply(queue.Dequeue())
+                return! chooseState() }
+            and chooseState() = 
+                if queue.Count = 0 then emptyQueue()
+                elif queue.Count = maxLength then fullQueue()
+                else runningQueue()
+
+            // Start with an empty queue
+            emptyQueue() )
+
+        /// Asynchronously adds item to the queue. If the queue
+        /// is full, it blocks until some items are removed.
+        member x.AsyncAdd(v:'T) = 
+            agent.PostAndAsyncReply(fun ch -> Add(v, ch))
+
+        /// Asynchronously gets item from the queue. If the queue
+        /// is empty, it blocks until some items are added.
+        member x.AsyncGet() = 
+            agent.PostAndAsyncReply(Get)
+        
+        member this.Length = queue.Count
+
+
+type AsyncEnvironmentStepper() =
+    let maxQueueLength = 10
+
+    let mutable environment : Agents.DworkinEnvironment option = None
+    let isStopped = ref false
+    let environmentFinished = ref false
+    let mutable queueAgent = new BlockingQueue.BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
+    
+    let mutable cancelTokenSource : System.Threading.CancellationTokenSource = null
+
+    member private this.CreateShapesProducer() =
+        let shapesProducer =
+            let rec loop () =
+                async {
+                    if not !isStopped then
+                        match environment with
+                        | Some(env) -> 
+                            if env.HasAgents then
+                                let mutable shapes = [||]
+                                for _ in TimeSamplers.Environment.Measure() do
+                                    shapes <- env.Step()
+                                do! queueAgent.AsyncAdd(shapes)
+                            else
+                                isStopped := true
+                                environmentFinished := true
+                        | None -> do! Async.Sleep(10)
+                    else
+                        do! Async.Sleep(10)
+                    do! loop ()
+                }
+            loop()
+        cancelTokenSource <- new System.Threading.CancellationTokenSource()
+        Async.Start(shapesProducer, cancelTokenSource.Token)
+    
+    member this.Environment
+        with set(env : Agents.DworkinEnvironment) =  
+            // empty queue and start
+            isStopped := true
+            if not <| isNull cancelTokenSource then
+                cancelTokenSource.Cancel()
+            queueAgent <- new BlockingQueue.BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
+            environment <- Some(env)
+            environmentFinished := false
+            isStopped := false
+            this.CreateShapesProducer()
+    
+    member this.IsStopped = !isStopped
+
+    member this.QueueLength = queueAgent.Length
+
+    member this.IsEmpty =
+        this.QueueLength = 0 && (!environmentFinished || this.IsStopped)
+
+    member this.Start() = 
+        isStopped := false
+
+    member this.Stop() =
+        isStopped := true
+
+    member this.FetchShapesForNextStep() : AgentAbstractions.ShapeAndPaint[] =
+        queueAgent.AsyncGet() |> Async.RunSynchronously
