@@ -589,7 +589,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
         this.Foreground <- currentSettings.Foreground.Build(platform, random)
         this.Background <- currentSettings.Background.Build(platform, random)
     
-    member val EnvironmentStepper = AsyncEnvironmentStepper()
+    member val EnvironmentStepper : AbstractEnvironmentStepper = AsyncEnvironmentStepper() :> AbstractEnvironmentStepper
 #if __ANDROID__    
     member val StatsPrinted = false with get, set
 #endif
@@ -667,7 +667,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
         let mutable dt = 0.0
         let stopwatch = System.Diagnostics.Stopwatch.StartNew()
 
-        while not this.EnvironmentStepper.IsEmpty && steps < this.StepsPerFrame do
+        while this.EnvironmentStepper.HasMore && steps < this.StepsPerFrame do
             shapes <- 
                 match shapes with
                 | [||] -> this.EnvironmentStepper.FetchShapesForNextStep() 

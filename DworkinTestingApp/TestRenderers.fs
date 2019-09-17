@@ -216,7 +216,7 @@ type BenchmarkRenderer(context, settingsRef) =
     override this.OnSurfaceChanged(width, height) =
         base.OnSurfaceChanged(width, height)
         shapesQueue.Clear()
-        while not this.EnvironmentStepper.IsEmpty do
+        while this.EnvironmentStepper.HasMore do
             shapesQueue.Enqueue(this.EnvironmentStepper.FetchShapesForNextStep())
 
     override this.OnDrawFrame() = 

@@ -575,58 +575,81 @@ module internal BlockingQueue =
         member this.Length = queue.Count
 
 
-type AsyncEnvironmentStepper() =
-    let maxQueueLength = 10
+[<AbstractClass>]
+type AbstractEnvironmentStepper() =
+    abstract member Environment : Agents.DworkinEnvironment with set 
+    abstract member HasMore : bool
+    abstract member FetchShapesForNextStep : unit -> AgentAbstractions.ShapeAndPaint[]
 
+
+type SimpleEnvironmentStepper() =
+    inherit AbstractEnvironmentStepper()
     let mutable environment : Agents.DworkinEnvironment option = None
-    let isStopped = ref false
+
+    override this.Environment 
+        with set(env) = environment <- Some(env)
+
+    override this.HasMore = 
+        match environment with
+        | Some(env) -> env.HasAgents
+        | None -> false
+    
+    override this.FetchShapesForNextStep() =
+        let mutable shapes = [||]
+        for _ in TimeSamplers.Environment.Measure() do
+            shapes <- environment.Value.Step()
+        shapes
+
+
+type AsyncEnvironmentStepper() =
+    inherit AbstractEnvironmentStepper()
+
+    let maxQueueLength = 10
+    
+    let isStopped = ref false // TODO: see if start/stop functionality is really needed
     let environmentFinished = ref false
     let mutable queueAgent = new BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
-    
     let mutable cancelTokenSource : System.Threading.CancellationTokenSource = null
 
-    member private this.CreateShapesProducer() =
+    member private this.StartStepping(env : Agents.DworkinEnvironment) =
         let shapesProducer =
             let rec loop () =
                 async {
                     if not !isStopped then
-                        match environment with
-                        | Some(env) -> 
-                            if env.HasAgents then
-                                let mutable shapes = [||]
-                                for _ in TimeSamplers.Environment.Measure() do
-                                    shapes <- env.Step()
-                                do! queueAgent.AsyncAdd(shapes)
-                            else
-                                isStopped := true
-                                environmentFinished := true
-                        | None -> do! Async.Sleep(10)
+                        if env.HasAgents then
+                            let mutable shapes = [||]
+                            for _ in TimeSamplers.Environment.Measure() do
+                                shapes <- env.Step()
+                            do! queueAgent.AsyncAdd(shapes)
+                        else
+                            isStopped := true
+                            environmentFinished := true
                     else
                         do! Async.Sleep(10)
-                    do! loop ()
+                    if not !environmentFinished then
+                        do! loop ()
                 }
             loop()
         cancelTokenSource <- new System.Threading.CancellationTokenSource()
         Async.Start(shapesProducer, cancelTokenSource.Token)
     
-    member this.Environment
-        with set(env : Agents.DworkinEnvironment) =  
+    override this.Environment
+        with set(env) =  
             // empty queue and start
             isStopped := true
             if not <| isNull cancelTokenSource then
                 cancelTokenSource.Cancel()
             queueAgent <- new BlockingQueueAgent<AgentAbstractions.ShapeAndPaint[]>(maxQueueLength)
-            environment <- Some(env)
             environmentFinished := false
             isStopped := false
-            this.CreateShapesProducer()
+            this.StartStepping(env)
     
     member this.IsStopped = !isStopped
 
     member this.QueueLength = queueAgent.Length
 
-    member this.IsEmpty =
-        this.QueueLength = 0 && (!environmentFinished || !isStopped)
+    override this.HasMore = 
+        this.QueueLength > 0 || not (!environmentFinished || !isStopped)
 
     member this.Start() = 
         isStopped := false
@@ -634,5 +657,5 @@ type AsyncEnvironmentStepper() =
     member this.Stop() =
         isStopped := true
 
-    member this.FetchShapesForNextStep() : AgentAbstractions.ShapeAndPaint[] =
+    override this.FetchShapesForNextStep() =
         queueAgent.AsyncGet() |> Async.RunSynchronously
