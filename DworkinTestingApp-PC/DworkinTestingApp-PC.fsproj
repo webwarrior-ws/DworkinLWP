@@ -17,19 +17,16 @@
 	<Content Include="DefaultSkin.png">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
-	<Compile Include="../DworkinTestingApp/GeneratedConfigs.fs" />
-    <Compile Include="../DworkinTestingApp/ConfigSettings.fs" />
 	<Compile Include="GUI.fs" />
 	<Compile Include="Program.fs" />
   </ItemGroup>
-
-  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="Gwen.Renderer.OpenTK" Version="3.0.6001.430" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DworkinConfigs-PC\DworkinConfigs-PC.fsproj" />
     <ProjectReference Include="..\LibDworkin-PC\LibDworkin-PC.fsproj" />
   </ItemGroup>
 

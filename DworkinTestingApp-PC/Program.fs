@@ -11,6 +11,8 @@ open LibDworkin
 open LibDworkin.DworkinSettings
 open Settings
 
+open DworkinEnvironmentConfigCustom
+
 
 type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRenderer, ?guis : GUI.Widgets.AbstractGui list) =
     inherit GUI.Window(1280, 720, defaultArg guis [])
@@ -48,7 +50,7 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
  
 
  
-let pcbConfig = GeneratedConfigs.PCB_RandomPosChips()
+let pcbConfig = PCB_RandomPosChips()
 let defaultSettings = 
     { 
         Environment=ConfigSettings.PCB_RandomPosChips(); 
@@ -87,33 +89,33 @@ let configGui  =
                     "PCB-RandPosChips"
                     pcbConfig
                     [ 
-                        Builders.floatSliderEditor "Angle" GeneratedConfigs.PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
-                        Builders.checkboxEditor "Vias" GeneratedConfigs.PCB_RandomPosChips.Vias_;
-                        Builders.radioButtonEditor "Endpoints" GeneratedConfigs.PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
-                        Builders.checkboxEditor "Branch" GeneratedConfigs.PCB_RandomPosChips.Branch_;
-                        Builders.checkboxEditor "Octagonal" GeneratedConfigs.PCB_RandomPosChips.Octagonal_;
-                        Builders.dropdownListEditor "Angles" GeneratedConfigs.PCB_RandomPosChips.Angles_ possibleAnglesValues;
-                        Builders.floatSliderEditor "Thickness variance" GeneratedConfigs.PCB_RandomPosChips.ThicknessVariance_ 0.0f 1.0f 0.1f;
-                        Builders.floatSliderEditor "Density" GeneratedConfigs.PCB_RandomPosChips.Density_ 0.2f 0.8f 0.05f;
-                        Builders.floatSliderEditor "Size" GeneratedConfigs.PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
-                        Builders.floatSliderEditor "Speed" GeneratedConfigs.PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.PCB_RandomPosChips>;
+                        Builders.floatSliderEditor "Angle" PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
+                        Builders.checkboxEditor "Vias" PCB_RandomPosChips.Vias_;
+                        Builders.radioButtonEditor "Endpoints" PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
+                        Builders.checkboxEditor "Branch" PCB_RandomPosChips.Branch_;
+                        Builders.checkboxEditor "Octagonal" PCB_RandomPosChips.Octagonal_;
+                        Builders.dropdownListEditor "Angles" PCB_RandomPosChips.Angles_ possibleAnglesValues;
+                        Builders.floatSliderEditor "Thickness variance" PCB_RandomPosChips.ThicknessVariance_ 0.0f 1.0f 0.1f;
+                        Builders.floatSliderEditor "Density" PCB_RandomPosChips.Density_ 0.2f 0.8f 0.05f;
+                        Builders.floatSliderEditor "Size" PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
+                        Builders.floatSliderEditor "Speed" PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<PCB_RandomPosChips>;
                     ];
                 Builders.environmentEditor
                     "SpiralsProbesBranching1"
-                    (GeneratedConfigs.SpiralsProbesBranching1())
+                    (SpiralsProbesBranching1())
                     [ 
-                        Builders.intSliderEditor "N" GeneratedConfigs.SpiralsProbesBranching1.N_ 1 8 1;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.SpiralsProbesBranching1>;
+                        Builders.intSliderEditor "N" SpiralsProbesBranching1.N_ 1 8 1;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<SpiralsProbesBranching1>;
                     ];
                 Builders.environmentEditor
                     "MagneticSpiralsBunch"
-                    (GeneratedConfigs.MagneticSpiralsBunchBranching2_3())
+                    (MagneticSpiralsBunchBranching2_3())
                     [ 
-                        Builders.floatSliderEditor "Scale" GeneratedConfigs.MagneticSpiralsBunchBranching2_3.Scale_ 1.0f 2.0f 0.1f;
+                        Builders.floatSliderEditor "Scale" MagneticSpiralsBunchBranching2_3.Scale_ 1.0f 2.0f 0.1f;
                         Builders.intSliderEditor "MaxInitialAgents" 
-                            (LibDworkin.Lenses.config_ >-> GeneratedConfigs.SpawnConfig.ProbeBunchMagneticSpirals2Branch3.MaxInitialAgents_) 3 15 1;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<GeneratedConfigs.MagneticSpiralsBunchBranching2_3>;
+                            (LibDworkin.Lenses.config_ >-> MiscConfigs.SpawnConfig.ProbeBunchMagneticSpirals2Branch3.MaxInitialAgents_) 3 15 1;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<MagneticSpiralsBunchBranching2_3>;
                     ];
             ]
     let speedControl = 
@@ -246,7 +248,7 @@ let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWid
 [<EntryPoint>]
 let main _argv =
     let window = new MainWindow<_>(renderer, [configGui; appearanceGui])
-    //let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), GeneratedConfigs.MagneticSpiralsBunchBranching2_3()))
+    //let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), MagneticSpiralsBunchBranching2_3()))
     window.Run(30.0)
 
     0 // return an integer exit code

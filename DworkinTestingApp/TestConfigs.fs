@@ -178,7 +178,7 @@ let iGeoExample40  : IDworkinEnvironmentConfig =
 
 let circleAdvancedTest : IDworkinEnvironmentConfig = 
     let r = 20.0f
-    let terminalConfig = GeneratedConfigs.SpawnConfig.CircleAdvanced(Radius=r)
+    let terminalConfig = MiscConfigs.SpawnConfig.CircleAdvanced(Radius=r)
     
     { new IDworkinEnvironmentConfig with
         member this.GetEnvironment(size) = 
@@ -202,14 +202,14 @@ let circleAdvancedTest : IDworkinEnvironmentConfig =
                             a.ThicknessFactor <- 0.5f
                             tc.Evaluate(a)) |> ignore
                     env.Spawn(
-                        { config with Thickness=GeneratedConfigs.ThicknessFormula.Constant(C=2.0f) }, 
+                        { config with Thickness=ThicknessFormula.Constant(C=2.0f) }, 
                         AgentSpawnOptions(Position=Point(20.0f * r, y)), fun (a : DworkinAgent) -> tc.Evaluate(a)) |> ignore
                 )
                 ([| terminalConfig; terminalConfig |> Optic.set hollowPart_ 0.0f; terminalConfig |> Optic.set radius_ (r * 2.0f); |])
         
             env.Spawn(
                 { DworkinAgentConfig.Default with 
-                    Thickness=GeneratedConfigs.ThicknessFormula.Constant(C=r); 
+                    Thickness=ThicknessFormula.Constant(C=r); 
                     TotalDistance=20.0f * r; 
                     Speed=AgentSpeedConstant(Magnitude=r) }, 
                 AgentSpawnOptions(Position=Point(2.5f * r, r), Direction=Point(1.0f, 0.0f))) |> ignore

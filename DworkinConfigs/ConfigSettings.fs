@@ -2,7 +2,6 @@
 
 open Settings
 
-
 type EnvironmentConfig = LibDworkin.Configs.DworkinEnvironmentConfig
 
 
@@ -18,7 +17,7 @@ type MagneticSpiralsBunch() =
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
-        let config = GeneratedConfigs.MagneticSpiralsBunchBranching2_3(Scale=getValue <@ this.Scale @>) 
+        let config = DworkinEnvironmentConfigCustom.MagneticSpiralsBunchBranching2_3(Scale=getValue <@ this.Scale @>) 
         config.Config.MaxInitialAgents <- getValue <@ this.MaxInitialAgents @>
         config :> EnvironmentConfig
 
@@ -44,7 +43,7 @@ type PCB_RandomPosChips() =
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
-        GeneratedConfigs.PCB_RandomPosChips(
+        DworkinEnvironmentConfigCustom.PCB_RandomPosChips(
             RandomSeed=seed,
             Angle=getValue <@ this.Angle @>,
             Size=getValue <@ this.Size @>,

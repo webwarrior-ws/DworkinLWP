@@ -81,9 +81,7 @@
     <AndroidAsset Include="Assets\AboutAssets.txt" />
     <Content Include="packages.config" />
     <Compile Include="TestRenderers.fs" />
-    <Compile Include="GeneratedConfigs.fs" />
     <Compile Include="TestConfigs.fs" />
-    <Compile Include="ConfigSettings.fs" />
     <Compile Include="SettingsActivity.fs">
       <SubType>Code</SubType>
     </Compile>
@@ -146,6 +144,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DworkinConfigs\DworkinConfigs.fsproj">
+      <Name>DworkinConfigs</Name>
+      <Project>{f363393a-ce6b-4f3c-874d-e5f46860d812}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\LibDworkin\LibDworkin.fsproj">
       <Project>{207f165c-d87c-455d-b366-4d76aa03e760}</Project>
       <Name>LibDworkin</Name>

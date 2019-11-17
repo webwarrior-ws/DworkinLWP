@@ -1,0 +1,69 @@
+﻿module ThicknessFormula
+
+
+open LibDworkin.Aether
+open LibDworkin.Aether.Operators
+open LibDworkin.Geometry
+open LibDworkin.Agents
+open LibDworkin.PharoCompatibility
+
+
+type Constant() = 
+    inherit ThicknessFormula()
+    member val C = 1.0f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> Constant
+
+    static member C_ : Lens<Constant, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+
+    override this.Evaluate(s, t) =
+        this.C
+
+type LeafParabolic() = 
+    inherit ThicknessFormula()
+    member val C = 5.0f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> LeafParabolic
+
+    static member C_ : Lens<LeafParabolic, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+
+    override this.Evaluate(s, t) =
+        this.C * (1.0f - (squared ((t * 2.0f) - 1.0f)))
+    
+type ConcaveParabolic() = 
+    inherit ThicknessFormula()
+    member val C = 5.0f with get, set
+    member val Alpha = 0.5f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> ConcaveParabolic
+
+    static member C_ : Lens<ConcaveParabolic, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    static member Alpha_ : Lens<ConcaveParabolic, _> = 
+        (fun x -> x.Alpha), (fun value x -> let y = x.Clone() in y.Alpha <- value; y)
+
+    override this.Evaluate(s, t) =
+        this.C * (1.0f - ((1.0f - this.Alpha) * (1.0f - (squared ((t * 2.0f) - 1.0f)))))
+    
+type LeafPower_Base() = 
+    inherit ThicknessFormula()
+    member val A = 2.0f with get, set
+    member val P = 0.74f with get, set
+    member val C = 2.5f with get, set
+    member val Base = 0.25f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> LeafPower_Base
+
+    static member A_ : Lens<LeafPower_Base, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member P_ : Lens<LeafPower_Base, _> = 
+        (fun x -> x.P), (fun value x -> let y = x.Clone() in y.P <- value; y)
+    static member C_ : Lens<LeafPower_Base, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    static member Base_ : Lens<LeafPower_Base, _> = 
+        (fun x -> x.Base), (fun value x -> let y = x.Clone() in y.Base <- value; y)
+
+    override this.Evaluate(s, t) =
+        this.C * ((pcurve t (this.A * this.P) (this.A * (1.0f - this.P))) + this.Base)

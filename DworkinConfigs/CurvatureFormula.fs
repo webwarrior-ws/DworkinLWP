@@ -1,0 +1,63 @@
+﻿module CurvatureFormula
+
+
+open LibDworkin.Aether
+open LibDworkin.Aether.Operators
+open LibDworkin.Geometry
+open LibDworkin.Agents
+open LibDworkin.PharoCompatibility
+open LibDworkin.SimplexNoise
+
+
+type Tan_t_() = 
+    inherit CurvatureFormula()
+    member val C = 0.023f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> Tan_t_
+
+    static member C_ : Lens<Tan_t_, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+
+    override this.Evaluate(s, t) =
+        (tan (t * Single.HalfPi)) * this.C
+ 
+ 
+type MagneticWithFlip() = 
+    inherit CurvatureFormula()
+    member val Alpha = 0.72f with get, set
+    member val Midpoint = 0.16f with get, set
+    member val I = 20.0f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> MagneticWithFlip
+
+    static member Alpha_ : Lens<MagneticWithFlip, _> = 
+        (fun x -> x.Alpha), (fun value x -> let y = x.Clone() in y.Alpha <- value; y)
+    static member Midpoint_ : Lens<MagneticWithFlip, _> = 
+        (fun x -> x.Midpoint), (fun value x -> let y = x.Clone() in y.Midpoint <- value; y)
+    static member I_ : Lens<MagneticWithFlip, _> = 
+        (fun x -> x.I), (fun value x -> let y = x.Clone() in y.I <- value; y)
+
+    override this.Evaluate(s, t) =
+        (((1.0f / (1.0f + (exp (-((this.Midpoint - t) * this.I))))) - 0.5f) * -2.0f) * ((((s / t) - s) * 100.0f) ** (-this.Alpha))
+
+
+type SNoise() = 
+    inherit CurvatureFormula()
+    member val A = 0.15f with get, set
+    member val B = 16.9f with get, set
+    member val C = 0.0f with get, set
+    member val D = 0.16f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> SNoise
+
+    static member A_ : Lens<SNoise, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member B_ : Lens<SNoise, _> = 
+        (fun x -> x.B), (fun value x -> let y = x.Clone() in y.B <- value; y)
+    static member C_ : Lens<SNoise, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    static member D_ : Lens<SNoise, _> = 
+        (fun x -> x.D), (fun value x -> let y = x.Clone() in y.D <- value; y)
+
+    override this.Evaluate(s, t) =
+        (this.A * (((s + this.D) * this.B).SNoise())) + this.C

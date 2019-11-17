@@ -1,4 +1,5 @@
-﻿module rec GeneratedConfigs
+﻿module rec MiscConfigs
+/// Miscellaneous configs that may have recursive dependencies
 
 
 open LibDworkin.Aether
@@ -13,102 +14,6 @@ open LibDworkin.PharoCompatibility
 open LibDworkin.Colliders
 open LibDworkin.Probes
 
-
-
-
-module CurvatureFormula =
-    type Tan_t_() = 
-        inherit CurvatureFormula()
-        member val C = 0.023f with get, set
-
-        member this.Clone() = this.MemberwiseClone() :?> Tan_t_
-
-        static member C_ : Lens<Tan_t_, _> = 
-            (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
-
-        override this.Evaluate(s, t) =
-            (tan ((t * Single.Pi) * 0.5f)) * this.C
-    
-    type MagneticWithFlip() = 
-        inherit CurvatureFormula()
-        member val Alpha = 0.72f with get, set
-        member val Midpoint = 0.16f with get, set
-        member val I = 20.0f with get, set
-
-        member this.Clone() = this.MemberwiseClone() :?> MagneticWithFlip
-
-        static member Alpha_ : Lens<MagneticWithFlip, _> = 
-            (fun x -> x.Alpha), (fun value x -> let y = x.Clone() in y.Alpha <- value; y)
-        static member Midpoint_ : Lens<MagneticWithFlip, _> = 
-            (fun x -> x.Midpoint), (fun value x -> let y = x.Clone() in y.Midpoint <- value; y)
-        static member I_ : Lens<MagneticWithFlip, _> = 
-            (fun x -> x.I), (fun value x -> let y = x.Clone() in y.I <- value; y)
-
-        override this.Evaluate(s, t) =
-            (((1.0f / (1.0f + (exp (-((this.Midpoint - t) * this.I))))) - 0.5f) * -2.0f) * ((((s / t) - s) * 100.0f) ** (-this.Alpha))
-    
-
-
-module ThicknessFormula =
-    type Constant() = 
-        inherit ThicknessFormula()
-        member val C = 1.0f with get, set
-
-        member this.Clone() = this.MemberwiseClone() :?> Constant
-
-        static member C_ : Lens<Constant, _> = 
-            (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
-
-        override this.Evaluate(s, t) =
-            this.C
-
-    type LeafParabolic() = 
-        inherit ThicknessFormula()
-        member val C = 5.0f with get, set
-
-        member this.Clone() = this.MemberwiseClone() :?> LeafParabolic
-
-        static member C_ : Lens<LeafParabolic, _> = 
-            (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
-
-        override this.Evaluate(s, t) =
-            this.C * (1.0f - (squared ((t * 2.0f) - 1.0f)))
-    
-    type ConcaveParabolic() = 
-        inherit ThicknessFormula()
-        member val C = 5.0f with get, set
-        member val Alpha = 0.5f with get, set
-
-        member this.Clone() = this.MemberwiseClone() :?> ConcaveParabolic
-
-        static member C_ : Lens<ConcaveParabolic, _> = 
-            (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
-        static member Alpha_ : Lens<ConcaveParabolic, _> = 
-            (fun x -> x.Alpha), (fun value x -> let y = x.Clone() in y.Alpha <- value; y)
-
-        override this.Evaluate(s, t) =
-            this.C * (1.0f - ((1.0f - this.Alpha) * (1.0f - (squared ((t * 2.0f) - 1.0f)))))
-    
-    type LeafPower_Base() = 
-        inherit ThicknessFormula()
-        member val A = 2.0f with get, set
-        member val P = 0.74f with get, set
-        member val C = 2.5f with get, set
-        member val Base = 0.25f with get, set
-
-        member this.Clone() = this.MemberwiseClone() :?> LeafPower_Base
-
-        static member A_ : Lens<LeafPower_Base, _> = 
-            (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
-        static member P_ : Lens<LeafPower_Base, _> = 
-            (fun x -> x.P), (fun value x -> let y = x.Clone() in y.P <- value; y)
-        static member C_ : Lens<LeafPower_Base, _> = 
-            (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
-        static member Base_ : Lens<LeafPower_Base, _> = 
-            (fun x -> x.Base), (fun value x -> let y = x.Clone() in y.Base <- value; y)
-
-        override this.Evaluate(s, t) =
-            this.C * ((pcurve t (this.A * this.P) (this.A * (1.0f - this.P))) + this.Base)
 
 
 
@@ -681,71 +586,71 @@ module SpawnConfig =
                     else false)
                  |> ignore
     
-        module ProbeBunchMagneticSpirals2Branch3 = 
-            module Config = 
-                module Branching = 
-                    type SpawnConfig() = 
-                        inherit LibDworkin.Configs.SpawnConfig()
-                        member val Angle = 0.0f with get, set
-                        member val GenLimit = 5 with get, set
-                        member val LengthRange = NumberRange(100.0f, 400.0f) with get, set
-                        member val LengthSteps = 4 with get, set
-                        member val AlphaRange = NumberRange(0.65f, 0.8f) with get, set
-                        member val AlphaSteps = 4 with get, set
+    module ProbeBunchMagneticSpirals2Branch3 = 
+        module Config = 
+            module Branching = 
+                type SpawnConfig() = 
+                    inherit LibDworkin.Configs.SpawnConfig()
+                    member val Angle = 0.0f with get, set
+                    member val GenLimit = 5 with get, set
+                    member val LengthRange = NumberRange(100.0f, 400.0f) with get, set
+                    member val LengthSteps = 4 with get, set
+                    member val AlphaRange = NumberRange(0.65f, 0.8f) with get, set
+                    member val AlphaSteps = 4 with get, set
                 
-                        member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
+                    member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
                 
-                        static member Angle_ : Lens<SpawnConfig, _> = 
-                            (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
-                        static member GenLimit_ : Lens<SpawnConfig, _> = 
-                            (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
-                        static member LengthRange_ : Lens<SpawnConfig, _> = 
-                            (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
-                        static member LengthSteps_ : Lens<SpawnConfig, _> = 
-                            (fun x -> x.LengthSteps), (fun value x -> let y = x.Clone() in y.LengthSteps <- value; y)
-                        static member AlphaRange_ : Lens<SpawnConfig, _> = 
-                            (fun x -> x.AlphaRange), (fun value x -> let y = x.Clone() in y.AlphaRange <- value; y)
-                        static member AlphaSteps_ : Lens<SpawnConfig, _> = 
-                            (fun x -> x.AlphaSteps), (fun value x -> let y = x.Clone() in y.AlphaSteps <- value; y)
+                    static member Angle_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+                    static member GenLimit_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
+                    static member LengthRange_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+                    static member LengthSteps_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.LengthSteps), (fun value x -> let y = x.Clone() in y.LengthSteps <- value; y)
+                    static member AlphaRange_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.AlphaRange), (fun value x -> let y = x.Clone() in y.AlphaRange <- value; y)
+                    static member AlphaSteps_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.AlphaSteps), (fun value x -> let y = x.Clone() in y.AlphaSteps <- value; y)
                 
-                        override this.Evaluate(agent, pos) =
-                            let agentBlock = fun (a : DworkinAgent) -> a.Flip()
-                            agent.GenerationLimit <- this.GenLimit
-                            let lengthRange = this.LengthRange.By(this.LengthRange.Extent / float32(this.LengthSteps)) |> Seq.toArray
-                            lengthRange.ShuffleBy(agent.Random)
-                            lengthRange 
-                                |> Array.rev 
-                                |> Array.exists
-                                    (fun length -> 
-                                        let alphaRange = this.AlphaRange.By(this.AlphaRange.Extent / float32(this.AlphaSteps)) |> Seq.toArray
-                                        alphaRange.ShuffleBy(agent.Random)
-                                        alphaRange 
-                                            |> Array.rev 
-                                            |> Array.exists
-                                                (fun alpha -> 
-                                                    let config = 
-                                                        let curvature_ = curvature_ >-> cast<_, CurvatureFormula.MagneticWithFlip>
-                                                        agent.Config
-                                                        |> Optic.set totalDistance_ length
-                                                        |> Optic.set (curvature_ >-> midpoint_) 0.0f
-                                                        |> Optic.set (curvature_ >-> alpha_) alpha
-                                                    let probeData = 
-                                                        agent.LaunchProbe(
-                                                            config, 
-                                                            ProbeSpawnOptions(AngleDeg=this.Angle, StepsBetweenCollisionCheck=4), 
-                                                            agentBlock)
-                                                    match probeData.Collision with
-                                                    | Some(_) -> false
-                                                    | None -> 
-                                                        (*return*) 
-                                                        agent.Spawn(
-                                                            config, 
-                                                            AgentSpawnOptions(AngleDeg=this.Angle), 
-                                                            fun a -> 
-                                                                agentBlock a
-                                                                a.NoCollisions <- true
-                                                                probeData.SpawnColliders())
-                                                        true)) |> ignore
+                    override this.Evaluate(agent, pos) =
+                        let agentBlock = fun (a : DworkinAgent) -> a.Flip()
+                        agent.GenerationLimit <- this.GenLimit
+                        let lengthRange = this.LengthRange.By(this.LengthRange.Extent / float32(this.LengthSteps)) |> Seq.toArray
+                        lengthRange.ShuffleBy(agent.Random)
+                        lengthRange 
+                            |> Array.rev 
+                            |> Array.exists
+                                (fun length -> 
+                                    let alphaRange = this.AlphaRange.By(this.AlphaRange.Extent / float32(this.AlphaSteps)) |> Seq.toArray
+                                    alphaRange.ShuffleBy(agent.Random)
+                                    alphaRange 
+                                        |> Array.rev 
+                                        |> Array.exists
+                                            (fun alpha -> 
+                                                let config = 
+                                                    let curvature_ = curvature_ >-> cast<_, CurvatureFormula.MagneticWithFlip>
+                                                    agent.Config
+                                                    |> Optic.set totalDistance_ length
+                                                    |> Optic.set (curvature_ >-> midpoint_) 0.0f
+                                                    |> Optic.set (curvature_ >-> alpha_) alpha
+                                                let probeData = 
+                                                    agent.LaunchProbe(
+                                                        config, 
+                                                        ProbeSpawnOptions(AngleDeg=this.Angle, StepsBetweenCollisionCheck=4), 
+                                                        agentBlock)
+                                                match probeData.Collision with
+                                                | Some(_) -> false
+                                                | None -> 
+                                                    (*return*) 
+                                                    agent.Spawn(
+                                                        config, 
+                                                        AgentSpawnOptions(AngleDeg=this.Angle), 
+                                                        fun a -> 
+                                                            agentBlock a
+                                                            a.NoCollisions <- true
+                                                            probeData.SpawnColliders())
+                                                    true)) |> ignore
                     
     
     type ProbeBunchMagneticSpirals2Branch3() = 
@@ -832,205 +737,3 @@ module SpawnConfig =
                         n <- n + 1
                     n < this.MaxInitialAgents)
                     |> Seq.iter ignore
-
-
-type PCB_RandomPosChips() = 
-    inherit DworkinEnvironmentConfigCustom()
-    member val Angle = 0.0f with get, set
-    member val AgentConfig = SpawnConfig.PCBTracesFromChip() |> Optic.set (groupConfig_ >-> config_ >-> brush_) (BrushStrategySolidJoint()) with get, set
-    member val NxRange = NumberRange(2.0f, 8.0f) with get, set
-    member val NyRange = NumberRange(4.0f, 8.0f) with get, set
-    member val ThicknessVariance = 0.0f with get, set
-    member val Density = 0.5f with get, set
-    member val Endpoints = "hollow" with get, set
-    member val Vias = false with get, set
-    member val Angles = [| -45.0f |] with get, set
-    member val Branch = false with get, set
-    member val BranchingConfig = 
-        BranchingCriterionBased(
-            Criterion=(BranchingCriterionCustom.IntervalBoundedTRand() |> Optic.set d_ 8.0f),  
-            SpawnConfig=(SpawnConfig.PCBBranchOffset() |> Optic.set recursionLimit_ 4))
-        with get, set
-    member val Speed = 0.5f with get, set
-    member val Octagonal = true with get, set
-    member val Size = 1.0f with get, set
-
-    member this.Clone() = this.MemberwiseClone() :?> PCB_RandomPosChips
-
-    static member Angle_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
-    static member AgentConfig_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
-    static member NxRange_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.NxRange), (fun value x -> let y = x.Clone() in y.NxRange <- value; y)
-    static member NyRange_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.NyRange), (fun value x -> let y = x.Clone() in y.NyRange <- value; y)
-    static member ThicknessVariance_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.ThicknessVariance), (fun value x -> let y = x.Clone() in y.ThicknessVariance <- value; y)
-    static member Density_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Density), (fun value x -> let y = x.Clone() in y.Density <- value; y)
-    static member Endpoints_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Endpoints), (fun value x -> let y = x.Clone() in y.Endpoints <- value; y)
-    static member Vias_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Vias), (fun value x -> let y = x.Clone() in y.Vias <- value; y)
-    static member Angles_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Angles), (fun value x -> let y = x.Clone() in y.Angles <- value; y)
-    static member Branch_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Branch), (fun value x -> let y = x.Clone() in y.Branch <- value; y)
-    static member BranchingConfig_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.BranchingConfig), (fun value x -> let y = x.Clone() in y.BranchingConfig <- value; y)
-    static member Speed_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Speed), (fun value x -> let y = x.Clone() in y.Speed <- value; y)
-    static member Octagonal_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Octagonal), (fun value x -> let y = x.Clone() in y.Octagonal <- value; y)
-    static member Size_ : Lens<PCB_RandomPosChips, _> = 
-        (fun x -> x.Size), (fun value x -> let y = x.Clone() in y.Size <- value; y)
-
-    override this.Evaluate(env) =
-        let spawn = CollisionLayer(99)
-        let width = env.Bounds.Width
-        let height = env.Bounds.Height
-        let gap = this.AgentConfig.Gap
-        let mutable n = ((((this.Density * (width * height)) / (squared 1.25f)) / ((this.NxRange.Average * this.NyRange.Average) * (squared gap))) / (squared this.Size)) / 9.0f |> int
-        if this.Branch then
-            n <- int <| round (float32 n / (sqrt 2.0f))
-        let mutable nx = int (round <| env.Random.NextInRange(this.NxRange))
-        let mutable ny = int (round <| env.Random.NextInRange(this.NyRange))
-        let spawnSites = ResizeArray()
-        let mutable i = 0
-        let mutable ts = [| for k in 1..n -> (env.Random.NextGaussian() * this.ThicknessVariance) + 1.0f |]
-        let tsAverage = ts |> Array.average
-        ts <- ts |> Array.map (fun x -> (max (x / tsAverage) 1.0f) * this.Size)
-        
-        while (spawnSites.Length < n) && (i < 10000) do
-            let radius = ((float32(max nx ny) * gap) * (ts.[spawnSites.Length])) * 1.25f
-            let p = env.Random.NextInRectangle(env.Bounds.InsetBy(radius))
-            let collider = CircleCollider(None, p, radius)
-            if not <| env.TestForCollision(CollisionLayers([| spawn |], false), collider) then
-                env.AddColliderToLayer(collider, spawn)
-                spawnSites.Add(struct (collider.Center, Point(float32 nx, float32 ny)))
-                nx <- int(round <| env.Random.NextInRange(this.NxRange))
-                ny <- int(round <| env.Random.NextInRange(this.NyRange))
-            i <- i + 1
-
-        env.RemoveColliderLayer(spawn)
-        let mutable configToSpawn = 
-            this.AgentConfig
-            |> Optic.set octagonal_ this.Octagonal
-            |> Optic.set appearance_ 
-                ((if this.Vias then
-                    "vias"
-                  else
-                    if this.Endpoints = "hollow" then
-                        "contour"
-                    else
-                        "filled"))
-            |> Optic.set (groupConfig_ >-> config_ >-> termination_spawnConfig_ >-> cast >-> SpawnConfig.PCBTraceLengthLimited.TerminalConfig_ >-> hollowPart_) 
-                ((if this.Endpoints = "hollow" then 0.5f else 0.0f))
-            |> Optic.set (groupConfig_ >-> config_ >-> termination_spawnConfig_ >-> cast >-> SpawnConfig.PCBTraceLengthLimited.Angles_) this.Angles
-            |> Optic.set (groupConfig_ >-> config_ >-> branching_) 
-                (if this.Branch then
-                    this.BranchingConfig |> Optic.set (spawnConfig_ >-> cast<SpawnConfig, SpawnConfig.PCBBranchOffset> >-> branchProb_) this.Density :> BranchingStrategy
-                  else
-                    BranchingNone() :> BranchingStrategy)
-            |> Optic.set (groupConfig_ >-> config_ >-> speed_ >-> cast<AgentSpeed, AgentSpeedThickness> >-> factor_) this.Speed
-        
-        withIndexDo
-            (fun struct (pos, size) k -> 
-                let mutable dist = (min width height) * 0.5f
-                for struct (sp, ss) in spawnSites do 
-                    if sp <> pos then
-                        let p = ((pos - sp).Abs()) - ((size + ss) * gap)
-                        dist <- min dist (max p.X p.Y)
-                if this.Branch then
-                    let transform d = d * ts.[k-1]
-                    configToSpawn <- 
-                        configToSpawn
-                        |> Optic.map 
-                            (groupConfig_ >-> config_ >-> branching_) 
-                            (fun branching -> 
-                                branching
-                                |> Optic.map (criterion_ >-> BranchingCriterionCustom.IntervalBoundedTRand.D_) transform
-                                |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.Offset_) transform
-                                |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.ColliderSize_) transform)
-                let opts = AgentSpawnOptions(Position=pos, AngleDeg=this.Angle)
-                if k > 1 then
-                    opts.DelayBy(int ((env.Random.NextFloat() * dist) / this.Speed / this.Size))
-                env.Spawn(
-                    configToSpawn
-                    |> Optic.set nx_ (int size.X)
-                    |> Optic.set ny_ (int size.Y)
-                    |> Optic.map gap_ (fun x -> x * ts.[k-1]), 
-                    opts,
-                    fun a -> a.ScaleBy(Point(ts.[k-1], 1.0f)))
-                    |> ignore)
-            spawnSites
-
-
-type SpiralsProbesBranching1() = 
-    inherit DworkinEnvironmentConfigCustom()
-    member val Config = DworkinAgentConfig.swirls2_7_fast_ with get, set
-    member val N = 2 with get, set
-    member val LengthRange = NumberRange(50.0f, 200.0f) with get, set
-    member val Delay = 100 with get, set
-
-    member this.Clone() = this.MemberwiseClone() :?> SpiralsProbesBranching1
-
-    static member Config_ : Lens<SpiralsProbesBranching1, _> = 
-        (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
-    static member N_ : Lens<SpiralsProbesBranching1, _> = 
-        (fun x -> x.N), (fun value x -> let y = x.Clone() in y.N <- value; y)
-    static member LengthRange_ : Lens<SpiralsProbesBranching1, _> = 
-        (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
-    static member Delay_ : Lens<SpiralsProbesBranching1, _> = 
-        (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
-
-    override this.Evaluate(env) =
-        let c = env.Bounds.Center
-        Seq.iter
-            (fun p -> 
-                let d = p - c
-                env.AddCollider(SegmentCollider(None, p, Point(c.X + (float32(sign d.X) * 0.001f), p.Y)))
-                env.AddCollider(SegmentCollider(None, p, Point(p.X, c.Y + (float32(sign d.Y) * 0.001f)))))
-            env.Bounds.Corners
-        let d = env.Bounds.Width / float32(this.N + 1)
-        Seq.iter
-            (fun x -> 
-                let finalConfig = this.Config|> Optic.set totalDistance_ (env.Random.NextInRange this.LengthRange)
-                let spawnOptions = ProbeSpawnOptions(Position=Point(x, env.Bounds.Top + 1.0f), Direction=Point(0.0f, 1.0f))
-                spawnOptions.DelayBy(int(env.Random.NextFloat() * float32(this.Delay)))
-                let probeData = env.LaunchProbe(finalConfig, spawnOptions)
-                env.Spawn(
-                    finalConfig|> Optic.set totalDistance_ probeData.S, 
-                    spawnOptions, 
-                    fun (a : DworkinAgent) -> 
-                        probeData.Id <- a.Id
-                        probeData.SpawnColliders()
-                        a.NoCollisions <- true)
-                    |> ignore)
-            (seq { (env.Bounds.Left + d) .. d .. (env.Bounds.Right - d) })
-
-    
-type MagneticSpiralsBunchBranching2_3() = 
-    inherit DworkinEnvironmentConfigCustom()
-    member val Config = SpawnConfig.ProbeBunchMagneticSpirals2Branch3() with get, set
-    member val Scale = 1.25f with get, set
-
-    member this.Clone() = this.MemberwiseClone() :?> MagneticSpiralsBunchBranching2_3
-
-    static member Config_ : Lens<MagneticSpiralsBunchBranching2_3, _> = 
-        (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
-    
-    static member Scale_ : Lens<MagneticSpiralsBunchBranching2_3, _> = 
-        (fun x -> x.Scale), (fun value x -> let y = x.Clone() in y.Scale <- value; y)
-
-    override this.Evaluate(env) =
-        let bounds = env.Bounds
-        let c = bounds.Center
-        for p in bounds.Corners do
-            let d = p - c
-            env.AddCollider(SegmentCollider(None, p, Point(c.X + (float32(sign d.X) * 0.001f), p.Y)))
-            env.AddCollider(SegmentCollider(None, p, Point(p.X, c.Y + (float32(sign d.Y) * 0.001f))))
-            
-        env.Spawn(this.Config, AgentSpawnOptions(Position=env.Bounds.BottomCenter - Point(0.0f, 1.0f)), fun a -> a.ScaleBy(this.Scale))
-                
