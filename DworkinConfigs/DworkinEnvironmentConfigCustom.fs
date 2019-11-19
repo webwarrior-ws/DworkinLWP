@@ -290,9 +290,9 @@ type LWPMaze2() =
         for p in positions do
             let angle = this.InitialAngle + angles.AtRandom(env.Random)
             let d = delays.RemoveLast()
-            let getOffset (p : Point) = Point(float32(sign p.X) * 0.5f, float32(sign p.Y) * 0.5f)
-            spawnAgent (p - (getOffset p)) angle d
+            let offset = Point(float32(sign p.X) * 0.5f, float32(sign p.Y) * 0.5f)
+            spawnAgent (p - offset) angle d
             if this.Mirror then
-                spawnAgent (p - (getOffset p)) (180 + angle) (this.Delay - d)
+                spawnAgent (p - offset) (180 + angle) (this.Delay - d)
             
  
