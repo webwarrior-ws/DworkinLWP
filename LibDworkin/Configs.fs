@@ -169,7 +169,7 @@ type ColliderStrategySegments() =
         | None -> 
             let collider = SegmentCollider(Some(agent.GetFootprint()), pos, pos)
             attributes.LastCollider.Set(collider)
-            [ collider ]
+            []
     
 
 type ColliderStrategy with
