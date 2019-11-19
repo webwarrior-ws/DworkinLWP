@@ -83,6 +83,11 @@ type IList<'T> with
     member this.AddBeforeIndex(object : 'T, index : int) =
         this.Insert(index-1, object)
     
+    member this.RemoveLast() : 'T =
+        let result = this.Last
+        this.RemoveAt(this.Length-1)
+        result
+
     member this.AtRandom(prng : System.Random) =
         this.[prng.Next(this.Count)]
         

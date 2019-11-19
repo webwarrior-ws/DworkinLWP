@@ -219,96 +219,6 @@ type MagneticSpiralsBunchBranching2_3() =
         env.Spawn(this.Config, AgentSpawnOptions(Position=env.Bounds.BottomCenter - Point(0.0f, 1.0f)), fun a -> a.ScaleBy(this.Scale))
 
 
-(*
-type LWPMaze() = 
-    inherit DworkinEnvironmentConfigCustom()
-    member val AgentConfig = DworkinAgentConfig.straightMazeRandomAngle_v2 with get, set
-    member val XGridStep = 60.0f with get, set
-    member val YGridStep = 60.0f with get, set
-    member val Delay = 180 with get, set
-    member val XAngle = 0 with get, set
-    member val YAngle = 0 with get, set
-    member val Scale = 1.0f with get, set
-    member val NumAgents = 10 with get, set
-
-    member this.Clone() = this.MemberwiseClone() :?> LWPMaze
-
-    static member AgentConfig_ : Lens<LWPMaze, _> = 
-        (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
-    static member XGridStep_ : Lens<LWPMaze, _> = 
-        (fun x -> x.XGridStep), (fun value x -> let y = x.Clone() in y.XGridStep <- value; y)
-    static member YGridStep_ : Lens<LWPMaze, _> = 
-        (fun x -> x.YGridStep), (fun value x -> let y = x.Clone() in y.YGridStep <- value; y)
-    static member Delay_ : Lens<LWPMaze, _> = 
-        (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
-    static member XAngle_ : Lens<LWPMaze, _> = 
-        (fun x -> x.XAngle), (fun value x -> let y = x.Clone() in y.XAngle <- value; y)
-    static member YAngle_ : Lens<LWPMaze, _> = 
-        (fun x -> x.YAngle), (fun value x -> let y = x.Clone() in y.YAngle <- value; y)
-    static member Scale_ : Lens<LWPMaze, _> = 
-        (fun x -> x.Scale), (fun value x -> let y = x.Clone() in y.Scale <- value; y)
-    static member NumAgents_ : Lens<LWPMaze, _> = 
-        (fun x -> x.NumAgents), (fun value x -> let y = x.Clone() in y.NumAgents <- value; y)
-
-    override this.Evaluate(env) =
-        let width = env.Bounds.Width
-        let height = env.Bounds.Height
-        let p1s = ResizeArray()
-        let p2s = ResizeArray()
-        let positions = ResizeArray()
-        
-        for x in (this.XGridStep / 2.0f) .. this.XGridStep .. (width / 2.0f - this.XGridStep) do
-            p1s.Add(Point(x, height / 2.0f))
-            p2s.Insert(0, Point(x, height / -2.0f))
-            p1s.Insert(0, Point(-x, height / 2.0f))
-            p2s.Add(Point(-x, height / -2.0f))
-        positions.AddRange(p1s)
-        positions.AddRange(p2s)
-        p1s.Clear() 
-        p2s.Clear() 
-        
-        for y in (this.YGridStep / 2.0f) .. this.YGridStep .. (height / 2.0f - this.YGridStep) do
-            p1s.Add(Point(width / 2.0f, y))
-            p2s.Insert(0, Point(width / -2.0f, y))
-            p1s.Insert(0, Point(width / 2.0f, -y))
-            p2s.Add(Point(width / -2.0f, -y))
-        positions.AddRange(p1s)
-        positions.AddRange(p2s)
-        
-        let numberedPositions = ResizeArray(positions |> Seq.mapi (fun i p1 -> p1, i))
-        for _k=1 to numberedPositions.Length - this.NumAgents do
-            let _, i = numberedPositions.AtRandom(env.Random)
-            numberedPositions.Remove(numberedPositions |> Seq.minBy (fun (_, j) -> abs (i - j))) |> ignore
-        positions.Clear()
-        positions.AddRange(Seq.map fst numberedPositions)
-        
-        let delays = ResizeArray(Seq.init positions.Length (fun i ->  i * this.Delay / positions.Length))
-        delays.ShuffleBy(env.Random)
-        
-        let agentBlock (a : DworkinAgent) = 
-            a.NoCollisions <- true
-            a.ScaleBy(this.Scale)
-        
-        let config = this.AgentConfig |> Optic.map (speed_ >-> magnitude_) (fun x -> x / this.Scale)
-        
-        let spawnAgent pos angle =
-            let d = delays.Last
-            delays.RemoveAt(delays.Length-1)
-            let spawnOpts = ProbeSpawnOptions(Position=pos, AngleDeg=angle)
-            spawnOpts.DelayBy(d)
-            env.LaunchProbe(config, spawnOpts, agentBlock).SpawnColliders()
-            env.Spawn(config, spawnOpts, agentBlock) |> ignore
-            env.AddCollider(SegmentCollider(None, pos, pos + (Point(0.0f, config.TotalDistance * this.Scale).Rotate(deg2rad (angle + 90.0f)))))
-        
-        for p in positions do 
-            let angle = 
-                if abs((abs p.Y) - (height / 2.0f)) < 0.01f then
-                    if p.Y < 0.0f then this.XAngle else 180 + this.XAngle
-                else
-                    (90 * (sign p.X)) + this.YAngle
-            spawnAgent (p - Point(float32(sign p.X) * 0.5f, float32(sign p.Y) * 0.5f)) (float32 angle) |> ignore
-*)    
-
 type LWPMaze2() = 
     inherit DworkinEnvironmentConfigCustom()
     member val AgentConfig = DworkinAgentConfig.straightMazeRandomAngle_v2 with get, set
@@ -379,13 +289,10 @@ type LWPMaze2() =
         let angles = [| 0 .. this.AngleIncrement .. 360 |]
         for p in positions do
             let angle = this.InitialAngle + angles.AtRandom(env.Random)
-            let d = delays.Last
-            delays.RemoveAt(delays.Length-1)
+            let d = delays.RemoveLast()
             let getOffset (p : Point) = Point(float32(sign p.X) * 0.5f, float32(sign p.Y) * 0.5f)
             spawnAgent (p - (getOffset p)) angle d
             if this.Mirror then
                 spawnAgent (p - (getOffset p)) (180 + angle) (this.Delay - d)
             
-    
-            
-    
+ 
