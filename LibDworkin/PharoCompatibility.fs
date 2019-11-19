@@ -85,6 +85,15 @@ type IList<'T> with
     
     member this.AtRandom(prng : System.Random) =
         this.[prng.Next(this.Count)]
+        
+    member this.ShuffleBy(random : System.Random) : unit =
+        for i in this.Length-1 .. -1 .. 1 do
+            // swap elemets at i and random.Next(i)
+            let i2 = random.Next(i)
+            let e = this.[i]
+            let e2 = this.[i2]
+            this.[i] <- e2
+            this.[i2] <- e
 
 
 type 'T ``[]`` with
