@@ -1,5 +1,9 @@
 ﻿module ConfigSettings
 
+open LibDworkin.Aether
+open LibDworkin.Aether.Operators
+open LibDworkin.Lenses
+
 open Settings
 
 type EnvironmentConfig = LibDworkin.Configs.DworkinEnvironmentConfig
@@ -53,4 +57,46 @@ type PCB_RandomPosChips() =
         :> EnvironmentConfig
 
 
-let allEnvironmentSettingsTypes = [| typeof<MagneticSpiralsBunch>; typeof<PCB_RandomPosChips>; |]
+type Maze() =
+    inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+
+    [<FloatRange(0.5f, 2.0f)>]
+    member val WallThickness = Defined(1.0f) with get, set
+
+    [<Bool>]
+    member val Curvy = Defined(false) with get, set
+
+    [<Enum([| 0; 45 |])>]
+    member val Orientation = Defined(0) with get, set
+
+    [<FloatRange(0.5f, 1.5f)>]
+    member val Scale = Defined(1.0f) with get, set
+
+    [<FloatRange(0.5f, 3.0f)>]
+    member val Speed = Defined(1.0f) with get, set
+
+    override this.Build(seed) =
+        let random = System.Random(seed)
+        let getValue expr = Randomizeable.getValue random expr
+
+        let mutable agentConfig = MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v2
+        // TODO: different angles
+        agentConfig <- 
+            agentConfig 
+            |> Optic.set (speed_ >-> magnitude_) (getValue <@ this.Speed @>)
+            |> Optic.map (thickness_ >-> cast<_, ThicknessFormula.Constant> >-> c_) (fun c -> c * (getValue <@ this.WallThickness @>))
+        if getValue <@ this.Curvy @> then
+            agentConfig <- agentConfig |> Optic.set (curvature_) (CurvatureFormula.SNoise(A=0.075f, B=5.0f, D=0.61f))
+
+        let config =
+            DworkinEnvironmentConfigCustom.LWPMaze2(
+                Scale=getValue <@ this.Scale @>,
+                InitialAngle=getValue <@ this.Orientation @>,
+                AgentConfig=agentConfig,
+                RandomSeed=seed) 
+
+        config :> EnvironmentConfig
+
+
+
+let allEnvironmentSettingsTypes = [| typeof<MagneticSpiralsBunch>; typeof<PCB_RandomPosChips>; typeof<Maze> |]

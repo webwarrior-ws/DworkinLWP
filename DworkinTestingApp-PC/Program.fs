@@ -117,6 +117,14 @@ let configGui  =
                             (LibDworkin.Lenses.config_ >-> MiscConfigs.SpawnConfig.ProbeBunchMagneticSpirals2Branch3.MaxInitialAgents_) 3 15 1;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<MagneticSpiralsBunchBranching2_3>;
                     ];
+                Builders.environmentEditor
+                    "Maze"
+                    (LWPMaze2())
+                    [ 
+                        Builders.floatSliderEditor "Scale" LWPMaze2.Scale_ 0.5f 1.5f 0.1f;
+                        Builders.intSliderEditor "NumInitialAgents" LWPMaze2.NumAgents_ 3 15 1;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<LWPMaze2>;
+                    ];
             ]
     let speedControl = 
         Builders.radioButtonEditor 

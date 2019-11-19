@@ -85,7 +85,7 @@ type IList<'T> with
     
     member this.RemoveLast() : 'T =
         let result = this.Last
-        this.RemoveAt(this.Length-1)
+        this.RemoveAt(this.Count-1)
         result
 
     member this.AtRandom(prng : System.Random) =
@@ -117,6 +117,7 @@ type 'T ``[]`` with
             let e2 = this.[i2]
             this.[i] <- e2
             this.[i2] <- e
+
 
 type System.Random with
     member inline this.NextFloat() =
