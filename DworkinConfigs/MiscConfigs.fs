@@ -97,6 +97,8 @@ module BranchingCriterionIntervalRandomized =
  
 
 module DworkinAgentConfig =
+    open LibDworkin.Brushes
+
     let pCBTrace = 
         { DworkinAgentConfig.Default with 
             ColliderOptions=ColliderOptionsGeneral();
@@ -145,10 +147,27 @@ module DworkinAgentConfig =
                     |> Optic.set alpha_ 0.4f;
             TotalDistance=200.0f
          }
+    
+    let straightMazeRandomAngle_v2 = 
+        { DworkinAgentConfig.Default with 
+            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Miter);
+            ColliderOptions=ColliderOptionsGeneral(Strategy=ColliderStrategySegments());
+            Speed=AgentSpeedConstant();
+            Termination=TerminationSpawn(SpawnConfig=SpawnConfig.StraightMazeRandomAngle());
+            TerminationConditions=
+                { Collision=Some(TerminationConditionCollision(DetectorSize=DetectorSize.Absolute, IgnoreParent=true, MinDistance=5.0f, SelfIntersection=false)
+                              |> Optic.set (primaryDetector_ >-> angle_) 180.0f
+                              |> Optic.set (primaryDetector_ >-> distance_) 20.0f);
+                Curvature=None;
+                Distance=Some(TerminationConditionDistance()); };
+            Thickness=ThicknessFormula.Constant(C=5.0f);
+            TotalDistance=30.0f
+         }
 
 
 module SpawnConfig =
     open LibDworkin.SpatialIndex
+    open LibDworkin.Agents
 
     type CircleAdvanced() = 
         inherit SpawnConfig()
@@ -737,3 +756,61 @@ module SpawnConfig =
                         n <- n + 1
                     n < this.MaxInitialAgents)
                     |> Seq.iter ignore
+    
+
+    type StraightMazeRandomAngle() = 
+        inherit SpawnConfig()
+        member val Angle = 90 with get, set
+        member val P = 0.75f with get, set
+        member val PossibleAngles = [| 90; 0; 90 |] with get, set
+        member val CollisionAccuracy = 4 with get, set
+
+        member this.Clone() = this.MemberwiseClone() :?> StraightMazeRandomAngle
+        
+        static member Angle_ : Lens<StraightMazeRandomAngle, _> = 
+            (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+        static member P_ : Lens<StraightMazeRandomAngle, _> = 
+            (fun x -> x.P), (fun value x -> let y = x.Clone() in y.P <- value; y)
+        static member PossibleAngles_ : Lens<StraightMazeRandomAngle, _> = 
+            (fun x -> x.PossibleAngles), (fun value x -> let y = x.Clone() in y.PossibleAngles <- value; y)
+        static member CollisionAccuracy_ : Lens<StraightMazeRandomAngle, _> = 
+            (fun x -> x.CollisionAccuracy), (fun value x -> let y = x.Clone() in y.CollisionAccuracy <- value; y)
+
+        override this.Evaluate(agent, pos) =
+            let angles = 
+                if this.Angle = 0 then
+                    [| this.Angle |]
+                else
+                    [| this.Angle; -this.Angle |]
+            if agent.Random.NextFloat() < this.P then
+                angles.ShuffleBy(agent.Random)
+            angles |> withIndexDo
+                (fun phi i -> 
+                    let config =
+                        agent.Config 
+                        |> Optic.set 
+                            (termination_ >-> TerminationSpawn.SpawnConfig_ >-> cast<_, StraightMazeRandomAngle> >-> angle_) 
+                            (this.PossibleAngles.AtRandom(agent.Random))
+                        |> Optic.set 
+                            (curvature_ >-> tryCast<_, CurvatureFormula.SNoise> >?> d_) 
+                            (agent.Random.NextFloat() * 10.0f)
+                    let probeData = 
+                        let s = 
+                            config.TerminationConditions.Collision.Value.PrimaryDetector.Distance / agent.Speed / (float32 this.CollisionAccuracy)
+                            |> floor
+                            |> int
+                        agent.LaunchProbe(config, ProbeSpawnOptions(AngleDeg=float32 phi, StepsBetweenCollisionCheck=s))
+                    if Option.isNone probeData.Collision then
+                        let delay = (round (agent.Config.TotalDistance / agent.Speed)) * float32(i-1) |> int
+                        let spawnOptions = AgentSpawnOptions(AngleDeg=float32 phi)
+                        spawnOptions.DelayBy(delay)
+                        probeData.SpawnColliders()
+                        agent.Spawn(
+                            config, 
+                            spawnOptions, 
+                            fun a -> 
+                                a.NoCollisions <- true
+                                a.Attributes.DrawJoint.Set(true)))
+
+
+
