@@ -60,4 +60,4 @@ type SNoise() =
         (fun x -> x.D), (fun value x -> let y = x.Clone() in y.D <- value; y)
 
     override this.Evaluate(s, t) =
-        (this.A * (((s + this.D) * this.B).SNoise())) + this.C
+        this.A * ((s + this.D) * this.B).SNoise() + this.C
