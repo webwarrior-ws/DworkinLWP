@@ -89,7 +89,7 @@ type Maze() =
             agentConfig <- agentConfig |> Optic.set (curvature_) (CurvatureFormula.SNoise(A=0.075f, B=5.0f, D=0.61f))
 
         let config =
-            DworkinEnvironmentConfigCustom.LWPMaze2(
+            DworkinEnvironmentConfigCustom.LWPMaze3(
                 Scale=getValue <@ this.Scale @>,
                 InitialAngle=getValue <@ this.Orientation @>,
                 AgentConfig=agentConfig,

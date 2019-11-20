@@ -219,7 +219,7 @@ type MagneticSpiralsBunchBranching2_3() =
         env.Spawn(this.Config, AgentSpawnOptions(Position=env.Bounds.BottomCenter - Point(0.0f, 1.0f)), fun a -> a.ScaleBy(this.Scale))
 
 
-type LWPMaze2() = 
+type LWPMaze3() = 
     inherit DworkinEnvironmentConfigCustom()
     member val AgentConfig = DworkinAgentConfig.straightMazeRandomAngle_v2 with get, set
     member val Delay = 180 with get, set
@@ -230,69 +230,65 @@ type LWPMaze2() =
     member val AngleIncrement = 90 with get, set
     member val GridSize = 60.0f with get, set
 
-    member this.Clone() = this.MemberwiseClone() :?> LWPMaze2
+    member this.Clone() = this.MemberwiseClone() :?> LWPMaze3
 
-    static member AgentConfig_ : Lens<LWPMaze2, _> = 
+    static member AgentConfig_ : Lens<LWPMaze3, _> = 
         (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
-    static member Delay_ : Lens<LWPMaze2, _> = 
+    static member Delay_ : Lens<LWPMaze3, _> = 
         (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
-    static member Scale_ : Lens<LWPMaze2, _> = 
+    static member Scale_ : Lens<LWPMaze3, _> = 
         (fun x -> x.Scale), (fun value x -> let y = x.Clone() in y.Scale <- value; y)
-    static member NumAgents_ : Lens<LWPMaze2, _> = 
+    static member NumAgents_ : Lens<LWPMaze3, _> = 
         (fun x -> x.NumAgents), (fun value x -> let y = x.Clone() in y.NumAgents <- value; y)
-    static member AngleIncrement_ : Lens<LWPMaze2, _> = 
+    static member AngleIncrement_ : Lens<LWPMaze3, _> = 
         (fun x -> x.AngleIncrement), (fun value x -> let y = x.Clone() in y.AngleIncrement <- value; y)
-    static member Mirror_ : Lens<LWPMaze2, _> = 
+    static member Mirror_ : Lens<LWPMaze3, _> = 
         (fun x -> x.Mirror), (fun value x -> let y = x.Clone() in y.Mirror <- value; y)
-    static member InitialAngle_ : Lens<LWPMaze2, _> = 
+    static member InitialAngle_ : Lens<LWPMaze3, _> = 
         (fun x -> x.InitialAngle), (fun value x -> let y = x.Clone() in y.InitialAngle <- value; y)
-    static member GridSize_ : Lens<LWPMaze2, _> = 
+    static member GridSize_ : Lens<LWPMaze3, _> = 
         (fun x -> x.GridSize), (fun value x -> let y = x.Clone() in y.GridSize <- value; y)
 
     override this.Evaluate(env) =
         let positions = ResizeArray()
         let cellSize = this.GridSize * this.Scale
+        let delay = int(float32(this.Delay) / (this.AgentConfig.Speed :?> AgentSpeedConstant).Magnitude)
         
         for x in (env.Bounds.Left + cellSize) .. cellSize .. (env.Bounds.Right - cellSize) do
             for y in (env.Bounds.Top + cellSize) .. cellSize .. (env.Bounds.Bottom - cellSize) do
                 positions.Add(Point(x, y))
-        
-        let metric (p1 : Point) (p2 : Point) =
-            if p1 = p2 then 1000000.0f
-            else p1.SquaredDistanceTo(p2)
-        
-        for i=1 to positions.Length - this.NumAgents do
-            let p = positions.AtRandom(env.Random)
-            let sqDistToNearestPoint (r : Rectangle) (pt : Point) =
-                min (min (abs (r.Left - pt.X)) (abs (r.Right - pt.X))) (min (abs (r.Top - pt.Y)) (abs (r.Bottom - pt.Y)))
-                |> squared
-            positions.Remove(Seq.minBy (fun each -> min (metric each p) ((sqDistToNearestPoint env.Bounds each) * 4.0f)) positions)
-                |> ignore
+        positions.ShuffleBy(env.Random)
 
-        let delays = ResizeArray(Seq.init positions.Length (fun i ->  i * this.Delay / positions.Length))
-
-        let minDist p = (Seq.minBy (fun each -> metric each p) positions).SquaredDistanceTo(p)
-        positions.Sort(fun p1 p2 -> sign (minDist p1 - minDist p2))
-        
         let agentBlock (a : DworkinAgent) = 
             a.NoCollisions <- true
             a.ScaleBy(this.Scale)
-        let config = this.AgentConfig|> Optic.map (speed_ >-> magnitude_) (fun x -> x / this.Scale)
+        let config = this.AgentConfig |> Optic.map (speed_ >-> magnitude_) (fun x -> x / this.Scale)
 
-        let spawnAgent pos angle d = 
+        let spawnAgent pos angle delayed = 
             let angle = float32 angle
             let spawnOpts = ProbeSpawnOptions(Position=pos, AngleDeg=angle)
-            spawnOpts.DelayBy(d)
+            if delayed then
+                spawnOpts.DelayBy(delay)
             env.LaunchProbe(config, spawnOpts, agentBlock).SpawnColliders()
             env.Spawn(config, spawnOpts, agentBlock) |> ignore
         
         let angles = [| 0 .. this.AngleIncrement .. 360 |]
-        for p in positions do
-            let angle = this.InitialAngle + angles.AtRandom(env.Random)
-            let d = delays.RemoveLast()
-            let offset = Point(float32(sign p.X) * 0.5f, float32(sign p.Y) * 0.5f)
-            spawnAgent (p - offset) angle d
-            if this.Mirror then
-                spawnAgent (p - offset) (180 + angle) (this.Delay - d)
+        for i in 1 .. this.NumAgents do
+            let d = (i - 1) * delay
+            env.Delay(
+                (fun _ ->
+                    let mutable triesLeft = 100
+                    while triesLeft > 0 && positions.Count > 0 do
+                        let p = positions.RemoveLast()
+                        if not <| env.TestForCollision(CollisionLayers.All, CircleCollider(None, p, cellSize)) then
+                            triesLeft <- 0
+                            let angle = this.InitialAngle + angles.AtRandom(env.Random)
+                            let offset = Point(float32(sign p.X) * 0.5f, float32(sign p.Y) * 0.5f)
+                            spawnAgent (p - offset) angle false
+                            if this.Mirror then
+                                spawnAgent (p - offset) (180 + angle) true
+                        triesLeft <- triesLeft - 1
+                    None),
+                d)
             
  
