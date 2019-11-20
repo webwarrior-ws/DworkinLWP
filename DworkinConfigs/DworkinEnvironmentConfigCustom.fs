@@ -229,6 +229,7 @@ type LWPMaze3() =
     member val InitialAngle = 0 with get, set
     member val AngleIncrement = 90 with get, set
     member val GridSize = 60.0f with get, set
+    member val ThicknessVariance = 0.0f with get, set
 
     member this.Clone() = this.MemberwiseClone() :?> LWPMaze3
 
@@ -248,6 +249,8 @@ type LWPMaze3() =
         (fun x -> x.InitialAngle), (fun value x -> let y = x.Clone() in y.InitialAngle <- value; y)
     static member GridSize_ : Lens<LWPMaze3, _> = 
         (fun x -> x.GridSize), (fun value x -> let y = x.Clone() in y.GridSize <- value; y)
+    static member ThicknessVariance_ : Lens<LWPMaze3, _> = 
+        (fun x -> x.ThicknessVariance), (fun value x -> let y = x.Clone() in y.ThicknessVariance <- value; y)
 
     override this.Evaluate(env) =
         let positions = ResizeArray()
@@ -262,7 +265,7 @@ type LWPMaze3() =
         let agentBlock (a : DworkinAgent) = 
             a.NoCollisions <- true
             a.ScaleBy(this.Scale)
-        let config = this.AgentConfig |> Optic.map (speed_ >-> magnitude_) (fun x -> x / this.Scale)
+        let mutable config = this.AgentConfig |> Optic.map (speed_ >-> magnitude_) (fun x -> x / this.Scale)
 
         let spawnAgent pos angle delayed = 
             let angle = float32 angle
@@ -282,6 +285,12 @@ type LWPMaze3() =
                         let p = positions.RemoveLast()
                         if not <| env.TestForCollision(CollisionLayers.All, CircleCollider(None, p, cellSize)) then
                             triesLeft <- 0
+                            let c = (this.AgentConfig.Thickness :?> ThicknessFormula.Constant).C
+                            config <- 
+                                config
+                                |> Optic.set 
+                                    (thickness_ >-> cast<_,  ThicknessFormula.Constant> >-> c_) 
+                                    (env.Random.NextInRange(c * (1.0f - this.ThicknessVariance), c * (1.0f + this.ThicknessVariance)))
                             let angle = this.InitialAngle + angles.AtRandom(env.Random)
                             let offset = Point(float32(sign p.X) * 0.5f, float32(sign p.Y) * 0.5f)
                             spawnAgent (p - offset) angle false

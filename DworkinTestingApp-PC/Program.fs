@@ -123,6 +123,7 @@ let configGui  =
                     [ 
                         Builders.floatSliderEditor "Scale" LWPMaze3.Scale_ 0.5f 1.5f 0.1f;
                         Builders.intSliderEditor "NumInitialAgents" LWPMaze3.NumAgents_ 3 15 1;
+                        Builders.floatSliderEditor "ThicknessVariance" LWPMaze3.ThicknessVariance_ 0.0f 0.5f 0.05f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<LWPMaze3>;
                     ];
             ]

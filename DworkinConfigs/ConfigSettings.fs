@@ -63,6 +63,9 @@ type Maze() =
     [<FloatRange(0.5f, 2.0f)>]
     member val WallThickness = Defined(1.0f) with get, set
 
+    [<FloatRange(0.0f, 0.5f)>]
+    member val ThicknessVariance = Defined(0.0f) with get, set
+
     [<Bool>]
     member val Curvy = Defined(false) with get, set
 
@@ -92,6 +95,7 @@ type Maze() =
             DworkinEnvironmentConfigCustom.LWPMaze3(
                 Scale=getValue <@ this.Scale @>,
                 InitialAngle=getValue <@ this.Orientation @>,
+                ThicknessVariance= getValue <@ this.ThicknessVariance @>,
                 AgentConfig=agentConfig,
                 RandomSeed=seed) 
 
