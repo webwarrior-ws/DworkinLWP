@@ -119,11 +119,11 @@ let configGui  =
                     ];
                 Builders.environmentEditor
                     "Maze"
-                    (LWPMaze2())
+                    (LWPMaze3())
                     [ 
-                        Builders.floatSliderEditor "Scale" LWPMaze2.Scale_ 0.5f 1.5f 0.1f;
-                        Builders.intSliderEditor "NumInitialAgents" LWPMaze2.NumAgents_ 3 15 1;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<LWPMaze2>;
+                        Builders.floatSliderEditor "Scale" LWPMaze3.Scale_ 0.5f 1.5f 0.1f;
+                        Builders.intSliderEditor "NumInitialAgents" LWPMaze3.NumAgents_ 3 15 1;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<LWPMaze3>;
                     ];
             ]
     let speedControl = 
