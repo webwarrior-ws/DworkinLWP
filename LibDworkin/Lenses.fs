@@ -14,7 +14,10 @@ let cast<'a, 'b> : Isomorphism<'a, 'b> =
 
 /// Epimorphism between broader and narrower types. Unfortunately it's not possible to add subtype parameter constraint, so use cautiously.
 let tryCast<'a, 'b> : Epimorphism<'a, 'b> =
-    (fun object -> try Some(box object :?> 'b) with | :? System.InvalidCastException -> None),
+    (fun object -> 
+        match box object with
+        | :? 'b as result -> Some(result)
+        | _ -> None),
     (fun object -> box object :?> 'a)
 
 /// utility function for defining generic lenses using static type constraints
