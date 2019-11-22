@@ -16,7 +16,6 @@ open LibDworkin.Probes
 open LibDworkin.Brushes
 
 
-
 module CollisionHandler =
     type IgnoreSiblingUpTo() = 
         inherit CollisionHandler()
@@ -97,8 +96,6 @@ module BranchingCriterionIntervalRandomized =
  
 
 module DworkinAgentConfig =
-    open LibDworkin.Brushes
-
     let pCBTrace = 
         { DworkinAgentConfig.Default with 
             ColliderOptions=ColliderOptionsGeneral();
@@ -162,6 +159,97 @@ module DworkinAgentConfig =
                 Distance=Some(TerminationConditionDistance()); };
             Thickness=ThicknessFormula.Constant(C=5.0f);
             TotalDistance=30.0f
+         }
+    
+    
+    let straightMazeRandomAngle = 
+        { straightMazeRandomAngle_v2 with 
+            Termination=
+                TerminationSpawn(
+                    SpawnConfig=SpawnConfig.StraightMazeRandomAngle(P=1.0f, PossibleAngles=[| 45; 90; -45; -90 |])
+                );
+            TerminationConditions=straightMazeRandomAngle_v2.TerminationConditions
+                |> Optic.set (collision_ >-> TerminationConditionCollision.IgnoreParent_) true
+                |> Optic.set (collision_ >-> primaryDetector_ >-> distance_) 22.0f
+         }
+    
+    let straightMazeRandomAngle_v1 = 
+        { straightMazeRandomAngle_v2 with 
+            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Bevel);
+            Termination=
+                TerminationSpawn(
+                    SpawnConfig=SpawnConfig.StraightMazeRandomAngle(P=0.5f, PossibleAngles=[| 135; 90; 45; 0 |], CollisionAccuracy=5)
+                );
+            TerminationConditions=straightMazeRandomAngle_v2.TerminationConditions
+                    |> Optic.set (collision_ >-> primaryDetector_ >-> angle_) 105.0f
+                    |> Optic.set (collision_ >-> primaryDetector_ >-> distance_) 19.95f
+         }
+    
+    let straightMazeRandomAngle_v4 = 
+        { straightMazeRandomAngle_v2 with 
+            Termination=
+                TerminationSpawn(
+                    SpawnConfig=SpawnConfig.StraightMazeRandomAngle(Angle=0, P=0.5f, PossibleAngles=[| 60; 0; -60 |], CollisionAccuracy=3)
+                )
+         }
+    
+    let straightMazeRandomAngle_v5 = 
+        { straightMazeRandomAngle_v2 with 
+            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Bevel);
+            Termination=
+                TerminationSpawn(
+                    SpawnConfig=SpawnConfig.StraightMazeRandomAngle(Angle=60, PossibleAngles=[| 60; 120; 0 |], CollisionAccuracy=5)
+                );
+            TerminationConditions=straightMazeRandomAngle_v2.TerminationConditions
+                |> Optic.set (collision_ >-> primaryDetector_ >-> angle_) 120.0f
+                |> Optic.set (collision_ >-> primaryDetector_ >-> distance_) 14.95f
+         }
+    
+    let straightMazeRandomAngle_v6 = 
+        { straightMazeRandomAngle_v2 with 
+            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Bevel);
+            Termination=
+                TerminationSpawn(
+                    SpawnConfig=
+                        SpawnConfig.StraightMazeRandomAngle(
+                            Angle=60,
+                            P=0.5f,
+                            PossibleAngles=[| 0; 30; 45; 60; 75; 90; 105; 120 |],
+                            CollisionAccuracy=5
+                        )
+                );
+            TerminationConditions=straightMazeRandomAngle_v2.TerminationConditions
+                |> Optic.set (collision_ >-> primaryDetector_ >-> angle_) 90.0f
+                |> Optic.set (collision_ >-> primaryDetector_ >-> distance_) 20.0f
+                |> Optic.set (collision_ >-> minDistance_) 2.0f
+         }
+    
+    let straightMazeRandomAngle_v7 = 
+        { straightMazeRandomAngle_v2 with 
+            Termination=
+                TerminationSpawn(
+                    SpawnConfig=
+                        SpawnConfig.StraightMazeRandomAngle(
+                            Angle=0,
+                            P=0.5f,
+                            PossibleAngles=[| 60; 0; -60; 90; -90 |],
+                            CollisionAccuracy=5
+                        )
+                );
+            TerminationConditions=straightMazeRandomAngle_v2.TerminationConditions
+                |> Optic.set (collision_ >-> primaryDetector_ >-> angle_) 180.0f
+                |> Optic.set (collision_ >-> primaryDetector_ >-> distance_) 25.0f
+         }
+         
+    let straightMazeRandomAngle_v3 = 
+        { straightMazeRandomAngle_v2 with 
+            Termination=
+                TerminationSpawn(
+                    SpawnConfig=SpawnConfig.StraightMazeRandomAngle(P=0.5f, PossibleAngles=[| 45; 90; -45; -90 |], CollisionAccuracy=5)
+                );
+            TerminationConditions=straightMazeRandomAngle_v2.TerminationConditions
+                |> Optic.set (collision_ >-> primaryDetector_ >-> angle_) 180.0f
+                |> Optic.set (collision_ >-> primaryDetector_ >-> distance_) 19.95f
          }
 
 
@@ -798,9 +886,10 @@ module SpawnConfig =
                         (agent.Random.NextFloat() * 10.0f)
                 let probeData = 
                     let s = 
-                        config.TerminationConditions.Collision.Value.PrimaryDetector.Distance / agent.Speed / (float32 this.CollisionAccuracy)
+                        (config.TerminationConditions.Collision.Value.PrimaryDetector.Distance / agent.Speed / (float32 this.CollisionAccuracy))
                         |> floor
                         |> int
+                        |> max 1
                     agent.LaunchProbe(config, ProbeSpawnOptions(AngleDeg=float32 phi, StepsBetweenCollisionCheck=s))
                 if Option.isNone probeData.Collision then
                     let delay = (round (agent.Config.TotalDistance / agent.Speed)) * float32(i-1) |> int
