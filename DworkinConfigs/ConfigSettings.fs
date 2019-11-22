@@ -60,6 +60,9 @@ type PCB_RandomPosChips() =
 type Maze() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
 
+    [<Enum([| "Square"; "FortyFive"; "FortyFiveSharp"; "Hexagonal"; "Qbert"; "Arbitrary"; "Arbitrary2" |])>]
+    member val Angles = Defined("Square") with get, set
+
     [<FloatRange(0.5f, 2.0f)>]
     member val WallThickness = Defined(1.0f) with get, set
 
@@ -82,9 +85,17 @@ type Maze() =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
 
-        let mutable agentConfig = MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v2
-        // TODO: different angles
-        agentConfig <- 
+        let agentConfig, gridSize, angleIncr =
+            match getValue <@ this.Angles @> with
+            | "Square" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v2, 60, 90
+            | "FortyFive" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v3, 42, 45
+            | "FortyFiveSharp" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v1, 42, 45
+            | "Hexagonal" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v4, 52, 60
+            | "Qbert" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v5, 52, 60
+            | "Arbitrary" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v6, 15, 60
+            | "Arbitrary2" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v7, 30, 60
+
+        let mutable agentConfig = 
             agentConfig 
             |> Optic.set (speed_ >-> magnitude_) (getValue <@ this.Speed @>)
             |> Optic.map (thickness_ >-> cast<_, ThicknessFormula.Constant> >-> c_) (fun c -> c * (getValue <@ this.WallThickness @>))
@@ -97,6 +108,8 @@ type Maze() =
                 InitialAngle=getValue <@ this.Orientation @>,
                 ThicknessVariance= getValue <@ this.ThicknessVariance @>,
                 AgentConfig=agentConfig,
+                GridSize=float32(gridSize),
+                AngleIncrement=angleIncr,
                 RandomSeed=seed) 
 
         config :> EnvironmentConfig
