@@ -115,9 +115,9 @@ type BrushSolidJoint() =
                     let b = p + agentPerp
 
                     match this.JointType with
-                    | Miter -> 
+                    | Bevel -> 
                         agent.DworkinEnvironment.AddShape(Shape.Triangle(a, b, p), ShapePaint.Default)
-                    | Bevel ->
+                    | Miter ->
                         let angle = agentPerp.AngleWith(parentPerp)
                         let c = p + (parentPerp + agentPerp) * (0.5f / abs (tan ((angle + Single.Pi) * 0.5f)) + 0.5f)
                         agent.DworkinEnvironment.AddShape(Shape.Quad(a, c, b, p), ShapePaint.Default)
