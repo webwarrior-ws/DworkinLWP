@@ -13,7 +13,7 @@ open LibDworkin.SpecializedCollections
 open LibDworkin.PharoCompatibility
 open LibDworkin.Colliders
 open LibDworkin.Probes
-
+open LibDworkin.Brushes
 
 
 
@@ -150,7 +150,7 @@ module DworkinAgentConfig =
     
     let straightMazeRandomAngle_v2 = 
         { DworkinAgentConfig.Default with 
-            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Bevel);
+            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Miter);
             ColliderOptions=ColliderOptionsGeneral(Strategy=ColliderStrategySegments());
             Speed=AgentSpeedConstant();
             Termination=TerminationSpawn(SpawnConfig=SpawnConfig.StraightMazeRandomAngle());
@@ -792,6 +792,7 @@ module SpawnConfig =
                     |> Optic.set 
                         (termination_ >-> TerminationSpawn.SpawnConfig_ >-> cast<_, StraightMazeRandomAngle> >-> angle_) 
                         (this.PossibleAngles.AtRandom(agent.Random))
+                    |> Optic.set brush_ (BrushStrategySolidJoint(JointType=if this.Angle <= 90 then BrushJoint.Miter else BrushJoint.Bevel))
                     |> Optic.set 
                         (curvature_ >-> tryCast<_, CurvatureFormula.SNoise> >?> d_) 
                         (agent.Random.NextFloat() * 10.0f)
