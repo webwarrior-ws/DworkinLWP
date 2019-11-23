@@ -885,3 +885,21 @@ type DworkinEnvironment(bounds, randomSeed : int) =
         options.Shape <- shape
         this.AddShape(options.TransformedShape, options.TransformedPaint)
     
+
+type GrowingShapeDrawingAgent(shape: Shape, origin: Point, numSteps: int) =
+    inherit Agent()
+    let mutable step = 1
+
+    override this.LiesWithinBounds(bounds) =
+        bounds.ContainsPoint origin
+    
+    override this.Step() =
+        let t = float32(step) / float32(numSteps)
+        let currShape =
+            match shape with
+            | Circle(center, radius) -> Circle(center, radius * t)
+            | Polygon(points) -> Polygon(points |> Array.map (fun pt -> lerp origin pt t))
+        (this.Environment.Value :?> DworkinEnvironment).AddShape(currShape, ShapePaint.Default)
+        if step >= numSteps then
+            this.Delete()
+        step <- step + 1
