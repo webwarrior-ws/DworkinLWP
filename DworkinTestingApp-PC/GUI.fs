@@ -5,6 +5,7 @@ open OpenTK
 open Gwen
 open Gwen.Control
 
+open LibDworkin
 open LibDworkin.Renderer
 open LibDworkin.Configs
 open LibDworkin.Aether
@@ -283,6 +284,82 @@ module Widgets =
                 lastConfig <- !configRef
     
 
+    type SettingsEditorBuilder<'TSettings when 'TSettings :> DworkinSettings.EnvironmentSettings>(property : System.Reflection.PropertyInfo, 
+                                                                                                  name : string,
+                                                                                                  changedHolder : bool ref) =
+        member this.GetLens<'T>() =
+            let getDefinedValue (Settings.Randomizeable.Defined(value)) = value
+            (fun s -> property.GetValue(box s) |> unbox<Settings.Randomizeable<'T>> |> getDefinedValue),
+            (fun (v : 'T) s -> property.SetValue(box s, box(Settings.Randomizeable.Defined(v))); changedHolder := true; s)
+        
+        member this.UnboxList<'T> (value : obj list) = 
+            value |> List.map unbox<'T> 
+
+        interface Settings.ISettingsUIBuilder<ConfigPropertyEditor<'TSettings>> with
+            override this.BuildEnumControl(options, optionType) = 
+                let editorType = typeof<DropdownListPropertyEditor<_,_>>.GetGenericTypeDefinition().MakeGenericType([| typeof<'TSettings>; optionType |])
+                let constructor = editorType.GetConstructors().[0]
+                let thisType = this.GetType()
+                let lensGetter = thisType.GetMethod("GetLens").MakeGenericMethod([| optionType |])
+                let unboxer = thisType.GetMethod("UnboxList").MakeGenericMethod([| optionType |])
+                let typedOptions = unboxer.Invoke(this, [| options |> List.ofArray |])
+                constructor.Invoke([| box name; lensGetter.Invoke(this, [||]); typedOptions |]) |> unbox<ConfigPropertyEditor<'TSettings>>
+            
+            override this.BuildIntRangeControl(minVal, maxVal) = 
+                IntSliderPropertyEditor<'TSettings>(name, this.GetLens(), minVal, maxVal, 1) :> ConfigPropertyEditor<'TSettings>
+            
+            override this.BuildFloatRangeControl(minVal, maxVal, step) = 
+                FloatSliderPropertyEditor<'TSettings>(name, this.GetLens(), minVal, maxVal, step) :> ConfigPropertyEditor<'TSettings>
+            
+            override this.BuildBoolControl() =
+                CheckboxPropertyEditor<'TSettings>(name, this.GetLens()) :> ConfigPropertyEditor<'TSettings>
+            
+            override this.BuildColorControl() = 
+                CheckboxPropertyEditor<'TSettings>(name, this.GetLens()) :> ConfigPropertyEditor<'TSettings>
+    
+
+    type EnvironmentSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.EnvironmentSettings>(name : string, 
+                                                                                                      settings : 'TSettings) =
+        inherit IRendererPropertyEditor()
+        let changed = ref false
+        let settingsGuis = ResizeArray<ConfigPropertyEditor<'TSettings>>()
+        let randomSeedControl = 
+            IntNumberboxPropertyEditor<EnvironmentSettingsEditor<'TSettings>>("Seed", 
+                                                                                ((fun e -> e.RandomSeed), 
+                                                                                 (fun v e -> e.RandomSeed <- v; changed := true; e)))
+
+        override val Renderer : DworkinRenderer option = None with get, set
+    
+        override this.Name = name
+
+        member val RandomSeed = 42 with get, set
+
+        override this.Initialize(panel : Base) =
+            for prop in settings.SettingProperties do
+                let attr = prop.GetCustomAttributes(typeof<Settings.SettingAttribute>, true).[0] :?> Settings.SettingAttribute
+                let builder = SettingsEditorBuilder(prop, prop.Name, changed)
+                let control : ConfigPropertyEditor<'TSettings> = attr.BuildUIControl(builder)
+                control.ConfigRef <- ref settings
+                settingsGuis.Add(control)
+                control.Initialize(panel)
+            
+            randomSeedControl.ConfigRef <- ref this
+            randomSeedControl.Initialize(panel)
+    
+        override this.SetProperty() =
+            match this.Renderer with
+            | Some(renderer) -> renderer.EnvironmentConfig <- settings.Build(this.RandomSeed)
+            | None -> ()
+
+        override this.Update() = 
+            for gui in settingsGuis do 
+                gui.Update()
+            randomSeedControl.Update()
+            if !changed then
+                this.SetProperty()
+                changed := false
+
+
     type RendererComponentEditor<'T when 'T :> ShaderBasedComponent>(name : string, 
                                                                      platform : AbstractPlatform, 
                                                                      initialParams, 
@@ -309,7 +386,7 @@ module Widgets =
             for gui in propertyGuis do gui.Update()
             if this.Factory.Changed then
                 this.SetProperty()
-
+    
     
     /// GUI that lets user choose and edit some config
     type Chooser(renderer : DworkinRenderer, name : string, guis : IRendererPropertyEditor list) = 

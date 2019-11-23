@@ -3,6 +3,13 @@
 #if __ANDROID__
 open Android.Views
 open Views
+#else
+type ISettingsUIBuilder<'TControl> =
+    abstract BuildEnumControl : obj[] * System.Type -> 'TControl
+    abstract BuildIntRangeControl : int * int -> 'TControl
+    abstract BuildFloatRangeControl : float32 * float32 * float32 -> 'TControl
+    abstract BuildBoolControl : unit -> 'TControl
+    abstract BuildColorControl : unit -> 'TControl
 #endif
 
 
@@ -25,6 +32,8 @@ type SettingAttribute() =
     default this.UseView(view, object, property) =
         view.Accessor <- Accessor((fun () -> property.GetValue(object)), (fun value -> property.SetValue(object, value)))
         view.Title <- if System.String.IsNullOrEmpty this.Name then property.Name else this.Name
+#else
+    abstract member BuildUIControl : ISettingsUIBuilder<'TControl> -> 'TControl
 #endif
 
 and [<AbstractClass>] 
@@ -130,6 +139,9 @@ type EnumAttribute(options: obj[]) =
             method.Invoke(this, [| context; options |]) :?> ISettingEditor
         else
             failwith "Non-randomizeable version of enum editor is not implemented"
+#else
+    override this.BuildUIControl(builder) = 
+        builder.BuildEnumControl(options, this.ItemType)
 #endif
 
 /// Inclusive integer range
@@ -148,6 +160,8 @@ type IntRangeAttribute(minVal: int, maxVal: int) =
             view :> ISettingEditor
         else
             failwith "Non-randomizeable version of int range editor is not implemented"
+#else
+    override this.BuildUIControl(builder) = builder.BuildIntRangeControl(minVal, maxVal)
 #endif
 
 /// Float range (single precision)
@@ -178,6 +192,8 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
             view :> ISettingEditor
         else
             failwith "Non-randomizeable version of int range editor is not implemented"
+#else
+    override this.BuildUIControl(builder) = builder.BuildFloatRangeControl(minVal, maxVal, this.Step)
 #endif
 
 /// Color (RGB float32 triple). Each component is in range [1; 0].
@@ -198,6 +214,8 @@ type ColorAttribute() =
             view :> ISettingEditor
         else
             failwith "Non-randomizeable version of color picker editor is not implemented"
+#else
+    override this.BuildUIControl(builder) = builder.BuildColorControl()
 #endif
 
 
@@ -214,4 +232,6 @@ type BoolAttribute() =
             view :> ISettingEditor
         else
             failwith "Non-randomizeable version of bool editor is not implemented"
+#else
+    override this.BuildUIControl(builder) = builder.BuildBoolControl()
 #endif
