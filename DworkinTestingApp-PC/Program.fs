@@ -118,6 +118,15 @@ let configGui  =
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<MagneticSpiralsBunchBranching2_3>;
                     ];
                 EnvironmentSettingsEditor("Maze", ConfigSettings.Maze());
+                Builders.environmentEditor
+                    "FlowingLeavesExperiment"
+                    (FlowingLeavesExperimentRandPos())
+                    [ 
+                        Builders.floatSliderEditor "Scale" FlowingLeavesExperimentRandPos.Scale_ 0.5f 2.0f 0.1f;
+                        Builders.floatSliderEditor "Density" FlowingLeavesExperimentRandPos.Density_ 0.5f 2.0f 0.1f;
+                        Builders.floatSliderEditor "ScaleVariance" FlowingLeavesExperimentRandPos.ScaleVariance_ 0.0f 1.0f 0.1f;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FlowingLeavesExperimentRandPos>;
+                    ];
             ]
     let speedControl = 
         Builders.radioButtonEditor 

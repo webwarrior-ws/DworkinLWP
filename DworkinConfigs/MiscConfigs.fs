@@ -77,6 +77,19 @@ module BranchingCriterionCustom =
 
 
 module BranchingCriterionIntervalRandomized =
+    type Uniform() = 
+        inherit BranchingCriterionIntervalRandomized()
+        member val IntervalRange = NumberRange(10.0f, 30.0f) with get, set
+
+        member this.Clone() = this.MemberwiseClone() :?> Uniform
+
+        static member IntervalRange_ : Lens<Uniform, _> = 
+            (fun x -> x.IntervalRange), (fun value x -> let y = x.Clone() in y.IntervalRange <- value; y)
+
+        override this.Evaluate(s, t, random) =
+            random.NextInRange(this.IntervalRange)
+    
+
     type UniformBounded() = 
         inherit BranchingCriterionIntervalRandomized()
         member val IntervalRange = NumberRange(10.0f, 60.0f) with get, set
@@ -250,6 +263,27 @@ module DworkinAgentConfig =
             TerminationConditions=straightMazeRandomAngle_v2.TerminationConditions
                 |> Optic.set (collision_ >-> primaryDetector_ >-> angle_) 180.0f
                 |> Optic.set (collision_ >-> primaryDetector_ >-> distance_) 19.95f
+         }
+    
+    let flowingLeavesVarSize = 
+        { DworkinAgentConfig.Default with 
+            Branching=
+                BranchingCriterionBased(
+                    Criterion=BranchingCriterionIntervalRandomized.Uniform(IntervalRange=NumberRange(5.0f, 15.0f)),
+                    SpawnConfig=SpawnConfig.FlowingLeavesVarSize(MaxLength=50.0f)
+                );
+            Brush=BrushStrategySolid();
+            ColliderOptions=ColliderOptionsGeneral();
+            Curvature=CurvatureFormula.Quadratic(A= -1.136f, C= -0.02f, B=0.68f, K=0.75f);
+            TerminationConditions=
+                { Collision=Some(TerminationConditionCollision(SelfIntersection=false)
+                              |> Optic.set (primaryDetector_ >-> angle_) 120.0f
+                              |> Optic.set (primaryDetector_ >-> distance_) 1.25f);
+                Curvature=None;
+                Distance=Some(TerminationConditionDistance()); };
+            Thickness=ThicknessFormula.LeafPower_Base(A=2.5f, P=0.75f, C=10.0f, Base=0.0f);
+            Speed=AgentSpeedScaleAdaptive();
+            TotalDistance=35.0f
          }
 
 
@@ -903,6 +937,83 @@ module SpawnConfig =
                             a.NoCollisions <- true
                             a.Attributes.DrawJoint.Set(true))
                     i <- i + 1
+    
+    
+    type FlowingLeavesVarSize() = 
+        inherit SpawnConfig()
+        member val GenLimit = 10 with get, set
+        member val Angle = -35.0f with get, set
+        member val Offset = 4.0f with get, set
+        member val CurvRandRange = NumberRange(0.8f, 1.2f) with get, set
+        member val Steps = 3 with get, set
+        member val MaxLength = 80.0f with get, set
+        member val MinLength = 20.0f with get, set
+        member val Delay = 100 with get, set
+        member val ScaleRange = NumberRange(1.0f, 2.0f) with get, set
+
+        member this.Clone() = this.MemberwiseClone() :?> FlowingLeavesVarSize
+
+        static member GenLimit_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
+        static member Angle_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+        static member Offset_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+        static member CurvRandRange_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.CurvRandRange), (fun value x -> let y = x.Clone() in y.CurvRandRange <- value; y)
+        static member Steps_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.Steps), (fun value x -> let y = x.Clone() in y.Steps <- value; y)
+        static member MaxLength_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.MaxLength), (fun value x -> let y = x.Clone() in y.MaxLength <- value; y)
+        static member MinLength_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.MinLength), (fun value x -> let y = x.Clone() in y.MinLength <- value; y)
+        static member Delay_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
+        static member ScaleRange_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.ScaleRange), (fun value x -> let y = x.Clone() in y.ScaleRange <- value; y)
+
+        override this.Evaluate(agent, pos) =
+            agent.GenerationLimit <- this.GenLimit
+            seq { 
+                for phi in [| this.Angle; -this.Angle; |] do
+                    let offset = this.Offset + (agent.Thickness * 0.5f)
+                    let scales = this.ScaleRange.By(this.ScaleRange.Extent / (float32 this.Steps)) |> Seq.toArray
+                    let curvatures = this.CurvRandRange.By(this.CurvRandRange.Extent / (float32 this.Steps)) |> Seq.toArray
+                    curvatures.ShuffleBy(agent.Random)
+                    scales.ShuffleBy(agent.Random)
+                    for scale in scales do 
+                        for c in curvatures do 
+                            let agentBlock = 
+                                fun (a : DworkinAgent) -> 
+                                    a.Flip()
+                                    a.ThicknessFactor <- scale
+                                    a.LengthFactor <- scale
+                            let mutable l = this.MaxLength
+                            while l >= this.MinLength do
+                                let config = 
+                                    agent.Config
+                                    |> Optic.set totalDistance_ l
+                                    |> Optic.map (curvature_ >-> cast<_, CurvatureFormula.Quadratic> >-> c_) (fun x -> x * c)
+                                let probeData = 
+                                    agent.LaunchProbe(
+                                        config, 
+                                        ProbeSpawnOptions(AngleDeg=phi, OffsetSideways=offset, StepsBetweenCollisionCheck=2),
+                                        agentBlock)
+                                if Option.isNone probeData.Collision then
+                                    probeData.SpawnColliders()
+                                    let spawnOptions = AgentSpawnOptions(AngleDeg=phi, OffsetSideways=offset)
+                                    spawnOptions.DelayBy(agent.Random.NextFloat() * (float32 this.Delay) |> int)
+                                    yield agent.Spawn(config, 
+                                                      spawnOptions, 
+                                                      fun a -> 
+                                                          agentBlock a
+                                                          a.NoCollisions <- true)
+                                else
+                                    l <- probeData.S
+                }
+            |> Seq.tryHead
+            |> ignore
+    
 
 
 
