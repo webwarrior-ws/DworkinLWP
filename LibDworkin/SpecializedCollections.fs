@@ -146,7 +146,7 @@ type NumberRange = struct
     val Max : float32
     
     new(min : float32, max: float32) =
-        assert (min < max)
+        assert (min <= max)
         { Min=min; Max=max }
     
     new(arr : float32[]) =
@@ -164,7 +164,13 @@ type NumberRange = struct
         aNumber >= this.Min && aNumber <= this.Max
     
     member this.By(step : float32) =
-        seq { this.Min .. step .. this.Max }
+        if this.Min = this.Max then 
+            Seq.singleton this.Min
+        else
+            seq { this.Min .. step .. this.Max }
+    
+    static member (*) (range : NumberRange, x : float32) =
+        NumberRange(range.Min * x, range.Max * x)
 end
 
 
