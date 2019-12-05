@@ -61,3 +61,27 @@ type SNoise() =
 
     override this.Evaluate(s, t) =
         this.A * ((s + this.D) * this.B).SNoise() + this.C
+
+
+
+type Quadratic() = 
+    inherit CurvatureFormula()
+    member val A = -0.64f with get, set
+    member val C = -0.24f with get, set
+    member val B = 0.742f with get, set
+    member val K = 0.45f with get, set
+
+    member this.Clone() = this.MemberwiseClone() :?> Quadratic
+
+    static member A_ : Lens<Quadratic, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member C_ : Lens<Quadratic, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    static member B_ : Lens<Quadratic, _> = 
+        (fun x -> x.B), (fun value x -> let y = x.Clone() in y.B <- value; y)
+    static member K_ : Lens<Quadratic, _> = 
+        (fun x -> x.K), (fun value x -> let y = x.Clone() in y.K <- value; y)
+
+    override this.Evaluate(s, t) =
+        let x = s * this.K
+        this.A * x*x + this.B * x + this.C
