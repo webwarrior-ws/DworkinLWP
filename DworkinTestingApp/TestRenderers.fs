@@ -209,17 +209,23 @@ type CollidersTestRenderer(context, environmentConfig : LibDworkin.Agents.IDwork
 
 
 type BenchmarkRenderer(context, settingsRef) =
-    inherit DworkinRenderer(context, settingsRef)
+    inherit DworkinRenderer(context, settingsRef, SimpleEnvironmentStepper())
 
     let shapesQueue = System.Collections.Generic.Queue<ShapeAndPaint[]>()
+    
+    override this.ResetEnvironment(dims) =
+        base.ResetEnvironment(dims)
 
     override this.OnSurfaceChanged(width, height) =
         base.OnSurfaceChanged(width, height)
         shapesQueue.Clear()
+        this.StatsPrinted <- false
         while this.EnvironmentStepper.HasMore do
             shapesQueue.Enqueue(this.EnvironmentStepper.FetchShapesForNextStep())
 
     override this.OnDrawFrame() = 
+        this.ApplyChangesInSettings()
+
         if shapesQueue.Count > 0 then
             let mutable t = 0.0
             while t < 33.3 && shapesQueue.Count > 0 do

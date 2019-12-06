@@ -610,7 +610,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
             environmentConfig <- config
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
-    member private this.ApplyChangesInSettings() =
+    member this.ApplyChangesInSettings() =
         let changes = CurrentSettings.getChanges()
         if changes <> 0 || currentSettings <> !settingsRef then
             let previousSettings = currentSettings
