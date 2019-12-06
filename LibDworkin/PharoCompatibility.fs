@@ -173,6 +173,10 @@ let pcurve x a b =
     let k = (a+b) ** (a+b) / (a**a * b**b)
     k * x ** a  * (1.0f-x) ** b
 
+let getSpecificPCurve a b =
+    let k = (a+b) ** (a+b) / (a**a * b**b)
+    fun x -> k * x ** a  * (1.0f-x) ** b
+
 let inline isOdd n = n &&& 1 = 1
 
 let inline isEven n = n &&& 1 = 0
