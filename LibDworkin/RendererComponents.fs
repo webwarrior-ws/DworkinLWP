@@ -488,20 +488,26 @@ type TimeSampler(name : string) =
 
 module TimeStats =
     let average (samples : float[]) = 
-        samples |> Array.average
+        if Array.isEmpty samples then 0.0
+        else samples |> Array.average
 
     let max (samples : float[]) = 
-        samples |> Array.max
+        if Array.isEmpty samples then 0.0
+        else samples |> Array.max
 
     let stdev (samples : float[]) = 
-        let avg = average samples
-        let squares = [| for x in samples -> (x - avg) * (x - avg) |]
-        sqrt ((Array.sum squares) / (float samples.Length))
+        if Array.isEmpty samples then 0.0
+        else 
+            let avg = average samples
+            let squares = [| for x in samples -> (x - avg) * (x - avg) |]
+            sqrt ((Array.sum squares) / (float samples.Length))
 
     let top (fraction : float) (samples : float[]) =
-        let sorted = samples |> Seq.sortDescending |> Seq.toArray
-        let top = sorted.[0..int(ceil(float samples.Length * fraction))]
-        top |> Array.average
+        if Array.isEmpty samples then 0.0
+        else
+            let sorted = samples |> Seq.sortDescending |> Seq.toArray
+            let top = sorted.[0..int(ceil(float samples.Length * fraction))]
+            top |> Array.average
     
     let add (a : float[]) (b : float[]) =
         Array.map2 (fun t1 t2 -> t1 + t2) a b
