@@ -8,6 +8,7 @@ open LibDworkin.Agents
 open LibDworkin.PharoCompatibility
 
 
+
 type Constant() = 
     inherit ThicknessFormula()
     member val C = 1.0f with get, set
@@ -20,6 +21,7 @@ type Constant() =
     override this.Evaluate(s, t) =
         this.C
 
+
 type LeafParabolic() = 
     inherit ThicknessFormula()
     member val C = 5.0f with get, set
@@ -31,6 +33,7 @@ type LeafParabolic() =
 
     override this.Evaluate(s, t) =
         this.C * (1.0f - (squared ((t * 2.0f) - 1.0f)))
+
     
 type ConcaveParabolic() = 
     inherit ThicknessFormula()
@@ -46,11 +49,17 @@ type ConcaveParabolic() =
 
     override this.Evaluate(s, t) =
         this.C * (1.0f - ((1.0f - this.Alpha) * (1.0f - (squared ((t * 2.0f) - 1.0f)))))
-    
+  
+
 type LeafPower_Base() = 
     inherit ThicknessFormula()
-    member val A = 2.0f with get, set
-    member val P = 0.74f with get, set
+    
+    let mutable a = 2.0f
+    let mutable p = 0.74f
+    let mutable pcurve = getSpecificPCurve (a*p) (a * (1.0f-p))
+
+    member this.A with get() = a and set(value) = a <- value; this.UpdatePCurve()
+    member this.P with get() = p and set(value) = p <- value; this.UpdatePCurve()
     member val C = 2.5f with get, set
     member val Base = 0.25f with get, set
 
@@ -64,6 +73,9 @@ type LeafPower_Base() =
         (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
     static member Base_ : Lens<LeafPower_Base, _> = 
         (fun x -> x.Base), (fun value x -> let y = x.Clone() in y.Base <- value; y)
+    
+    member private this.UpdatePCurve() =
+        pcurve <- getSpecificPCurve (a*p) (a * (1.0f-p))
 
     override this.Evaluate(s, t) =
-        this.C * ((pcurve t (this.A * this.P) (this.A * (1.0f - this.P))) + this.Base)
+        this.C * (pcurve t + this.Base)
