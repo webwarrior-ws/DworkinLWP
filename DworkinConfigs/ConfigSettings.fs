@@ -115,5 +115,27 @@ type Maze() =
         config :> EnvironmentConfig
 
 
+type FlowingLeavesExperiment() =
+    inherit LibDworkin.DworkinSettings.EnvironmentSettings()
 
-let allEnvironmentSettingsTypes = [| typeof<MagneticSpiralsBunch>; typeof<PCB_RandomPosChips>; typeof<Maze> |]
+    [<FloatRange(0.75f, 2.0f, Step=0.05f)>]
+    member val Scale = Defined(1.0f) with get, set
+
+    [<FloatRange(0.5f, 2.0f, Step=0.05f)>]
+    member val Density = Defined(1.0f) with get, set
+
+    [<FloatRange(0.0f, 1.0f, Step=0.05f)>]
+    member val ScaleVariance = Defined(0.0f) with get, set
+
+    override this.Build(seed) =
+        let random = System.Random(seed)
+        let getValue expr = Randomizeable.getValue random expr
+        DworkinEnvironmentConfigCustom.FlowingLeavesExperimentRandPos(
+            RandomSeed=seed,
+            Scale=getValue <@ this.Scale @>,
+            Density=getValue <@ this.Density @>,
+            ScaleVariance=getValue <@ this.ScaleVariance @>) 
+        :> EnvironmentConfig
+
+
+let allEnvironmentSettingsTypes = [| typeof<MagneticSpiralsBunch>; typeof<PCB_RandomPosChips>; typeof<Maze>; typeof<FlowingLeavesExperiment> |]
