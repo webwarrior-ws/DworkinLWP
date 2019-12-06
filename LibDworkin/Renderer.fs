@@ -576,7 +576,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         Point(float32(width) / multiple, float32(height) / multiple)
 
 
-type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref) as this =
+type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref, ?stepper : AbstractEnvironmentStepper) as this =
     inherit BaseRenderer(platform)
 
     let mutable stepsPerFrame = 1
@@ -589,7 +589,10 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref)
         this.Foreground <- currentSettings.Foreground.Build(platform, random)
         this.Background <- currentSettings.Background.Build(platform, random)
     
-    member val EnvironmentStepper : AbstractEnvironmentStepper = AsyncEnvironmentStepper() :> AbstractEnvironmentStepper
+    member val EnvironmentStepper : AbstractEnvironmentStepper = 
+        match stepper with
+        | Some(value) -> value
+        | None -> AsyncEnvironmentStepper() :> AbstractEnvironmentStepper
 #if __ANDROID__    
     member val StatsPrinted = false with get, set
 #endif
