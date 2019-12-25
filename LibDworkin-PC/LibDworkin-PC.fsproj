@@ -3,6 +3,7 @@
   <PropertyGroup>
 	<TargetFramework>net461</TargetFramework>
     <RootNamespace>LibDworkin_PC</RootNamespace>
+    <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <ItemGroup>

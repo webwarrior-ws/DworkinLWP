@@ -218,8 +218,8 @@ type BenchmarkRenderer(context, settingsRef) =
 
     override this.OnSurfaceChanged(width, height) =
         base.OnSurfaceChanged(width, height)
-        shapesQueue.Clear()
         this.StatsPrinted <- false
+        shapesQueue.Clear()
         while this.EnvironmentStepper.HasMore do
             shapesQueue.Enqueue(this.EnvironmentStepper.FetchShapesForNextStep())
 
