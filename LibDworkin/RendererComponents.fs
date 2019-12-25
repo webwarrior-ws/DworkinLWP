@@ -121,7 +121,7 @@ type DotNETPlatform() =
 type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
     static let allInstances = ResizeArray<WeakReference<ResettableLazy<'T>>>()
 
-    let mutable lazyContainer = Lazy(valueFactory)
+    let mutable lazyContainer = Lazy<'T>(valueFactory)
     do
         allInstances.Add(WeakReference<ResettableLazy<'T>>(this))
 
@@ -129,7 +129,7 @@ type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
     member this.IsValueCreated = lazyContainer.IsValueCreated
 
     member this.Reset() =
-        lazyContainer <- Lazy(valueFactory)
+        lazyContainer <- Lazy<'T>(valueFactory)
     
     static member ResetAll() : unit =
         allInstances.RemoveAll(fun each -> 

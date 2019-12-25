@@ -8,6 +8,7 @@ open Settings
 type StubSettingAttribute() = 
     inherit SettingAttribute()
     override this.RandomValue(r) = failwith "stub"
+    override this.BuildUIControl(builder) = failwith "stub"
 
 type A() =
     inherit Settings()
