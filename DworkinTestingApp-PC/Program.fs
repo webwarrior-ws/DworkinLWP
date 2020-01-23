@@ -120,12 +120,16 @@ let configGui  =
                 EnvironmentSettingsEditor("Maze", ConfigSettings.Maze());
                 Builders.environmentEditor
                     "FlowingLeavesExperiment"
-                    (FlowingLeavesExperimentRandPos())
+                    (FlowingLeaves_WIP())
                     [ 
-                        Builders.floatSliderEditor "Scale" FlowingLeavesExperimentRandPos.Scale_ 0.5f 2.0f 0.1f;
-                        Builders.floatSliderEditor "Density" FlowingLeavesExperimentRandPos.Density_ 0.5f 2.0f 0.1f;
-                        Builders.floatSliderEditor "ScaleVariance" FlowingLeavesExperimentRandPos.ScaleVariance_ 0.0f 1.0f 0.1f;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FlowingLeavesExperimentRandPos>;
+                        Builders.floatSliderEditor "Scale" FlowingLeaves_WIP.Scale_ 0.5f 2.0f 0.1f;
+                        Builders.floatSliderEditor "Density" FlowingLeaves_WIP.Density_ 0.75f 2.0f 0.05f;
+                        Builders.floatSliderEditor "ScaleVariance" FlowingLeaves_WIP.ScaleVariance_ 0.0f 1.0f 0.1f;
+                        Builders.floatSliderEditor "Curviness" FlowingLeaves_WIP.Curviness_ 0.0f 2.0f 0.1f;
+                        Builders.floatSliderEditor "LeafThickness" FlowingLeaves_WIP.LeafThickness_ 2.5f 10.0f 0.5f;
+                        Builders.floatSliderEditor "LeafLength" FlowingLeaves_WIP.LeafLength_ 40.0f 90.0f 5.0f;
+                        Builders.floatSliderEditor "LeafShape" FlowingLeaves_WIP.LeafShape_ 0.5f 0.8f 0.05f;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FlowingLeaves_WIP>;
                     ];
             ]
     let speedControl = 

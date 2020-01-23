@@ -302,7 +302,7 @@ type LWPMaze3() =
                 d)
             
     
-type FlowingLeavesExperimentRandPos() = 
+type FlowingLeaves_WIP() = 
     inherit DworkinEnvironmentConfigCustom()
     
     member val AgentConfig = DworkinAgentConfig.flowingLeavesVarSize with get, set
@@ -314,27 +314,39 @@ type FlowingLeavesExperimentRandPos() =
     member val Density = 1.0f with get, set
     member val Scale = 2.0f with get, set
     member val ScaleVariance = 0.5f with get, set
+    member val Curviness = 0.0f with get, set
+    member val LeafThickness = 10.0f with get, set
+    member val LeafLength = 90.0f with get, set
+    member val LeafShape = 0.65f with get, set
 
-    member this.Clone() = this.MemberwiseClone() :?> FlowingLeavesExperimentRandPos
+    member this.Clone() = this.MemberwiseClone() :?> FlowingLeaves_WIP
 
-    static member AgentConfig_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member AgentConfig_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
-    static member N_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member N_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.N), (fun value x -> let y = x.Clone() in y.N <- value; y)
-    static member Margin_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member Margin_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.Margin), (fun value x -> let y = x.Clone() in y.Margin <- value; y)
-    static member MaxIterations_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member MaxIterations_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.MaxIterations), (fun value x -> let y = x.Clone() in y.MaxIterations <- value; y)
-    static member Delay_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member Delay_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
-    static member AngleSpread_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member AngleSpread_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.AngleSpread), (fun value x -> let y = x.Clone() in y.AngleSpread <- value; y)
-    static member Density_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member Density_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.Density), (fun value x -> let y = x.Clone() in y.Density <- value; y)
-    static member Scale_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member Scale_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.Scale), (fun value x -> let y = x.Clone() in y.Scale <- value; y)
-    static member ScaleVariance_ : Lens<FlowingLeavesExperimentRandPos, _> = 
+    static member ScaleVariance_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.ScaleVariance), (fun value x -> let y = x.Clone() in y.ScaleVariance <- value; y)
+    static member Curviness_ : Lens<FlowingLeaves_WIP, _> = 
+        (fun x -> x.Curviness), (fun value x -> let y = x.Clone() in y.Curviness <- value; y)
+    static member LeafThickness_ : Lens<FlowingLeaves_WIP, _> = 
+        (fun x -> x.LeafThickness), (fun value x -> let y = x.Clone() in y.LeafThickness <- value; y)
+    static member LeafLength_ : Lens<FlowingLeaves_WIP, _> = 
+        (fun x -> x.LeafLength), (fun value x -> let y = x.Clone() in y.LeafLength <- value; y)
+    static member LeafShape_ : Lens<FlowingLeaves_WIP, _> = 
+        (fun x -> x.LeafShape), (fun value x -> let y = x.Clone() in y.LeafShape <- value; y)
 
     override this.Evaluate(env) =
         let mutable currN = 0
@@ -342,12 +354,18 @@ type FlowingLeavesExperimentRandPos() =
         let config = 
             let branching_ = branching_ >-> cast<_, BranchingCriterionBased>
             let branching_spawnConfig_ = branching_ >-> spawnConfig_ >-> cast<_, SpawnConfig.FlowingLeavesVarSize>
+            let curvature_ = curvature_ >-> cast<_, CurvatureFormula.Quadratic>
+            let thickness_ = thickness_ >-> cast<_, ThicknessFormula.LeafPower_Base>
             this.AgentConfig
             |> Optic.map (branching_spawnConfig_ >-> offset_) (fun x -> x / this.Density)
             |> Optic.map (terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) (fun x -> x / this.Density)
             |> Optic.map (branching_ >-> criterion_ >-> cast<_, BranchingCriterionIntervalRandomized.Uniform> >-> intervalRange_) (fun x -> x * (1.0f / this.Density))
-            |> Optic.map (branching_spawnConfig_ >-> scaleRange_) (fun x -> x * this.Scale)
-            |> Optic.set (branching_spawnConfig_ >-> scaleRange_) (NumberRange(lerp 1.2f 0.6f this.ScaleVariance, lerp 1.2f 2.0f this.ScaleVariance) * this.Scale)
+            |> Optic.set (branching_spawnConfig_ >-> scaleRange_) (NumberRange(lerp 1.2f 0.6f this.ScaleVariance, lerp 1.2f 2.4f this.ScaleVariance) * this.Scale)
+            |> Optic.set (curvature_ >-> a_) (lerp (-1.36f) (-1.136f) this.Curviness)
+            |> Optic.set (curvature_ >-> c_) (lerp (-0.04f) (-0.02f) this.Curviness)
+            |> Optic.set (thickness_ >-> c_) this.LeafThickness
+            |> Optic.set (branching_spawnConfig_ >-> maxLength_) this.LeafLength
+            |> Optic.set (thickness_ >-> p_) this.LeafShape
         while (currN < this.N) && (i < this.MaxIterations) do
             let p = env.Random.NextInRectangle(env.Bounds.InsetBy(this.Margin))
             let angle = (((p / (max env.Bounds.Width env.Bounds.Height) * (sqrt 2.0f)).SNoise()) * Single.Pi) * this.AngleSpread
@@ -359,9 +377,9 @@ type FlowingLeavesExperimentRandPos() =
                 if this.Delay > 0 then
                     spawnOptions.DelayBy(env.Random.NextFloat() * (float32 this.Delay) |> int)
                 env.Spawn(config, 
-                            spawnOptions,
-                            fun a -> 
-                                agentBlock a
-                                a.NoCollisions <- true) |> ignore
+                          spawnOptions,
+                          fun a -> 
+                              agentBlock a
+                              a.NoCollisions <- true) |> ignore
                 currN <- currN + 1
             i <- i + 1
