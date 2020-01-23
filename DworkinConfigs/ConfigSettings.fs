@@ -118,14 +118,26 @@ type Maze() =
 type FlowingLeavesExperiment() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
 
-    [<FloatRange(0.75f, 2.0f, Step=0.05f)>]
-    member val Scale = Defined(1.0f) with get, set
+    [<FloatRange(1.0f, 2.0f, Step=0.05f)>]
+    member val Scale = Defined(1.5f) with get, set
 
     [<FloatRange(0.5f, 2.0f, Step=0.05f)>]
     member val Density = Defined(1.0f) with get, set
 
     [<FloatRange(0.0f, 1.0f, Step=0.05f)>]
     member val ScaleVariance = Defined(0.0f) with get, set
+    
+    [<FloatRange(0.0f, 2.0f, Step=0.1f)>]
+    member val Curviness = Defined(0.0f) with get, set
+    
+    [<FloatRange(2.5f, 10.0f, Step=0.5f)>]
+    member val LeafThickness = Defined(5.0f) with get, set
+    
+    [<FloatRange(40.0f, 90.0f, Step=5.0f)>]
+    member val LeafLength = Defined(50.0f) with get, set
+    
+    [<FloatRange(0.5f, 0.8f, Step=0.05f)>]
+    member val LeafShape = Defined(0.5f) with get, set
 
     override this.Build(seed) =
         let random = System.Random(seed)
@@ -134,7 +146,11 @@ type FlowingLeavesExperiment() =
             RandomSeed=seed,
             Scale=getValue <@ this.Scale @>,
             Density=getValue <@ this.Density @>,
-            ScaleVariance=getValue <@ this.ScaleVariance @>) 
+            ScaleVariance=getValue <@ this.ScaleVariance @>,
+            Curviness=getValue <@ this.Curviness @>,
+            LeafThickness=getValue <@ this.LeafThickness @>,
+            LeafLength=getValue <@ this.LeafLength @>,
+            LeafShape=getValue <@ this.LeafShape @>) 
         :> EnvironmentConfig
 
 
