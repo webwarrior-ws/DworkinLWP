@@ -247,5 +247,13 @@ type BenchmarkRenderer(context, settingsRef) =
             printStats TimeSamplers.Shapes.Samples TimeSamplers.Shapes.Name
             printStats TimeSamplers.Image.Samples TimeSamplers.Image.Name
             printStats (TimeStats.add TimeSamplers.Shapes.Samples TimeSamplers.Image.Samples) "GPU"
+            for windowSize in [5; 10] do
+                let averages = TimeStats.movingAverage windowSize TimeSamplers.Environment.Samples
+                Android.Util.Log.Debug("avgTimes", 
+                    sprintf "(env. moving average %2d) avg: %6.2f max: %6.2f top1%%: %6.2f"
+                        windowSize
+                        (TimeStats.average averages)
+                        (TimeStats.max averages)
+                        (TimeStats.top 0.01 averages)) |> ignore
 
             this.StatsPrinted <- true

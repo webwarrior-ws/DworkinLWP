@@ -511,6 +511,11 @@ module TimeStats =
     
     let add (a : float[]) (b : float[]) =
         Array.map2 (fun t1 t2 -> t1 + t2) a b
+
+    let movingAverage (windowSize : int) (samples : float[]) =
+        Array.windowed windowSize samples
+        |> Array.map Array.average
+
     
 module TimeSamplers =
     let Environment = new TimeSampler("env")
