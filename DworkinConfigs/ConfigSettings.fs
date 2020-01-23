@@ -130,7 +130,7 @@ type FlowingLeavesExperiment() =
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
-        DworkinEnvironmentConfigCustom.FlowingLeavesExperimentRandPos(
+        DworkinEnvironmentConfigCustom.FlowingLeaves_WIP(
             RandomSeed=seed,
             Scale=getValue <@ this.Scale @>,
             Density=getValue <@ this.Density @>,

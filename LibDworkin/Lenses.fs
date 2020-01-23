@@ -239,5 +239,8 @@ let inline midpoint_< ^U , ^V when ^U : (static member Midpoint_ : Lens< ^U, ^V>
 let inline scaleRange_< ^U , ^V when ^U : (static member ScaleRange_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member ScaleRange_ : Lens< ^U, ^V>) ()))
 
+let inline maxLength_< ^U , ^V when ^U : (static member MaxLength_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member MaxLength_ : Lens< ^U, ^V>) ()))
+
 // compound lenses
 let termination_spawnConfig_ = termination_ >-> cast<TerminationStrategy, TerminationSpawn> >-> spawnConfig_

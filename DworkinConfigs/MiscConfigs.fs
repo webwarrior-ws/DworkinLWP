@@ -273,16 +273,17 @@ module DworkinAgentConfig =
                     SpawnConfig=SpawnConfig.FlowingLeavesVarSize(MaxLength=50.0f)
                 );
             Brush=BrushStrategySolid();
-            ColliderOptions=ColliderOptionsGeneral();
+            ColliderOptions=ColliderOptionsGeneral()
+                 |> Optic.set (strategy_ >-> density_) 1.5f;
             Curvature=CurvatureFormula.Quadratic(A= -1.136f, C= -0.02f, B=0.68f, K=0.75f);
             TerminationConditions=
                 { Collision=Some(TerminationConditionCollision(SelfIntersection=false)
                               |> Optic.set (primaryDetector_ >-> angle_) 120.0f
-                              |> Optic.set (primaryDetector_ >-> distance_) 1.25f);
+                              |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
                 Curvature=None;
                 Distance=Some(TerminationConditionDistance()); };
-            Thickness=ThicknessFormula.LeafPower_Base(A=2.5f, P=0.75f, C=10.0f, Base=0.0f);
-            Speed=AgentSpeedScaleAdaptive();
+            Thickness=ThicknessFormula.LeafPower_Base(A=2.5f, P=0.75f, C=5.0f, Base=0.0f);
+            Speed=AgentSpeedConstant();
             TotalDistance=35.0f
          }
 
@@ -999,7 +1000,7 @@ module SpawnConfig =
                                         config, 
                                         ProbeSpawnOptions(AngleDeg=phi, OffsetSideways=offset, StepsBetweenCollisionCheck=2),
                                         agentBlock)
-                                if Option.isNone probeData.Collision then
+                                if probeData.ReachedEnd then
                                     probeData.SpawnColliders()
                                     let spawnOptions = AgentSpawnOptions(AngleDeg=phi, OffsetSideways=offset)
                                     spawnOptions.DelayBy(agent.Random.NextFloat() * (float32 this.Delay) |> int)
