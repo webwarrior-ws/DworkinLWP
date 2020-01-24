@@ -306,7 +306,7 @@ type FlowingLeaves_WIP() =
     inherit DworkinEnvironmentConfigCustom()
     
     member val AgentConfig = DworkinAgentConfig.flowingLeavesVarSize with get, set
-    member val N = 10 with get, set
+    member val N = 20 with get, set
     member val Margin = 20.0f with get, set
     member val MaxIterations = 1000 with get, set
     member val Delay = 200 with get, set
@@ -318,6 +318,7 @@ type FlowingLeaves_WIP() =
     member val LeafThickness = 10.0f with get, set
     member val LeafLength = 90.0f with get, set
     member val LeafShape = 0.65f with get, set
+    member val Speed = 1.0f with get, set
 
     member this.Clone() = this.MemberwiseClone() :?> FlowingLeaves_WIP
 
@@ -347,6 +348,8 @@ type FlowingLeaves_WIP() =
         (fun x -> x.LeafLength), (fun value x -> let y = x.Clone() in y.LeafLength <- value; y)
     static member LeafShape_ : Lens<FlowingLeaves_WIP, _> = 
         (fun x -> x.LeafShape), (fun value x -> let y = x.Clone() in y.LeafShape <- value; y)
+    static member Speed_ : Lens<FlowingLeaves_WIP, _> = 
+        (fun x -> x.Speed), (fun value x -> let y = x.Clone() in y.Speed <- value; y)
 
     override this.Evaluate(env) =
         let mutable currN = 0
@@ -361,6 +364,9 @@ type FlowingLeaves_WIP() =
             |> Optic.map (terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) (fun x -> x / this.Density)
             |> Optic.map (branching_ >-> criterion_ >-> cast<_, BranchingCriterionIntervalRandomized.Uniform> >-> intervalRange_) (fun x -> x * (1.0f / this.Density))
             |> Optic.set (branching_spawnConfig_ >-> scaleRange_) (NumberRange(lerp 1.2f 0.6f this.ScaleVariance, lerp 1.2f 2.4f this.ScaleVariance) * this.Scale)
+            |> Optic.map (branching_spawnConfig_ >-> delay_) (fun x -> float32(x) * this.Density |> int)
+            |> Optic.set (branching_spawnConfig_ >-> baseSpeed_) (this.Speed * this.Scale)
+            |> Optic.set (speed_ >-> magnitude_) this.Speed
             |> Optic.set (curvature_ >-> a_) (lerp (-1.36f) (-1.136f) this.Curviness)
             |> Optic.set (curvature_ >-> c_) (lerp (-0.04f) (-0.02f) this.Curviness)
             |> Optic.set (thickness_ >-> c_) this.LeafThickness

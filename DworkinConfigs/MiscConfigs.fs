@@ -949,8 +949,9 @@ module SpawnConfig =
         member val Steps = 3 with get, set
         member val MaxLength = 80.0f with get, set
         member val MinLength = 20.0f with get, set
-        member val Delay = 100 with get, set
+        member val Delay = 50 with get, set
         member val ScaleRange = NumberRange(1.0f, 2.0f) with get, set
+        member val BaseSpeed = 1.0f with get, set
 
         member this.Clone() = this.MemberwiseClone() :?> FlowingLeavesVarSize
 
@@ -972,6 +973,8 @@ module SpawnConfig =
             (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
         static member ScaleRange_ : Lens<FlowingLeavesVarSize, _> = 
             (fun x -> x.ScaleRange), (fun value x -> let y = x.Clone() in y.ScaleRange <- value; y)
+        static member BaseSpeed_ : Lens<FlowingLeavesVarSize, _> = 
+            (fun x -> x.BaseSpeed), (fun value x -> let y = x.Clone() in y.BaseSpeed <- value; y)
 
         override this.Evaluate(agent, pos) =
             agent.GenerationLimit <- this.GenLimit
@@ -995,6 +998,7 @@ module SpawnConfig =
                                     agent.Config
                                     |> Optic.set totalDistance_ l
                                     |> Optic.map (curvature_ >-> cast<_, CurvatureFormula.Quadratic> >-> c_) (fun x -> x * c)
+                                    |> Optic.set (speed_ >-> magnitude_) (this.BaseSpeed / scale)
                                 let probeData = 
                                     agent.LaunchProbe(
                                         config, 
