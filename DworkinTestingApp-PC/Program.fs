@@ -129,6 +129,7 @@ let configGui  =
                         Builders.floatSliderEditor "LeafThickness" FlowingLeaves_WIP.LeafThickness_ 2.5f 10.0f 0.5f;
                         Builders.floatSliderEditor "LeafLength" FlowingLeaves_WIP.LeafLength_ 40.0f 90.0f 5.0f;
                         Builders.floatSliderEditor "LeafShape" FlowingLeaves_WIP.LeafShape_ 0.5f 0.8f 0.05f;
+                        Builders.floatSliderEditor "Speed" FlowingLeaves_WIP.Speed_ 0.25f 1.0f 0.05f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FlowingLeaves_WIP>;
                     ];
             ]
