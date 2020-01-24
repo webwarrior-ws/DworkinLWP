@@ -75,6 +75,8 @@ type IList<'T> with
 
     member inline this.Last = this.[this.Count-1]
 
+    member inline this.IsEmpty = this.Length = 0
+
     // note: uses 1-based indices
     member this.AddAfterIndex(object : 'T, index : int) =
         this.Insert(index, object)
