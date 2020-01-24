@@ -46,9 +46,10 @@ type ProbeData() =
     member val Footprints : ResizeArray<DworkinAgentFootprint> = ResizeArray()
 
     member this.DistanceCovered =
-        match this.Footprints with 
-        | NotEmpty(footprints) -> (footprints.Last :> IDworkinAgentState).DistanceCovered 
-        | Empty -> 0.0f
+        if this.Footprints.IsEmpty then
+            0.0f
+        else 
+            (this.Footprints.Last :> IDworkinAgentState).DistanceCovered 
 
     member this.Id 
         with set(anInteger) =
@@ -56,9 +57,10 @@ type ProbeData() =
                 each.Id <- anInteger
 
     member this.ReachedEnd =
-        match this.Footprints with 
-        | NotEmpty(footprints) -> (this.DistanceCovered + (1.0e-8f)) >= footprints.Last.Config.TotalDistance 
-        | Empty -> false
+        if this.Footprints.IsEmpty then
+            false
+        else 
+            (this.DistanceCovered + (1.0e-8f)) >= this.Footprints.Last.Config.TotalDistance 
 
     member inline this.S =
         this.DistanceCovered
