@@ -145,21 +145,13 @@ type FlowingLeavesExperiment() =
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
-        let leafThickness = getValue <@ this.LeafThickness @>
-        // compensate for leaf thickness (slimmer leaves -> lower density)
-        let density = 
-            let tMax = 10.0f
-            let tMin = 2.5f
-            let dFactorMax = 1.0f
-            let dFactorMin = 0.8f
-            (getValue <@ this.Density @>) * (leafThickness - tMin) / (tMax-tMin) * (dFactorMax-dFactorMin) + dFactorMin
         DworkinEnvironmentConfigCustom.FlowingLeaves_WIP(
             RandomSeed=seed,
             Scale=getValue <@ this.Scale @>,
-            Density=density,
+            Density=(getValue <@ this.Density @>),
             ScaleVariance=getValue <@ this.ScaleVariance @>,
             Curviness=getValue <@ this.Curviness @>,
-            LeafThickness=leafThickness,
+            LeafThickness=getValue <@ this.LeafThickness @>,
             LeafLength=getValue <@ this.LeafLength @>,
             LeafShape=getValue <@ this.LeafShape @>,
             Speed=getValue <@ this.Speed @>) 

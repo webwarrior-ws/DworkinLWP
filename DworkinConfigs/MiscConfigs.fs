@@ -942,7 +942,7 @@ module SpawnConfig =
     
     type FlowingLeavesVarSize() = 
         inherit SpawnConfig()
-        member val GenLimit = 10 with get, set
+        member val GenLimit = 15 with get, set
         member val Angle = -35.0f with get, set
         member val Offset = 4.0f with get, set
         member val CurvRandRange = NumberRange(0.8f, 1.2f) with get, set
