@@ -361,7 +361,7 @@ type FlowingLeaves_WIP() =
             let thickness_ = thickness_ >-> cast<_, ThicknessFormula.LeafPower_Base>
             this.AgentConfig
             |> Optic.map (branching_spawnConfig_ >-> offset_) (fun x -> x / this.Density)
-            |> Optic.map (terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) (fun x -> x / this.Density)
+            |> Optic.map (terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) (fun x -> x / this.Density * sqrt (10.0f / this.LeafThickness))
             |> Optic.map (branching_ >-> criterion_ >-> cast<_, BranchingCriterionIntervalRandomized.Uniform> >-> intervalRange_) (fun x -> x * (1.0f / this.Density))
             |> Optic.set (branching_spawnConfig_ >-> scaleRange_) (NumberRange(lerp 1.2f 0.6f this.ScaleVariance, lerp 1.2f 2.4f this.ScaleVariance) * this.Scale)
             |> Optic.map (branching_spawnConfig_ >-> delay_) (fun x -> float32(x) * this.Density |> int)
