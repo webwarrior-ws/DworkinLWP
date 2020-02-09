@@ -34,7 +34,7 @@ type BrushCircles() =
 type BrushSolidBase() =
     inherit Brush()
 
-    let mutable prevPoints : struct(Point * Point) voption = ValueNone
+    member val PrevPoints : struct(Point * Point) voption = ValueNone with get, set
 
     abstract member GetAngle : DworkinAgent -> float32
     default this.GetAngle(_) = 0.0f
@@ -46,11 +46,11 @@ type BrushSolidBase() =
             perpendicular <- (perpendicular / (max (cos angle) 0.25f)).Rotate(angle)
         let lhs = agent.Position + perpendicular
         let rhs = agent.Position - perpendicular
-        match prevPoints with
+        match this.PrevPoints with
         | ValueSome(struct (prevLhs, prevRhs)) -> 
             agent.DworkinEnvironment.AddShape(Shape.Quad(prevLhs, lhs, rhs, prevRhs), ShapePaint.Default)
         | ValueNone -> ()
-        prevPoints <- ValueSome(struct(lhs, rhs))
+        this.PrevPoints <- ValueSome(struct(lhs, rhs))
 
 
 type BrushSolid() =
@@ -142,4 +142,47 @@ type BrushSolidJoint() =
             jointDrawn <- true
         
         base.Evaluate(agent)
+
+
+type DworkinBrushSolidSmoother(smoothness) =
+    inherit BrushSolidBase()
+
+    let mutable lastThickness = 0.0f
+    let mutable lastPosition = Point()
+    let mutable lastDirection = Point()
+    let mutable lastS = 0.0f
+
+    member this.NumStepsFor(k) =
+        floor (sqrt (k * smoothness)) |> int
+
+    override this.Evaluate(agent) =
+        let mutable perpendicular = agent.Direction.LeftRotated * (agent.Thickness * 0.5f)
+        
+        let lhs = agent.Position + perpendicular
+        let rhs = agent.Position - perpendicular
+        match this.PrevPoints with
+        | ValueSome(struct (prevLhs, prevRhs)) -> 
+            let mutable prevLhs = prevLhs
+            let mutable prevRhs = prevRhs
+            let k = (abs (agent.Thickness - lastThickness)) / (agent.DistanceCovered - lastS)
+            let n = this.NumStepsFor(k)
+            for i=0 to n do
+                let t = float32(i) / (float32 (n + 1))
+                let pos = lerp lastPosition agent.Position t
+                let thickness = 
+                    let s = lerp lastS agent.DistanceCovered t
+                    agent.Config.Thickness.Evaluate(s * DworkinAgentFormula.Factor, s / agent.TotalDistance)
+                let perp = (lerp lastDirection agent.Direction t).LeftRotated * ((thickness * agent.ThicknessFactor) * 0.5f)
+                let currLhs = pos + perp
+                let currRhs = pos - perp
+                agent.DworkinEnvironment.AddShape(Shape.Quad(prevLhs, currLhs, currRhs, prevRhs), ShapePaint.Default)
+                prevLhs <- currLhs
+                prevRhs <- currRhs
+            agent.DworkinEnvironment.AddShape(Shape.Quad(prevLhs, lhs, rhs, prevRhs), ShapePaint.Default)
+        | ValueNone -> ()
+        this.PrevPoints <- ValueSome(struct(lhs, rhs))
+        lastDirection <- agent.Direction
+        lastThickness <- agent.Thickness
+        lastPosition <- agent.Position
+        lastS <- agent.DistanceCovered
 
