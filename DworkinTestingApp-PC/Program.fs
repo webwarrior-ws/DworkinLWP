@@ -130,6 +130,7 @@ let configGui  =
                         Builders.floatSliderEditor "LeafLength" FlowingLeaves_WIP.LeafLength_ 40.0f 90.0f 5.0f;
                         Builders.floatSliderEditor "LeafShape" FlowingLeaves_WIP.LeafShape_ 0.5f 0.8f 0.05f;
                         Builders.floatSliderEditor "Speed" FlowingLeaves_WIP.Speed_ 0.25f 1.0f 0.05f;
+                        Builders.floatSliderEditor "Brush Smoothness" (FlowingLeaves_WIP.AgentConfig_ >-> LibDworkin.Agents.DworkinAgentConfig.Brush_  >-> Lenses.cast<LibDworkin.Agents.BrushStrategy, LibDworkin.Configs.BrushStrategySolidSmoother> >-> LibDworkin.Configs.BrushStrategySolidSmoother.Smoothness_) 1.0f 5.0f 0.5f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FlowingLeaves_WIP>;
                     ];
             ]

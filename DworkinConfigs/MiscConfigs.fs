@@ -272,7 +272,7 @@ module DworkinAgentConfig =
                     Criterion=BranchingCriterionIntervalRandomized.Uniform(IntervalRange=NumberRange(5.0f, 15.0f)),
                     SpawnConfig=SpawnConfig.FlowingLeavesVarSize(MaxLength=50.0f)
                 );
-            Brush=BrushStrategySolid();
+            Brush=BrushStrategySolidSmoother();
             ColliderOptions=ColliderOptionsGeneral()
                  |> Optic.set (strategy_ >-> density_) 1.5f;
             Curvature=CurvatureFormula.Quadratic(A= -1.136f, C= -0.02f, B=0.68f, K=0.75f);
