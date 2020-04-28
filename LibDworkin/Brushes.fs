@@ -144,7 +144,7 @@ type BrushSolidJoint() =
         base.Evaluate(agent)
 
 
-type DworkinBrushSolidSmoother(smoothness) =
+type BrushSolidSmoother(smoothness) =
     inherit BrushSolidBase()
 
     let mutable lastThickness = 0.0f

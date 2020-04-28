@@ -102,7 +102,7 @@ type BrushStrategySolidSmoother() =
         (fun x -> x.Smoothness), (fun value x -> let y = x.Clone() in y.Smoothness <- value; y)
 
     override this.GetBrushFor(anAgent) =
-        DworkinBrushSolidSmoother(this.Smoothness) :> Brush
+        BrushSolidSmoother(this.Smoothness) :> Brush
  
 
  type BrushStrategy with
@@ -438,13 +438,13 @@ type BranchingCriterionBased() =
                     this.Delay)
 
 
-type DworkinBranchingMultivariant() = 
+type BranchingMultivariant() = 
     inherit BranchingStrategy()
     member val Strategies : BranchingStrategy[] = [||] with get, set
 
-    member this.Clone() = this.MemberwiseClone() :?> DworkinBranchingMultivariant
+    member this.Clone() = this.MemberwiseClone() :?> BranchingMultivariant
 
-    static member Strategies_ : Lens<DworkinBranchingMultivariant, BranchingStrategy[]> = 
+    static member Strategies_ : Lens<BranchingMultivariant, BranchingStrategy[]> = 
         (fun x -> x.Strategies), (fun value x -> let y = x.Clone() in y.Strategies <- value; y)
 
     override this.Evaluate(agent) =
