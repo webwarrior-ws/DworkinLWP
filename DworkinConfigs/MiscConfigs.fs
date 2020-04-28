@@ -906,7 +906,7 @@ module SpawnConfig =
                 else
                     [| this.Angle; -this.Angle |]
             if agent.Random.NextFloat() < this.P then
-                angles.ShuffleBy(agent.Random)
+                angles.ShuffleBy(agent.Random) |> ignore
             
             let mutable i = 1
             for phi in angles do

@@ -93,7 +93,7 @@ type IList<'T> with
     member this.AtRandom(prng : System.Random) =
         this.[prng.Next(this.Count)]
         
-    member this.ShuffleBy(random : System.Random) : unit =
+    member this.ShuffleBy(random : System.Random) : IList<'T> =
         for i in this.Length-1 .. -1 .. 1 do
             // swap elemets at i and random.Next(i)
             let i2 = random.Next(i)
@@ -101,6 +101,7 @@ type IList<'T> with
             let e2 = this.[i2]
             this.[i] <- e2
             this.[i2] <- e
+        this
 
 
 type 'T ``[]`` with
@@ -111,7 +112,7 @@ type 'T ``[]`` with
     member this.TakeLast(n : int) : 'T[] =
         this.[this.Length-n..this.Length-1]
     
-    member this.ShuffleBy(random : System.Random) : unit =
+    member this.ShuffleBy(random : System.Random) : 'T[] =
         for i in this.Length-1 .. -1 .. 1 do
             // swap elemets at i and random.Next(i)
             let i2 = random.Next(i)
@@ -119,6 +120,7 @@ type 'T ``[]`` with
             let e2 = this.[i2]
             this.[i] <- e2
             this.[i2] <- e
+        this
 
 
 type System.Random with
