@@ -55,6 +55,15 @@
     <Compile Include="../DworkinConfigs/DworkinEnvironmentConfigCustom.fs">
       <Link>DworkinEnvironmentConfigCustom.fs</Link>
     </Compile>
+	<Compile Include="../DworkinConfigs/PCB.fs">
+      <Link>PCB.fs</Link>
+    </Compile>
+    <Compile Include="../DworkinConfigs/FlowingLeaves.fs">
+      <Link>FlowingLeaves.fs</Link>
+    </Compile>
+    <Compile Include="../DworkinConfigs/Maze.fs">
+      <Link>Maze.fs</Link>
+    </Compile>
     <Compile Include="../DworkinConfigs/ConfigSettings.fs">
       <Link>ConfigSettings.fs</Link>
     </Compile>

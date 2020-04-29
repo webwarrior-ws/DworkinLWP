@@ -47,7 +47,7 @@ type PCB_RandomPosChips() =
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
-        DworkinEnvironmentConfigCustom.PCB_RandomPosChips(
+        PCB.PCB_RandomPosChips(
             RandomSeed=seed,
             Angle=getValue <@ this.Angle @>,
             Size=getValue <@ this.Size @>,
@@ -87,13 +87,13 @@ type Maze() =
 
         let agentConfig, gridSize, angleIncr =
             match getValue <@ this.Angles @> with
-            | "Square" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v2, 60, 90
-            | "FortyFive" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v3, 42, 45
-            | "FortyFiveSharp" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v1, 42, 45
-            | "Hexagonal" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v4, 52, 60
-            | "Qbert" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v5, 52, 60
-            | "Arbitrary" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v6, 15, 60
-            | "Arbitrary2" -> MiscConfigs.DworkinAgentConfig.straightMazeRandomAngle_v7, 30, 60
+            | "Square" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v2, 60, 90
+            | "FortyFive" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v3, 42, 45
+            | "FortyFiveSharp" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v1, 42, 45
+            | "Hexagonal" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v4, 52, 60
+            | "Qbert" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v5, 52, 60
+            | "Arbitrary" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v6, 15, 60
+            | "Arbitrary2" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v7, 30, 60
 
         let mutable agentConfig = 
             agentConfig 
@@ -103,7 +103,7 @@ type Maze() =
             agentConfig <- agentConfig |> Optic.set (curvature_) (CurvatureFormula.SNoise(A=0.075f, B=5.0f, D=0.61f))
 
         let config =
-            DworkinEnvironmentConfigCustom.LWPMaze3(
+            Maze.LWPMaze3(
                 Scale=getValue <@ this.Scale @>,
                 InitialAngle=getValue <@ this.Orientation @>,
                 ThicknessVariance= getValue <@ this.ThicknessVariance @>,
@@ -145,7 +145,7 @@ type FlowingLeavesExperiment() =
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
-        DworkinEnvironmentConfigCustom.FlowingLeaves_WIP(
+        FlowingLeaves.FlowingLeaves_WIP(
             RandomSeed=seed,
             Scale=getValue <@ this.Scale @>,
             Density=(getValue <@ this.Density @>),

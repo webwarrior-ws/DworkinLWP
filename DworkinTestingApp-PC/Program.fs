@@ -11,6 +11,10 @@ open LibDworkin
 open LibDworkin.DworkinSettings
 open Settings
 
+// DworkinConfigs
+open PCB
+open FlowingLeaves
+open Maze
 open DworkinEnvironmentConfigCustom
 
 
