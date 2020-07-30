@@ -1,11 +1,13 @@
 ﻿namespace Settings
 
+type private RandomizeableTypeAttribute() = 
+    inherit System.Attribute()
 
+
+[<RandomizeableType>]
 type Randomizeable<'T> =
     | Randomized
     | Defined of 'T
     with
         static member IsRandomizableType (typ : System.Type) =
-            let getCases = Microsoft.FSharp.Reflection.FSharpType.GetUnionCases
-            let getCaseNames = getCases >> Array.map (fun x -> x.Name)
-            Microsoft.FSharp.Reflection.FSharpType.IsUnion typ && (getCaseNames typ = (getCaseNames typedefof<Randomizeable<_>>))
+            typ.GetCustomAttributes(typeof<RandomizeableTypeAttribute>, true) |> Array.isEmpty |> not
