@@ -17,6 +17,7 @@ type Resources = UITestingApp.Resource
 
 type AllKindsOfSettings() =
     inherit Settings()
+    static do Settings.RegisterClass<AllKindsOfSettings>()
 
     [<Enum([| 1; 2; 3; 4; |], Name="Integer Spinner (randomized)")>]
     member val IntEnum = Defined(1) with get, set

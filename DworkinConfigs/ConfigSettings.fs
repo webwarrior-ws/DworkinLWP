@@ -11,6 +11,7 @@ type EnvironmentConfig = LibDworkin.Configs.DworkinEnvironmentConfig
 
 type MagneticSpiralsBunch() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+    static do Settings.RegisterClass<MagneticSpiralsBunch>()
 
     [<FloatRange(1.5f, 3.0f, Step=0.1f)>]
     member val Scale = Defined(2.0f) with get, set
@@ -28,6 +29,7 @@ type MagneticSpiralsBunch() =
 
 type PCB_RandomPosChips() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+    static do Settings.RegisterClass<PCB_RandomPosChips>()
 
     [<FloatRange(0.0f, 90.0f, Step=45.0f)>]
     member val Angle = Defined(0.0f) with get, set
@@ -59,6 +61,7 @@ type PCB_RandomPosChips() =
 
 type Maze() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+    static do Settings.RegisterClass<Maze>()
 
     [<Enum([| "Square"; "FortyFive"; "FortyFiveSharp"; "Hexagonal"; "Qbert"; "Arbitrary"; "Arbitrary2" |])>]
     member val Angles = Defined("Square") with get, set
@@ -117,6 +120,7 @@ type Maze() =
 
 type FlowingLeavesExperiment() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+    static do Settings.RegisterClass<FlowingLeavesExperiment>()
 
     [<FloatRange(1.0f, 2.0f, Step=0.05f)>]
     member val Scale = Defined(1.5f) with get, set

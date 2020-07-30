@@ -39,6 +39,7 @@ module Materials =
     [<Name("Solid color")>]
     type SolidColor() =
         inherit ColoredMaterial()
+        static do Settings.RegisterClass<SolidColor>()
 
         override this.Build(platform, random) =
             SolidColorMaterial(
@@ -49,6 +50,7 @@ module Materials =
     [<Name("Rough surface")>]
     type RoughSurface() =
         inherit ColoredMaterial()
+        static do Settings.RegisterClass<RoughSurface>()
 
         [<FloatRange(0.0f, 0.25f, Step=0.05f, Name="Bump height")>]
         member val BumpHeight = Defined(0.1f) with get, set
@@ -75,6 +77,7 @@ module Materials =
     
     type Wood() =
         inherit ColoredMaterial()
+        static do Settings.RegisterClass<Wood>()
 
         [<FloatRange(0.0f, 180.0f, Step=5.0f)>]
         member val Angle = Defined(0.0f) with get, set
@@ -101,6 +104,7 @@ module Materials =
     
     type Leather() =
         inherit ColoredMaterial()
+        static do Settings.RegisterClass<Leather>()
 
         [<FloatRange(0.0f, 1.0f)>]
         member val Contrast = Defined(0.5f) with get, set
@@ -128,10 +132,12 @@ module Materials =
 module Effects =
     type Plain() =
         inherit EffectSettings()
+        static do Settings.RegisterClass<Plain>()
         override this.Build(platform, random) = PlainEffect(platform) :> Effect
 
     type Outline() =
         inherit EffectSettings()
+        static do Settings.RegisterClass<Outline>()
 
         [<FloatRange(0.01f, 0.5f)>]
         member val OutlineWidth = Defined(0.1f) with get, set
@@ -141,6 +147,7 @@ module Effects =
     
     type Shadow() =
         inherit EffectSettings()
+        static do Settings.RegisterClass<Shadow>()
 
         [<FloatRange(0.0f, 360.0f, Step=5.0f, Name="Direction")>]
         member val Dir = Defined(0.0f) with get, set
@@ -175,6 +182,7 @@ module Effects =
     
     type Bevel() =
         inherit EffectSettings()
+        static do Settings.RegisterClass<Bevel>()
 
         [<FloatRange(1.0f, 10.0f, Step=1.0f)>]
         member val Contrast = Defined(5.0f) with get, set
@@ -203,6 +211,7 @@ module Effects =
     
     type Glow() =
         inherit EffectSettings()
+        static do Settings.RegisterClass<Glow>()
 
         [<Color>]
         member val Color = Defined(OpenTK.Graphics.Color4.Aquamarine.AsRGBTriple) with get, set
@@ -224,6 +233,7 @@ module Effects =
     
     type Highlight() =
         inherit EffectSettings()
+        static do Settings.RegisterClass<Highlight>()
 
         [<FloatRange(0.05f, 1.0f, Step=0.05f)>]
         member val LightIntensity = Defined(0.5f) with get, set
