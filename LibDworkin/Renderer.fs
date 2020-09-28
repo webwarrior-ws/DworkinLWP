@@ -585,9 +585,13 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
     let mutable framesAfterStop = 0
     do
         let random = System.Random(currentSettings.Seed)
+        let fgColor, bgColor = currentSettings.GetColors(System.Random(currentSettings.Seed)) // use independent PRNG for colors
         this.Effect <- currentSettings.Effect.Build(platform, random)
-        this.Foreground <- currentSettings.Foreground.Build(platform, random)
-        this.Background <- currentSettings.Background.Build(platform, random)
+        this.Foreground <- currentSettings.Foreground.Build(platform, random, fgColor)
+        this.Background <- currentSettings.Background.Build(platform, random, bgColor)
+        this.Effect.SetMaterialProperties(
+            { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
+            { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
     
     member val EnvironmentStepper : AbstractEnvironmentStepper = 
         match stepper with
@@ -617,6 +621,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
             currentSettings <- !settingsRef
             let seedChanged = previousSettings.Seed <> currentSettings.Seed
             let random = System.Random(currentSettings.Seed)
+            let fgColor, bgColor = currentSettings.GetColors(System.Random(currentSettings.Seed)) // use independent PRNG for colors
 
             if seedChanged || (changes &&& int(SettingsChange.EnvironmentChanged) <> 0) then
                 this.EnvironmentConfig <- currentSettings.Environment.Build(currentSettings.Seed)
@@ -627,11 +632,16 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
             
             if changes &&& int(SettingsChange.BackgroundChanged) <> 0 || 
                (seedChanged && currentSettings.Background.HasRandomizedValues) then
-                this.Background <- currentSettings.Background.Build(platform, random)
+                this.Background <- currentSettings.Background.Build(platform, random, bgColor)
             
             if changes &&& int(SettingsChange.ForegroundChanged) <> 0 || 
                (seedChanged && currentSettings.Foreground.HasRandomizedValues) then
-                this.Foreground <- currentSettings.Foreground.Build(platform, random)
+                this.Foreground <- currentSettings.Foreground.Build(platform, random, fgColor)
+                
+            if changes &&& int(SettingsChange.EffectChanged ||| SettingsChange.BackgroundChanged ||| SettingsChange.ForegroundChanged) <> 0 then
+                this.Effect.SetMaterialProperties(
+                    { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
+                    { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
             
             CurrentSettings.resetChanges()
 

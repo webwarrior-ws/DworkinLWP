@@ -232,6 +232,14 @@ type Material(shader : ResettableLazy<Shader>) =
         base.Use()
         this.SetUniforms()
     
+    /// Average roughness value of material in range [0; 1]
+    abstract member Roughness : float32
+    default this.Roughness = 1.0f
+
+    /// Specular color of material. White for non-metallic materials.
+    abstract member Specular : Graphics.Color4
+    default this.Specular = Graphics.Color4.White
+    
 
 type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
     inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/solidColor.frag"))
@@ -342,6 +350,14 @@ type WoodMaterial(platform : AbstractPlatform, color : Graphics.Color4, angle : 
         GL.Uniform1(this.Shader.GetUniformLocation("grainTexture"), 0)
 
 
+/// Material properties that may be used by certain effects
+type MaterialPropertiesForEffect =
+    {
+        Color : Graphics.Color4
+        Specular : Graphics.Color4
+        Roughness : float32
+    }
+
 /// Component that is responsible for drawing image using SDF, background, and foreground textures.
 /// No two Effect subclasses should share a shader.
 [<AbstractClass>]
@@ -356,6 +372,9 @@ type Effect(shader : ResettableLazy<Shader>) =
             screenDimensions <- value
             wasUsed <- false
     
+    abstract member SetMaterialProperties : MaterialPropertiesForEffect * MaterialPropertiesForEffect -> unit
+    default this.SetMaterialProperties(fgProps, bgProps) = ()
+
     override this.Use() =
         let needsInit = not shader.IsValueCreated || not wasUsed
         base.Use()

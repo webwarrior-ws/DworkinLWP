@@ -21,7 +21,7 @@ type EnvironmentSettings() =
 [<AbstractClass>] 
 type MaterialSettings() =
     inherit Settings()
-    abstract member Build : AbstractPlatform * System.Random -> Material
+    abstract member Build : AbstractPlatform * System.Random * OpenTK.Graphics.Color4 -> Material
 
 [<AbstractClass>] 
 type EffectSettings() =
@@ -30,26 +30,17 @@ type EffectSettings() =
 
 
 module Materials =
-    [<AbstractClass>]
-    type ColoredMaterial() =
-        inherit MaterialSettings()
-        [<Color>]
-        member val Color = Defined(OpenTK.Graphics.Color4.White.AsRGBTriple) with get, set
-
     [<Name("Solid color")>]
     type SolidColor() =
-        inherit ColoredMaterial()
+        inherit MaterialSettings()
         static do Settings.RegisterClass<SolidColor>()
 
-        override this.Build(platform, random) =
-            SolidColorMaterial(
-                platform, 
-                OpenTK.Graphics.Color4.FromRGBTriple(Randomizeable.getValue random <@ this.Color @>)) 
-            :> Material
+        override this.Build(platform, random, color) =
+            SolidColorMaterial(platform, color) :> Material
     
     [<Name("Rough surface")>]
     type RoughSurface() =
-        inherit ColoredMaterial()
+        inherit MaterialSettings()
         static do Settings.RegisterClass<RoughSurface>()
 
         [<FloatRange(0.0f, 0.25f, Step=0.05f, Name="Bump height")>]
@@ -64,11 +55,11 @@ module Materials =
         [<FloatRange(0.5f, 2.5f, Step=0.1f, Name="Flat area")>]
         member val FlatArea = Defined(0.5f) with get, set
 
-        override this.Build(platform, random) =
+        override this.Build(platform, random, color) =
             let getValue expr = Randomizeable.getValue random expr
             RoughSurfaceMaterial(
                 platform, 
-                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
+                color,
                 getValue <@ this.BumpHeight @>,
                 getValue <@ this.Dim @>,
                 getValue <@ this.FeatureScale @>,
@@ -76,7 +67,7 @@ module Materials =
             :> Material
     
     type Wood() =
-        inherit ColoredMaterial()
+        inherit MaterialSettings()
         static do Settings.RegisterClass<Wood>()
 
         [<FloatRange(0.0f, 180.0f, Step=5.0f)>]
@@ -91,11 +82,11 @@ module Materials =
         [<FloatRange(0.0f, 0.5f, Step=0.05f)>]
         member val Contrast = Defined(0.25f) with get, set
 
-        override this.Build(platform, random) =
+        override this.Build(platform, random, color) =
             let getValue expr = Randomizeable.getValue random expr
             WoodMaterial(
                 platform, 
-                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
+                color,
                 getValue <@ this.Angle @>,
                 getValue <@ this.RingsScale @>,
                 getValue <@ this.RingsStretch @>,
@@ -103,7 +94,7 @@ module Materials =
             :> Material
     
     type Leather() =
-        inherit ColoredMaterial()
+        inherit MaterialSettings()
         static do Settings.RegisterClass<Leather>()
 
         [<FloatRange(0.0f, 1.0f)>]
@@ -112,13 +103,13 @@ module Materials =
         [<FloatRange(1.0f, 3.0f)>]
         member val Scale = Defined(2.0f) with get, set
 
-        override this.Build(platform, random) =
+        override this.Build(platform, random, color) =
             let getValue expr = Randomizeable.getValue random expr
             let lightHeight = 3.0f - 2.0f * (getValue <@ this.Contrast @>)
             let scaleFactor = 3.0f / (getValue <@ this.Scale @>)
             NormalmapAndAOMaterial(
                 platform, 
-                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
+                color,
                 "TexturesCom_Leather_Plain_512_normal.png",
                 Point(1.0f, 1.0f),
                 lightHeight,
@@ -255,10 +246,21 @@ type SettingsHolder =
     {
         Environment : EnvironmentSettings
         Effect : EffectSettings
+        ForegroundColor : Randomizeable<float32*float32*float32>
+        BackgroundColor : Randomizeable<float32*float32*float32>
         Foreground : MaterialSettings
         Background : MaterialSettings
         Seed : int
     }
+    member this.GetColors(random : System.Random) : OpenTK.Graphics.Color4 * OpenTK.Graphics.Color4 =
+        //TODO: generate random colors using some kind of strategy and taking into account defined color, if any
+        let getColor(value : Randomizeable<float32*float32*float32>) = 
+            match value with
+            | Defined(x) -> x
+            | Randomized -> ColorAttribute().RandomValue(random) |> unbox<float32*float32*float32>
+            |> OpenTK.Graphics.Color4.FromRGBTriple
+        getColor this.ForegroundColor, getColor this.BackgroundColor
+
 
 type SettingsChange =
     | EnvironmentChanged = 0b0001

@@ -12,6 +12,7 @@ open LibDworkin.Aether
 open LibDworkin.Aether.Operators
 open LibDworkin.RendererComponents
 open LibDworkin.Geometry
+open LibDworkin.DworkinSettings
 
 open System.Collections.Generic
 
@@ -489,6 +490,57 @@ module Widgets =
             let oldColor = unbox<Graphics.Color4> <| itemGetter.GetValue(this.ModifiedFactory, [| "color" |])
             if colorEditor.ConfigRef.Value.Value <> oldColor then
                 itemGetter.SetValue(this.ModifiedFactory, colorEditor.ConfigRef.Value.Value, [| "color" |])
+                this.SetProperty()
+    
+
+    // used for editing foreground and background colors
+    type MaterialsColorEditor(rendrer : DworkinRenderer,
+                             platform : AbstractPlatform,
+                             settingsHolder: SettingsHolder ref) =
+        inherit IRendererPropertyEditor()
+        let colorEditors = 
+            let fgLens : Lens<SettingsHolder, OpenTK.Graphics.Color4> = 
+                let getter h = 
+                    match h.ForegroundColor with | Settings.Randomizeable.Defined(c) -> OpenTK.Graphics.Color4.FromRGBTriple(c)
+                let setter (c : Graphics.Color4) h = 
+                    LibDworkin.DworkinSettings.CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
+                    { h with ForegroundColor=Settings.Randomizeable.Defined(c.AsRGBTriple) }
+                getter, setter
+            let bgLens : Lens<SettingsHolder, OpenTK.Graphics.Color4> = 
+                let getter h = 
+                    match h.BackgroundColor with | Settings.Randomizeable.Defined(c) -> OpenTK.Graphics.Color4.FromRGBTriple(c)
+                let setter (c : Graphics.Color4) h = 
+                    LibDworkin.DworkinSettings.CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
+                    { h with BackgroundColor=Settings.Randomizeable.Defined(c.AsRGBTriple) }
+                getter, setter
+            [
+                ColorPropertyEditor<LibDworkin.DworkinSettings.SettingsHolder>("Foreground", fgLens)
+                ColorPropertyEditor<LibDworkin.DworkinSettings.SettingsHolder>("Background", bgLens)
+            ]
+
+        override this.Renderer
+            with get() : DworkinRenderer option = Some(rendrer)
+            and set(_) = ()
+
+        override this.Name = "Colors"
+
+        override this.Initialize(parent : Base) =
+            let panel = new Control.GroupBox(parent, Dock=Gwen.Pos.Top, AutoSizeToContents=true)
+            for editor in colorEditors do
+                editor.ConfigRef <- settingsHolder
+                editor.Initialize(panel)
+            for each in panel.Children do
+                each.Dock <- Gwen.Pos.Left
+        
+        override this.SetProperty() =
+            match this.Renderer with
+            | Some(renderer) -> renderer.ApplyChangesInSettings()
+            | None -> ()
+
+        override this.Update() = 
+            for editor in colorEditors do
+                editor.Update()
+            if LibDworkin.DworkinSettings.CurrentSettings.getChanges() |> int <> 0 then
                 this.SetProperty()
 
 

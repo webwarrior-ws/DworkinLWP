@@ -55,16 +55,19 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
 
  
 let pcbConfig = PCB_RandomPosChips()
-let defaultSettings = 
-    { 
+let settingsHolder = 
+    ref { 
         Environment=ConfigSettings.PCB_RandomPosChips(); 
         Effect=Effects.Plain();
-        Foreground=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.Black.AsRGBTriple));
-        Background=Materials.SolidColor(Color=Defined(OpenTK.Graphics.Color4.White.AsRGBTriple));
+        ForegroundColor=Defined(OpenTK.Graphics.Color4.Black.AsRGBTriple);
+        BackgroundColor=Defined(OpenTK.Graphics.Color4.White.AsRGBTriple);
+        Foreground=Materials.SolidColor();
+        Background=Materials.SolidColor();
         Seed=42;
     }
+DworkinSettings.CurrentSettings.set(!settingsHolder)
 let platform = DotNETPlatform()
-let renderer = DworkinRenderer(platform, ref defaultSettings)
+let renderer = DworkinRenderer(platform, settingsHolder)
 
 module Builders =
     let internal makeShaderBasedComponentEditor<'T when 'T :> ShaderBasedComponent> (setter : DworkinRenderer -> 'T -> unit) name (children : (string * obj * (string -> ConfigPropertyEditor<RendererComponentFactory<'T>>)) list) : IRendererPropertyEditor = 
@@ -268,7 +271,6 @@ let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWid
 [<EntryPoint>]
 let main _argv =
     let window = new MainWindow<_>(renderer, [configGui; appearanceGui])
-    //let window = new MainWindow<_>(DworkinRenderer(NETCorePlatform(), MagneticSpiralsBunchBranching2_3()))
     window.Run(30.0)
 
     0 // return an integer exit code
