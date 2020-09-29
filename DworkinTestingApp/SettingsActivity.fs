@@ -64,6 +64,28 @@ type SettingsActivity() =
         editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.BackgroundChanged))
         editor
 
+    member private this.GetForegroundColorEditor() =
+        let editor = new Settings.Views.RandomizedColorPicker(this)
+        editor.Initialize()
+        let e = editor :> Views.ISettingEditor
+        e.Title <- "Foreground color"
+        e.Accessor <- Views.Accessor(
+            (fun () -> CurrentSettings.get().ForegroundColor |> box), 
+            (fun value -> CurrentSettings.set { CurrentSettings.get() with ForegroundColor=unbox(value) } ))
+        e.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.ForegroundChanged))
+        editor
+
+    member private this.GetBackgroundColorEditor() =
+        let editor = new Settings.Views.RandomizedColorPicker(this)
+        editor.Initialize()
+        let e = editor :> Views.ISettingEditor
+        e.Title <- "Background color"
+        e.Accessor <- Views.Accessor(
+            (fun () -> CurrentSettings.get().BackgroundColor |> box), 
+            (fun value -> CurrentSettings.set { CurrentSettings.get() with BackgroundColor=unbox(value) } ))
+        e.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.BackgroundChanged))
+        editor
+
     override this.OnCreate(bundle) =
         base.OnCreate (bundle)
         if isNull bundle then
@@ -90,8 +112,10 @@ type SettingsActivity() =
         // editorsGroup already contains random seed control, so add all editors before it
         editorsGroup.AddView(this.GetEnvironmentEditor(), 0)
         editorsGroup.AddView(this.GetEffectEditor(), 1)
-        editorsGroup.AddView(this.GetBackgroundEditor(), 2)
-        editorsGroup.AddView(this.GetForegroundEditor(), 3)
+        editorsGroup.AddView(this.GetBackgroundColorEditor(), 2)
+        editorsGroup.AddView(this.GetForegroundColorEditor(), 3)
+        editorsGroup.AddView(this.GetBackgroundEditor(), 4)
+        editorsGroup.AddView(this.GetForegroundEditor(), 5)
     
     override this.OnOptionsItemSelected(item) =
         if item.ItemId = Android.Resource.Id.Home then
