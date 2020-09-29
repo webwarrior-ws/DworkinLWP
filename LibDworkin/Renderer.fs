@@ -631,11 +631,11 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
                 this.Effect <- currentSettings.Effect.Build(platform, random)
             
             if changes &&& int(SettingsChange.BackgroundChanged) <> 0 || 
-               (seedChanged && currentSettings.Background.HasRandomizedValues) then
+               (seedChanged && (currentSettings.Background.HasRandomizedValues || currentSettings.BackgroundColor.IsRandomized)) then
                 this.Background <- currentSettings.Background.Build(platform, random, bgColor)
             
             if changes &&& int(SettingsChange.ForegroundChanged) <> 0 || 
-               (seedChanged && currentSettings.Foreground.HasRandomizedValues) then
+               (seedChanged && (currentSettings.Foreground.HasRandomizedValues || currentSettings.ForegroundColor.IsRandomized)) then
                 this.Foreground <- currentSettings.Foreground.Build(platform, random, fgColor)
                 
             if changes &&& int(SettingsChange.EffectChanged ||| SettingsChange.BackgroundChanged ||| SettingsChange.ForegroundChanged) <> 0 then
