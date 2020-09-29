@@ -65,7 +65,6 @@ let settingsHolder =
         Background=Materials.SolidColor();
         Seed=42;
     }
-DworkinSettings.CurrentSettings.set(!settingsHolder)
 let platform = DotNETPlatform()
 let renderer = DworkinRenderer(platform, settingsHolder)
 
@@ -78,11 +77,11 @@ module Builders =
     let effectEditor<'T when 'T :> Effect> =
         makeShaderBasedComponentEditor<'T> (fun renderer value -> renderer.Effect <- value) 
     
-    let foregroundEditor<'T when 'T :> Material> = 
-        makeShaderBasedComponentEditor<'T> (fun renderer value -> renderer.Foreground <- value)
+    let foregroundEditor<'T when 'T :> MaterialSettings> name settings = 
+        ForegroundSettingsEditor<'T>(name, settings, settingsHolder) :> IRendererPropertyEditor
     
-    let backgroundEditor<'T when 'T :> Material> =
-        makeShaderBasedComponentEditor<'T> (fun renderer value -> renderer.Background <- value)
+    let backgroundEditor<'T when 'T :> MaterialSettings> name settings = 
+        BackgroundSettingsEditor<'T>(name, settings, settingsHolder) :> IRendererPropertyEditor
 
 
 let configGui  = 
@@ -200,12 +199,14 @@ type private MaterialGuiKind =
     | Foreground of Chooser
 
 let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind : MaterialGuiKind) (defaultColor : Graphics.Color4) =
+    let makeEditor name settings =
+        match kind with 
+        | Foreground(_) -> Builders.foregroundEditor name settings
+        | Background -> Builders.backgroundEditor name settings
     let mutable guis = 
         [
-            Builders.makeShaderBasedComponentEditor<SolidColorMaterial> setter "solidColor"
-                [ 
-                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
-                ];
+            makeEditor "Solid color" <| Materials.SolidColor();
+            makeEditor "Leather" <| Materials.Leather();
             Builders.makeShaderBasedComponentEditor<NormalmapAndAOMaterial> setter "normalmap+ao"
                 [ 
                     "color", box defaultColor, Builders.ShaderComponents.colorEditor;
@@ -223,14 +224,7 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
                     "scaleFactor", box 2.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 3.0f 0.1f;
                     "shadeMap", box "knitted-netting_@2X.png", Builders.ShaderComponents.dropdownListEditor [ "knitted-netting_@2X.png" ];
                 ];
-            Builders.makeShaderBasedComponentEditor<RoughSurfaceMaterial> setter "rough surface"
-                [ 
-                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
-                    "bumpHeight", box 0.1f, Builders.ShaderComponents.floatSliderEditor 0.0f 0.25f 0.05f;
-                    "dim", box 0.3f, Builders.ShaderComponents.floatSliderEditor 0.1f 1.0f 0.05f;
-                    "featureScale", box 50.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 100.0f 1.0f;
-                    "flatArea", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.5f 2.5f 0.1f;
-                ];
+            makeEditor "Rough surface" <| Materials.RoughSurface();
             Builders.makeShaderBasedComponentEditor<MetalMaterial> setter "metal"
                 [ 
                     "color", box defaultColor, Builders.ShaderComponents.colorEditor;
@@ -244,14 +238,7 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
                     "strokeIntensity", box 0.35f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
                     "strokeAngle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
                 ];
-            Builders.makeShaderBasedComponentEditor<WoodMaterial> setter "wood"
-                [ 
-                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
-                    "angle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
-                    "ringsScale", box 2.7f, Builders.ShaderComponents.floatSliderEditor 2.0f 5.0f 0.1f;
-                    "ringsStretch", box 15.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 50.0f 5.0f;
-                    "contrast", box 0.25f, Builders.ShaderComponents.floatSliderEditor 0.0f 0.5f 0.05f;
-                ];
+            makeEditor "Wood" <| Materials.Wood();
         ]
     match kind with 
         | Foreground(bgChooser) -> 
@@ -264,8 +251,9 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
 
 let backgroundGui = makeMaterialGui (fun renderer value -> renderer.Background <- value) Background Graphics.Color4.White
 let foregroundGui = makeMaterialGui (fun renderer value -> renderer.Foreground <- value) (Foreground backgroundGui) Graphics.Color4.Black
+let colorsGui = MaterialsColorEditor(renderer, platform, settingsHolder)
 let materialsGui = Builders.tabPane [ ("foreground", foregroundGui :> AbstractGui); ("background", backgroundGui :> AbstractGui) ]
-let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWidth [ effectGui; materialsGui ]
+let appearanceGui = Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Right) 0.8 guiWidth [ effectGui; colorsGui; materialsGui ]
 
 
 [<EntryPoint>]

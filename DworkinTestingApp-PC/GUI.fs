@@ -285,7 +285,7 @@ module Widgets =
                 lastConfig <- !configRef
     
 
-    type SettingsEditorBuilder<'TSettings when 'TSettings :> DworkinSettings.EnvironmentSettings>(property : System.Reflection.PropertyInfo, 
+    type SettingsEditorBuilder<'TSettings when 'TSettings :> Settings.Settings>(property : System.Reflection.PropertyInfo, 
                                                                                                   name : string,
                                                                                                   changedHolder : bool ref) =
         member this.GetLens<'T>() =
@@ -319,46 +319,73 @@ module Widgets =
                 CheckboxPropertyEditor<'TSettings>(name, this.GetLens()) :> ConfigPropertyEditor<'TSettings>
     
 
-    type EnvironmentSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.EnvironmentSettings>(name : string, 
-                                                                                                      settings : 'TSettings) =
+    type SettingsEditor<'TSettings when 'TSettings :> Settings.Settings>(name : string, settings : 'TSettings) =
         inherit IRendererPropertyEditor()
-        let changed = ref false
-        let settingsGuis = ResizeArray<ConfigPropertyEditor<'TSettings>>()
-        let randomSeedControl = 
-            IntNumberboxPropertyEditor<EnvironmentSettingsEditor<'TSettings>>("Seed", 
-                                                                                ((fun e -> e.RandomSeed), 
-                                                                                 (fun v e -> e.RandomSeed <- v; changed := true; e)))
-
+        
+        member val Changed : bool ref = ref false
+        member val SettingsGuis : ResizeArray<ConfigPropertyEditor<'TSettings>> = ResizeArray<ConfigPropertyEditor<'TSettings>>()
+        
         override val Renderer : DworkinRenderer option = None with get, set
     
         override this.Name = name
+        
+        override this.Initialize(panel : Base) : unit =
+            for prop in settings.SettingProperties do
+                let attr = prop.GetCustomAttributes(typeof<Settings.SettingAttribute>, true).[0] :?> Settings.SettingAttribute
+                let builder = SettingsEditorBuilder(prop, prop.Name, this.Changed)
+                let control : ConfigPropertyEditor<'TSettings> = attr.BuildUIControl(builder)
+                control.ConfigRef <- ref settings
+                this.SettingsGuis.Add(control)
+                control.Initialize(panel)
 
+        override this.Update() = 
+            for gui in this.SettingsGuis do 
+                gui.Update()
+            if !this.Changed then
+                this.SetProperty()
+                this.Changed := false
+
+        override this.SetProperty() = ()
+
+
+    type EnvironmentSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.EnvironmentSettings>(name : string, 
+                                                                                                      settings : 'TSettings) as this =
+        inherit SettingsEditor<'TSettings>(name, settings)
+        let randomSeedControl = 
+            IntNumberboxPropertyEditor<EnvironmentSettingsEditor<'TSettings>>("Seed", 
+                                                                                ((fun e -> e.RandomSeed), 
+                                                                                 (fun v e -> e.RandomSeed <- v; this.Changed := true; e)))
         member val RandomSeed = 42 with get, set
 
         override this.Initialize(panel : Base) =
-            for prop in settings.SettingProperties do
-                let attr = prop.GetCustomAttributes(typeof<Settings.SettingAttribute>, true).[0] :?> Settings.SettingAttribute
-                let builder = SettingsEditorBuilder(prop, prop.Name, changed)
-                let control : ConfigPropertyEditor<'TSettings> = attr.BuildUIControl(builder)
-                control.ConfigRef <- ref settings
-                settingsGuis.Add(control)
-                control.Initialize(panel)
-            
+            base.Initialize(panel)
             randomSeedControl.ConfigRef <- ref this
             randomSeedControl.Initialize(panel)
-    
+
+        override this.Update() =
+            randomSeedControl.Update()
+            base.Update()
+        
         override this.SetProperty() =
             match this.Renderer with
             | Some(renderer) -> renderer.EnvironmentConfig <- settings.Build(this.RandomSeed)
             | None -> ()
+    
 
-        override this.Update() = 
-            for gui in settingsGuis do 
-                gui.Update()
-            randomSeedControl.Update()
-            if !changed then
-                this.SetProperty()
-                changed := false
+    type ForegroundSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.MaterialSettings>(name : string, settings : 'TSettings, 
+                                                                                                  settingsHolder : SettingsHolder ref) =
+        inherit SettingsEditor<'TSettings>(name, settings)
+        override this.SetProperty() =
+            settingsHolder := { !settingsHolder with Foreground=settings }
+            CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
+    
+
+    type BackgroundSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.MaterialSettings>(name : string, settings : 'TSettings, 
+                                                                                                  settingsHolder : SettingsHolder ref) =
+        inherit SettingsEditor<'TSettings>(name, settings)
+        override this.SetProperty() =
+            settingsHolder := { !settingsHolder with Background=settings }
+            CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
 
 
     type RendererComponentEditor<'T when 'T :> ShaderBasedComponent>(name : string, 
