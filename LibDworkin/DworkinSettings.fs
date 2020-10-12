@@ -38,6 +38,21 @@ module Materials =
         override this.Build(platform, random, color) =
             SolidColorMaterial(platform, color) :> Material
     
+    type Paper() =
+        inherit MaterialSettings()
+        static do Settings.RegisterClass<Paper>()
+
+        override this.Build(platform, random, color) =
+            UniversalMaterial(
+                platform, 
+                color, 
+                Some(@"paper/Watercolor_Paper_001_OCC.jpg"), 
+                Some(@"paper/Watercolor_Paper_001_NORM.jpg"),
+                (None, 0.92f),
+                1.5f,
+                1.5f) :> Material
+
+
     [<Name("Rough surface")>]
     type RoughSurface() =
         inherit MaterialSettings()
@@ -117,7 +132,7 @@ module Materials =
                 None) 
             :> Material
     
-    let allTypes = [| typeof<SolidColor>; typeof<RoughSurface>; typeof<Wood>; typeof<Leather>; |]
+    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<RoughSurface>; typeof<Wood>; typeof<Leather>; |]
 
 
 module Effects =

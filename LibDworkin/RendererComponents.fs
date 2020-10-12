@@ -3,11 +3,39 @@
 open System
 
 open PharoCompatibility
+open Geometry
 
 open OpenTK.Graphics.ES20
 open OpenTK
 
 open Microsoft.FSharp.NativeInterop
+
+
+
+/// Like Lazy<'T>, but with ability to "forget" computed value.
+/// This class tracks its instances and can reset them all.
+type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
+    static let allInstances = ResizeArray<WeakReference<ResettableLazy<'T>>>()
+
+    let mutable lazyContainer = Lazy<'T>(valueFactory)
+    do
+        allInstances.Add(WeakReference<ResettableLazy<'T>>(this))
+
+    member this.Value = lazyContainer.Value
+    member this.IsValueCreated = lazyContainer.IsValueCreated
+
+    member this.Reset() =
+        lazyContainer <- Lazy<'T>(valueFactory)
+    
+    static member ResetAll() : unit =
+        allInstances.RemoveAll(fun each -> 
+            match each.TryGetTarget() with
+            | true, inst -> 
+                inst.Reset() 
+                false
+            | false, _ -> true )
+        |> ignore
+
 
 #nowarn "9"
 module Helpers =
@@ -24,6 +52,31 @@ module Helpers =
          1.0f;  1.0f; 
         -1.0f;  1.0f;
         -1.0f; -1.0f;|]
+
+    /// Create OpenGL texture based on given image data. Return texture ID.
+    let uploadTexture(pixels : nativeint, width, height) : int =
+        let texture = GL.GenTexture()
+        GL.BindTexture(TextureTarget.Texture2D, texture)
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, pixels)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
+        texture
+
+    let create1x1Texture(color : Graphics.Color4) : int =
+        let bytes = NativePtr.stackalloc<uint8> 3
+        NativePtr.set bytes 0 (uint8(color.R * 255.0f))
+        NativePtr.set bytes 1 (uint8(color.G * 255.0f))
+        NativePtr.set bytes 2 (uint8(color.B * 255.0f))
+        uploadTexture(NativePtr.toNativeInt bytes, 1, 1)
+
+    // 1x1 textures
+    let emptyAOMap = ResettableLazy<int>(fun () -> create1x1Texture(Graphics.Color4.White))
+    let flatNormalMap = ResettableLazy<int>(fun () -> create1x1Texture(Graphics.Color4(0.5f, 0.5f, 1.0f, 1.0f)))
+
+    let lightPosition = Vector2(0.4f, 0.25f)
+
 
 #if __ANDROID__
 module Matrix2 =
@@ -89,10 +142,11 @@ type DotNETPlatform() =
         IO.File.ReadAllText(IO.Path.Combine(assetsPath, filename))
     
     override this.LoadTextureFromAsset(filename : string) =
-        use bmp = new Drawing.Bitmap(IO.Path.Combine(assetsPath, "textures", filename))
+        let path = IO.Path.Combine(assetsPath, "textures", filename)
+        use bmp = new Drawing.Bitmap(path)
         let imgData = bmp.LockBits(Drawing.Rectangle(Drawing.Point(0, 0), bmp.Size), Drawing.Imaging.ImageLockMode.ReadOnly, Drawing.Imaging.PixelFormat.Format24bppRgb)
         let pixels = imgData.Scan0
-        // swap R and B channels
+        // swap R and B channels because System.Drawing.Bitmap contains data in BGR format
         let pixelsPtr : nativeptr<uint8> = NativePtr.ofNativeInt pixels
         for i in 0 .. 3 .. (imgData.Height * imgData.Stride - 1) do
             let r = NativePtr.get pixelsPtr i
@@ -100,45 +154,10 @@ type DotNETPlatform() =
             NativePtr.set pixelsPtr i b
             NativePtr.set pixelsPtr (i+2) r
         
-        let texture = this.UploadTexture(pixels, imgData.Width, imgData.Height)
+        let texture = Helpers.uploadTexture(pixels, imgData.Width, imgData.Height)
         bmp.UnlockBits(imgData)
         texture
-    
-    member private this.UploadTexture(pixels : nativeint, width, height) : int =
-        let texture = GL.GenTexture()
-        GL.BindTexture(TextureTarget.Texture2D, texture)
-        // NOTE: UnsignedShort565 may be the only supported pixel type
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, pixels)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
-        texture
 #endif
-
-/// Like Lazy<'T>, but with ability to "forget" computed value.
-/// This class tracks its instances and can reset them all.
-type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
-    static let allInstances = ResizeArray<WeakReference<ResettableLazy<'T>>>()
-
-    let mutable lazyContainer = Lazy<'T>(valueFactory)
-    do
-        allInstances.Add(WeakReference<ResettableLazy<'T>>(this))
-
-    member this.Value = lazyContainer.Value
-    member this.IsValueCreated = lazyContainer.IsValueCreated
-
-    member this.Reset() =
-        lazyContainer <- Lazy<'T>(valueFactory)
-    
-    static member ResetAll() : unit =
-        allInstances.RemoveAll(fun each -> 
-            match each.TryGetTarget() with
-            | true, inst -> 
-                inst.Reset() 
-                false
-            | false, _ -> true )
-        |> ignore
 
 
 type Shader(vertexShader : string, fragmentShader : string) =
@@ -246,6 +265,66 @@ type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
 
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+
+
+/// Material defined by AO, Normal, Roughness maps
+type UniversalMaterial(platform : AbstractPlatform, 
+                       color : Graphics.Color4,
+                       aoMap : string option,
+                       normalMap : string option,
+                       roughness : (string option * float32),
+                       lightHeight : float32, 
+                       scaleFactor : float32,
+                       ?metalness : float32) =
+    inherit Material(platform.GetShader("materials/universalMaterial.vert", "materials/universalMaterial.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
+        // textures
+        // Reflection map
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("Pmetal_003_mod.png").Value)
+        GL.Uniform1(this.Shader.GetUniformLocation("reflectionMap"), 0)
+        // AO
+        let aoTexture =
+            match aoMap with
+            | Some(textureName) -> platform.GetTexture(textureName).Value
+            | None -> Helpers.emptyAOMap.Value
+        GL.ActiveTexture(TextureUnit.Texture1)
+        GL.BindTexture(TextureTarget.Texture2D, aoTexture)
+        GL.Uniform1(this.Shader.GetUniformLocation("aoMap"), 1)
+        // Normal map
+        let normalTexture =
+            match normalMap with
+            | Some(textureName) -> platform.GetTexture(textureName).Value
+            | None -> Helpers.flatNormalMap.Value
+        GL.ActiveTexture(TextureUnit.Texture2)
+        GL.BindTexture(TextureTarget.Texture2D, normalTexture)
+        GL.Uniform1(this.Shader.GetUniformLocation("normalMap"), 2)
+        // Rougness
+        match roughness with
+        | Some(textureName), _ -> 
+            GL.ActiveTexture(TextureUnit.Texture3)
+            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(textureName).Value)
+            GL.Uniform1(this.Shader.GetUniformLocation("roughnessMap"), 3)
+            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), -1.0f)
+        | None, value ->
+            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), value)
+        // specular color
+        GL.Uniform4(this.Shader.GetUniformLocation("specularColor"), this.Specular)
+        // toLight vector
+        let mutable toLight = Vector3(Helpers.lightPosition.X, Helpers.lightPosition.Y, lightHeight)
+        toLight.Normalize()
+        GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight)
+        // screen dimensions
+        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
+
+    override this.Roughness = snd roughness
+    
+    override this.Specular =
+        let m = defaultArg metalness 0.0f
+        Graphics.Color4(lerp 1.0f color.R m, lerp 1.0f color.G m, lerp 1.0f color.B m, 1.0f)
 
 
 type NormalmapAndAOMaterial(platform : AbstractPlatform, 

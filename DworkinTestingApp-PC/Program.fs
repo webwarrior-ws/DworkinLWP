@@ -239,10 +239,13 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
                     "strokeAngle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
                 ];
             makeEditor "Wood" <| Materials.Wood();
+            makeEditor "Paper" <| Materials.Paper();
         ]
     match kind with 
         | Foreground(bgChooser) -> 
-            guis <- guis @ [ ColorChangeMaterialEditor(platform, bgChooser, setter) ]
+            //guis <- guis @ [ ColorChangeMaterialEditor(platform, bgChooser, setter) ]
+            // Color change editor doesn't work anymore
+            ()
         | Background -> ()
     Builders.chooser
         (match kind with | Foreground(_) -> "Foreground" | Background -> "Background")
