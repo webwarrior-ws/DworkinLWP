@@ -432,71 +432,6 @@ type TwoColorMaterial(platform : AbstractPlatform,
         GL.Uniform4(this.Shader.GetUniformLocation("secondaryColor"), secondaryColor)
 
 
-type NormalmapAndAOMaterial(platform : AbstractPlatform, 
-                            color : Graphics.Color4, 
-                            normalMap : string, 
-                            lightPos : Geometry.Point, 
-                            lightHeight : float32, 
-                            scaleFactor : float32,
-                            ao : (string * float32) option ) =
-    inherit Material(platform.GetShader("materials/normalmap+ao.vert", "materials/normalmap+ao.frag"))
-
-    override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
-        GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), Vector2.Normalize(lightPos))
-        GL.Uniform1(this.Shader.GetUniformLocation("lightHeight"), lightHeight)
-        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
-        // textures
-        GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(normalMap).Value)
-        GL.Uniform1(this.Shader.GetUniformLocation("normalMap"), 0)
-        match ao with
-        | Some(filename, strength) ->
-            GL.ActiveTexture(TextureUnit.Texture1)
-            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(filename).Value)
-            GL.Uniform1(this.Shader.GetUniformLocation("aoMap"), 1)
-            GL.Uniform1(this.Shader.GetUniformLocation("aoStrength"), strength)
-        | None -> 
-            GL.Uniform1(this.Shader.GetUniformLocation("aoStrength"), 0.0f)
-        // screen dimensions
-        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
-
-
-type ColoredTextureMaterial(platform : AbstractPlatform, 
-                            color : Graphics.Color4, 
-                            shadeMap : string, 
-                            flatShade : float32, 
-                            contrast : float32,
-                            scaleFactor : float32 ) =
-    inherit Material(platform.GetShader("materials/coloredtexture.vert", "materials/coloredtexture.frag"))
-
-    override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
-        GL.Uniform1(this.Shader.GetUniformLocation("flatShade"), flatShade)
-        GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
-        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
-        // texture
-        GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(shadeMap).Value)
-        GL.Uniform1(this.Shader.GetUniformLocation("shadeMap"), 0)
-        // screen dimensions
-        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), 1.0f/this.Scale.X, 1.0f/this.Scale.Y)
-
-
-type RoughSurfaceMaterial(platform : AbstractPlatform, color : Graphics.Color4, bumpHeight : float32, dim : float32, featureScale : float32, flatArea : float32) =
-    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/roughSurface.frag"))
-    
-    override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
-        GL.Uniform1(this.Shader.GetUniformLocation("bumpHeight"), bumpHeight)
-        GL.Uniform1(this.Shader.GetUniformLocation("dim"), dim)
-        GL.Uniform1(this.Shader.GetUniformLocation("featureScale"), featureScale)
-        GL.Uniform1(this.Shader.GetUniformLocation("flatArea"), flatArea)
-        GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), Vector2.Normalize(Vector2(0.5f, 0.75f)))
-        GL.Uniform1(this.Shader.GetUniformLocation("lightHeight"), 1.0f)
-        GL.Uniform2(this.Shader.GetUniformLocation("scale"), this.Scale)
-
-
 type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlight : float32, scale : float32, offset : Vector2, angle : float32, stretch : float32,
                    strokeFreq : float32, strokeLength : float32, strokeIntensity : float32, strokeAngle : float32) =
     inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/metal.frag"))
@@ -515,23 +450,6 @@ type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlig
         GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation)
         GL.UniformMatrix2(this.Shader.GetUniformLocation("strokeRotation"), false, ref strokeRotation)
         GL.Uniform1(this.Shader.GetUniformLocation("aspectRatio"), this.Scale.Y / this.Scale.X)
-
-
-type WoodMaterial(platform : AbstractPlatform, color : Graphics.Color4, angle : float32, ringsScale : float32, ringsStretch : float32, contrast : float32) =
-    inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/wood.frag"))
-    
-    override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
-        GL.Uniform1(this.Shader.GetUniformLocation("ringsScale"), ringsScale)
-        GL.Uniform1(this.Shader.GetUniformLocation("ringsStretch"), ringsStretch)
-        GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
-        let rotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad angle)
-        GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation)
-        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), 1.0f/this.Scale.X, 1.0f/this.Scale.Y)
-        // grain texture
-        GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("Wood_grain.png").Value)
-        GL.Uniform1(this.Shader.GetUniformLocation("grainTexture"), 0)
 
 
 /// Material properties that may be used by certain effects

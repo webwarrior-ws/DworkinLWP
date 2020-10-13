@@ -67,34 +67,6 @@ module Materials =
                 1.0f,
                 1.5f,
                 0.85f) :> Material
-
-    [<Name("Rough surface")>]
-    type RoughSurface() =
-        inherit MaterialSettings()
-        static do Settings.RegisterClass<RoughSurface>()
-
-        [<FloatRange(0.0f, 0.25f, Step=0.05f, Name="Bump height")>]
-        member val BumpHeight = Defined(0.1f) with get, set
-
-        [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
-        member val Dim = Defined(0.1f) with get, set
-
-        [<FloatRange(10.0f, 100.0f, Step=1.0f, Name="Feature scale")>]
-        member val FeatureScale = Defined(50.0f) with get, set
-
-        [<FloatRange(0.5f, 2.5f, Step=0.1f, Name="Flat area")>]
-        member val FlatArea = Defined(0.5f) with get, set
-
-        override this.Build(platform, random, color) =
-            let getValue expr = Randomizeable.getValue random expr
-            RoughSurfaceMaterial(
-                platform, 
-                color,
-                getValue <@ this.BumpHeight @>,
-                getValue <@ this.Dim @>,
-                getValue <@ this.FeatureScale @>,
-                getValue <@ this.FlatArea @>) 
-            :> Material
     
     type Wood() =
         inherit MaterialSettings()
@@ -130,31 +102,7 @@ module Materials =
                     1.0f) 
                 :> Material
     
-    type Leather() =
-        inherit MaterialSettings()
-        static do Settings.RegisterClass<Leather>()
-
-        [<FloatRange(0.0f, 1.0f)>]
-        member val Contrast = Defined(0.5f) with get, set
-
-        [<FloatRange(1.0f, 3.0f)>]
-        member val Scale = Defined(2.0f) with get, set
-
-        override this.Build(platform, random, color) =
-            let getValue expr = Randomizeable.getValue random expr
-            let lightHeight = 3.0f - 2.0f * (getValue <@ this.Contrast @>)
-            let scaleFactor = 3.0f / (getValue <@ this.Scale @>)
-            NormalmapAndAOMaterial(
-                platform, 
-                color,
-                "TexturesCom_Leather_Plain_512_normal.png",
-                Point(1.0f, 1.0f),
-                lightHeight,
-                scaleFactor,
-                None) 
-            :> Material
-    
-    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<RoughSurface>; typeof<Wood>; typeof<Leather>; |]
+    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Wood>; |]
 
 
 module Effects =

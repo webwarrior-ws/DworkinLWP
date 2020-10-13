@@ -206,25 +206,6 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
     let mutable guis = 
         [
             makeEditor "Solid color" <| Materials.SolidColor();
-            makeEditor "Leather" <| Materials.Leather();
-            Builders.makeShaderBasedComponentEditor<NormalmapAndAOMaterial> setter "normalmap+ao"
-                [ 
-                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
-                    "lightPos", box (Geometry.Point(0.0f, 1.0f)), Builders.ShaderComponents.directionEditor 5.0f;
-                    "lightHeight", box 2.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 4.0f 0.1f;
-                    "scaleFactor", box 2.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 3.0f 0.1f;
-                    "normalMap", box "TexturesCom_Leather_Plain_512_normal.png", Builders.ShaderComponents.dropdownListEditor [ "TexturesCom_Leather_Plain_512_normal.png" ];
-                    "ao", box None, Builders.ShaderComponents.radioButtonEditor [ None ];
-                ];
-            Builders.makeShaderBasedComponentEditor<ColoredTextureMaterial> setter "colored texture"
-                [ 
-                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
-                    "flatShade", box 0.75f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
-                    "contrast", box 1.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 4.0f 0.1f;
-                    "scaleFactor", box 2.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 3.0f 0.1f;
-                    "shadeMap", box "knitted-netting_@2X.png", Builders.ShaderComponents.dropdownListEditor [ "knitted-netting_@2X.png" ];
-                ];
-            makeEditor "Rough surface" <| Materials.RoughSurface();
             Builders.makeShaderBasedComponentEditor<MetalMaterial> setter "metal"
                 [ 
                     "color", box defaultColor, Builders.ShaderComponents.colorEditor;

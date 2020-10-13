@@ -64,13 +64,7 @@
     <AndroidAsset Include="Assets\shaders\negativeDistHorizontal.frag" />
     <AndroidAsset Include="Assets\shaders\negativeDistVertical.frag" />
     <AndroidAsset Include="Assets\shaders\materials\solidColor.frag" />
-    <AndroidAsset Include="Assets\shaders\materials\normalmap+ao.vert" />
-    <AndroidAsset Include="Assets\shaders\materials\normalmap+ao.frag" />
-    <AndroidAsset Include="Assets\shaders\materials\coloredtexture.vert" />
-    <AndroidAsset Include="Assets\shaders\materials\coloredtexture.frag" />
-    <AndroidAsset Include="Assets\shaders\materials\roughSurface.frag" />
     <AndroidAsset Include="Assets\shaders\materials\metal.frag" />
-    <AndroidAsset Include="Assets\shaders\materials\wood.frag" />
     <AndroidAsset Include="Assets\shaders\materials\universalMaterial.vert" />
     <AndroidAsset Include="Assets\shaders\materials\universalMaterial.frag" />
     <AndroidAsset Include="Assets\shaders\materials\twoColorMaterial.frag" />
@@ -82,9 +76,6 @@
     <AndroidAsset Include="Assets\shaders\effects\highlight.frag" />
     <AndroidAsset Include="Assets\shaders\effects\highlight.vert" />
     <AndroidAsset Include="Assets\shaders\effects\glow.frag" />
-    <AndroidAsset Include="Assets\textures\TexturesCom_Leather_Plain_512_normal.png" />
-    <AndroidAsset Include="Assets\textures\knitted-netting_%402X.png" />
-    <AndroidAsset Include="Assets\textures\Wood_grain.png" />
     <AndroidAsset Include="Assets\textures\Pmetal_003_mod.png" />
     <AndroidAsset Include="Assets\textures\paper\Watercolor_Paper_001_NORM.jpg" />
     <AndroidAsset Include="Assets\textures\paper\Watercolor_Paper_001_OCC.jpg" />
