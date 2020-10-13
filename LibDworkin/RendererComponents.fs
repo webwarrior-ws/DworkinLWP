@@ -232,6 +232,11 @@ type ShaderBasedComponent(shader : ResettableLazy<Shader>) =
     member internal this.Shader = shader.Value
     member this.ResetShader() = shader.Reset()
 
+    member internal this.SetTexture(uniformName : string, textureSlot : TextureUnit, texture : int) =
+        GL.ActiveTexture(textureSlot)
+        GL.BindTexture(TextureTarget.Texture2D, texture)
+        GL.Uniform1(this.Shader.GetUniformLocation(uniformName), int textureSlot - int TextureUnit.Texture0)
+
     abstract SetUniforms : unit -> unit
     default this.SetUniforms() = ()
 
@@ -281,33 +286,24 @@ type UniversalMaterial(platform : AbstractPlatform,
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
         GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
-        // textures
         // Reflection map
-        GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("Pmetal_003_mod.png").Value)
-        GL.Uniform1(this.Shader.GetUniformLocation("reflectionMap"), 0)
+        this.SetTexture("reflectionMap", TextureUnit.Texture0, platform.GetTexture("Pmetal_003_mod.png").Value)
         // AO
         let aoTexture =
             match aoMap with
             | Some(textureName) -> platform.GetTexture(textureName).Value
             | None -> Helpers.emptyAOMap.Value
-        GL.ActiveTexture(TextureUnit.Texture1)
-        GL.BindTexture(TextureTarget.Texture2D, aoTexture)
-        GL.Uniform1(this.Shader.GetUniformLocation("aoMap"), 1)
+        this.SetTexture("aoMap", TextureUnit.Texture1, aoTexture)
         // Normal map
         let normalTexture =
             match normalMap with
             | Some(textureName) -> platform.GetTexture(textureName).Value
             | None -> Helpers.flatNormalMap.Value
-        GL.ActiveTexture(TextureUnit.Texture2)
-        GL.BindTexture(TextureTarget.Texture2D, normalTexture)
-        GL.Uniform1(this.Shader.GetUniformLocation("normalMap"), 2)
+        this.SetTexture("normalMap", TextureUnit.Texture2, normalTexture)
         // Rougness
         match roughness with
         | Some(textureName), _ -> 
-            GL.ActiveTexture(TextureUnit.Texture3)
-            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture(textureName).Value)
-            GL.Uniform1(this.Shader.GetUniformLocation("roughnessMap"), 3)
+            this.SetTexture("roughnessMap", TextureUnit.Texture3, platform.GetTexture(textureName).Value)
             GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), -1.0f)
         | None, value ->
             GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), value)

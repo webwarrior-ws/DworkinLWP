@@ -51,7 +51,22 @@ module Materials =
                 (None, 0.92f),
                 1.5f,
                 1.5f) :> Material
+    
+    type Metal() =
+        inherit MaterialSettings()
+        static do Settings.RegisterClass<Metal>()
 
+        override this.Build(platform, random, color) =
+            // smooth
+            UniversalMaterial(
+                platform, 
+                color, 
+                None, 
+                None,
+                (None, 0.5f),
+                1.0f,
+                1.5f,
+                0.85f) :> Material
 
     [<Name("Rough surface")>]
     type RoughSurface() =

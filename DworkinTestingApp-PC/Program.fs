@@ -240,6 +240,7 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
                 ];
             makeEditor "Wood" <| Materials.Wood();
             makeEditor "Paper" <| Materials.Paper();
+            makeEditor "Metal" <| Materials.Metal();
         ]
     match kind with 
         | Foreground(bgChooser) -> 
