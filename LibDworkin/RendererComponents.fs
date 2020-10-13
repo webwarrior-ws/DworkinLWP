@@ -345,27 +345,27 @@ type AbstractUniversalMaterial(platform : AbstractPlatform,
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
         GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
-        // Reflection map
-        this.SetTexture("reflectionMap", TextureUnit.Texture0, platform.GetTexture("Pmetal_003_mod.png").Value)
-        // AO
+        // obtain all textures first so that OpenGL state is not messed up
+        let reflectionTexture = platform.GetTexture("Pmetal_003_mod.png").Value
         let aoTexture =
             match aoMap with
             | Some(textureName) -> platform.GetTexture(textureName).Value
-            | None -> Helpers.emptyAOMap.Value
-        this.SetTexture("aoMap", TextureUnit.Texture1, aoTexture)
-        // Normal map
+            | None -> Helpers.emptyAOMap.Value 
         let normalTexture =
             match normalMap with
             | Some(textureName) -> platform.GetTexture(textureName).Value
             | None -> Helpers.flatNormalMap.Value
+        let roughnessTexture = fst roughness |> Option.map (fun textureName -> platform.GetTexture(textureName).Value)
+        // now set textures
+        this.SetTexture("reflectionMap", TextureUnit.Texture0, reflectionTexture)
+        this.SetTexture("aoMap", TextureUnit.Texture1, aoTexture)
         this.SetTexture("normalMap", TextureUnit.Texture2, normalTexture)
-        // Rougness
-        match roughness with
-        | Some(textureName), _ -> 
-            this.SetTexture("roughnessMap", TextureUnit.Texture3, platform.GetTexture(textureName).Value)
+        match roughnessTexture with
+        | Some(value) -> 
+            this.SetTexture("roughnessMap", TextureUnit.Texture3, value)
             GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), -1.0f)
-        | None, value ->
-            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), value)
+        | None ->
+            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), snd roughness)
         // specular color
         GL.Uniform4(this.Shader.GetUniformLocation("specularColor"), this.Specular)
         // toLight vector
@@ -422,8 +422,9 @@ type TwoColorMaterial(platform : AbstractPlatform,
                                       metalness)
 
     override this.SetUniforms() =
+        let colorDiffTexture = platform.GetTexture(colorDiffMap).Value
         base.SetUniforms()
-        this.SetTexture("colorDiffMap", TextureUnit.Texture4, platform.GetTexture(colorDiffMap).Value)
+        this.SetTexture("colorDiffMap", TextureUnit.Texture4, colorDiffTexture)
         let secondaryColor = 
             let mutable hsv = Graphics.Color4.ToHsv(color)
             hsv.X <- hsv.X - 0.01f
@@ -450,6 +451,9 @@ type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlig
         GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation)
         GL.UniformMatrix2(this.Shader.GetUniformLocation("strokeRotation"), false, ref strokeRotation)
         GL.Uniform1(this.Shader.GetUniformLocation("aspectRatio"), this.Scale.Y / this.Scale.X)
+
+    override this.Specular = color
+    override this.Roughness = 0.2f
 
 
 /// Material properties that may be used by certain effects

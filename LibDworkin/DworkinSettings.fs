@@ -46,8 +46,8 @@ module Materials =
             UniversalMaterial(
                 platform, 
                 color, 
-                Some(@"paper/Watercolor_Paper_001_OCC.jpg"), 
-                Some(@"paper/Watercolor_Paper_001_NORM.jpg"),
+                Some("paper/Watercolor_Paper_001_OCC.jpg"), 
+                Some("paper/Watercolor_Paper_001_NORM.jpg"),
                 (None, 0.92f),
                 1.5f,
                 1.5f) :> Material
