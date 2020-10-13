@@ -99,28 +99,21 @@ module Materials =
     type Wood() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Wood>()
-
-        [<FloatRange(0.0f, 180.0f, Step=5.0f)>]
-        member val Angle = Defined(0.0f) with get, set
-
-        [<FloatRange(2.0f, 5.0f, Step=0.1f, Name="Rings scale")>]
-        member val RingsScale = Defined(2.7f) with get, set
-
-        [<FloatRange(0.0f, 50.0f, Step=5.0f, Name="Rings stretch")>]
-        member val RingsStretch = Defined(15.0f) with get, set
-
-        [<FloatRange(0.0f, 0.5f, Step=0.05f)>]
-        member val Contrast = Defined(0.25f) with get, set
+        
+        //[<FloatRange(0.0f, 0.5f, Step=0.05f)>]
+        //member val Contrast = Defined(0.25f) with get, set
 
         override this.Build(platform, random, color) =
             let getValue expr = Randomizeable.getValue random expr
-            WoodMaterial(
+            TwoColorMaterial(
                 platform, 
                 color,
-                getValue <@ this.Angle @>,
-                getValue <@ this.RingsScale @>,
-                getValue <@ this.RingsStretch @>,
-                getValue <@ this.Contrast @>) 
+                "wood/TexturesCom_Wood_Worn2_1K_colordiff.png",
+                Some("wood/TexturesCom_Wood_Worn2_1K_ao.png"),
+                Some("wood/TexturesCom_Wood_Worn2_1K_normal.png"),
+                (Some("wood/Wood_roughness.png"), 0.96f),
+                0.5f,
+                1.0f) 
             :> Material
     
     type Leather() =

@@ -84,7 +84,63 @@ module Matrix2 =
         let mutable rotation = Matrix2.Identity
         rotation.Rotate(MathHelper.RadiansToDegrees(angle))
         rotation
+
+type Graphics.Color4 with
+    static member ToHsv(rgb : Graphics.Color4) =
+        let max = Math.Max(rgb.R, Math.Max(rgb.G, rgb.B));
+        let min = Math.Min(rgb.R, Math.Min(rgb.G, rgb.B));
+        let diff = max - min;
+
+        let mutable h = 0.0f;
+        if (diff = 0.0f) then 
+            h <- 0.0f
+        elif (max = rgb.R) then
+            h <- ((rgb.G - rgb.B) / diff) % 6.0f
+            if (h < 0.0f) then
+                h <- h + 6.0f
+        elif (max = rgb.G) then
+            h <- ((rgb.B - rgb.R) / diff) + 2.0f
+        elif (max = rgb.B) then
+            h <- ((rgb.R - rgb.G) / diff) + 4.0f
+
+        let hue = h * 60.0f / 360.0f
+
+        let mutable saturation = 0.0f;
+        if (max <> 0.0f) then
+            saturation <- diff / max
+
+        Vector4(hue, saturation, max, rgb.A)
+
+    static member FromHsv(hsv : Vector4) =
+        let hue = hsv.X * 360.0f
+        let saturation = hsv.Y
+        let value = hsv.Z
+
+        let c = value * saturation
+
+        let h = hue / 60.0f
+        let x = c * (1.0f - Math.Abs((h % 2.0f) - 1.0f))
+
+        let r, g, b =
+            if (h >= 0.0f && h < 1.0f) then
+                c, x, 0.0f
+            elif (h >= 1.0f && h < 2.0f) then
+                x, c, 0.0f
+            elif (h >= 2.0f && h < 3.0f) then
+                0.0f, c ,x
+            elif (h >= 3.0f && h < 4.0f) then
+                0.0f, x, c
+            elif (h >= 4.0f && h < 5.0f) then
+                x, 0.0f, c
+            elif (h >= 5.0f && h < 6.0f) then
+                c, 0.0f, x
+            else
+                0.0f, 0.0f, 0.0f
+
+        let m = value - c;
+        Graphics.Color4(r + m, g + m, b + m, hsv.W)
 #endif
+
 
 // NOTE: to get OpenGL version, use GL.GetString(StringName.Version) 
 // OpenGL<space>ES<space><version number><space><vendor-specific information>
@@ -272,16 +328,19 @@ type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
 
 
+
 /// Material defined by AO, Normal, Roughness maps
-type UniversalMaterial(platform : AbstractPlatform, 
-                       color : Graphics.Color4,
-                       aoMap : string option,
-                       normalMap : string option,
-                       roughness : (string option * float32),
-                       lightHeight : float32, 
-                       scaleFactor : float32,
-                       ?metalness : float32) =
-    inherit Material(platform.GetShader("materials/universalMaterial.vert", "materials/universalMaterial.frag"))
+[<AbstractClass>]
+type AbstractUniversalMaterial(platform : AbstractPlatform,
+                               shader : ResettableLazy<Shader>, 
+                               color : Graphics.Color4,
+                               aoMap : string option,
+                               normalMap : string option,
+                               roughness : (string option * float32),
+                               lightHeight : float32, 
+                               scaleFactor : float32,
+                               metalness : float32 option) =
+    inherit Material(shader)
 
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
@@ -321,6 +380,56 @@ type UniversalMaterial(platform : AbstractPlatform,
     override this.Specular =
         let m = defaultArg metalness 0.0f
         Graphics.Color4(lerp 1.0f color.R m, lerp 1.0f color.G m, lerp 1.0f color.B m, 1.0f)
+
+
+type UniversalMaterial(platform : AbstractPlatform, 
+                       color : Graphics.Color4,
+                       aoMap : string option,
+                       normalMap : string option,
+                       roughness : (string option * float32),
+                       lightHeight : float32, 
+                       scaleFactor : float32,
+                       ?metalness : float32) =
+    inherit AbstractUniversalMaterial(platform,
+                                      platform.GetShader("materials/universalMaterial.vert", "materials/universalMaterial.frag"),
+                                      color,
+                                      aoMap,
+                                      normalMap,
+                                      roughness,
+                                      lightHeight, 
+                                      scaleFactor,
+                                      metalness)
+
+
+/// Material defined by AO, Normal, Roughness maps
+type TwoColorMaterial(platform : AbstractPlatform, 
+                      color : Graphics.Color4,
+                      colorDiffMap : string,
+                      aoMap : string option,
+                      normalMap : string option,
+                      roughness : (string option * float32),
+                      lightHeight : float32, 
+                      scaleFactor : float32,
+                      ?metalness : float32) =
+    inherit AbstractUniversalMaterial(platform,
+                                      platform.GetShader("materials/universalMaterial.vert", "materials/twoColorMaterial.frag"),
+                                      color,
+                                      aoMap,
+                                      normalMap,
+                                      roughness,
+                                      lightHeight, 
+                                      scaleFactor,
+                                      metalness)
+
+    override this.SetUniforms() =
+        base.SetUniforms()
+        this.SetTexture("colorDiffMap", TextureUnit.Texture4, platform.GetTexture(colorDiffMap).Value)
+        let secondaryColor = 
+            let mutable hsv = Graphics.Color4.ToHsv(color)
+            hsv.X <- hsv.X - 0.01f
+            hsv.Z <- hsv.Z * 0.58f
+            Graphics.Color4.FromHsv(hsv)
+        GL.Uniform4(this.Shader.GetUniformLocation("secondaryColor"), secondaryColor)
 
 
 type NormalmapAndAOMaterial(platform : AbstractPlatform, 
