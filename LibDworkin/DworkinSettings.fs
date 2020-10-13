@@ -103,18 +103,32 @@ module Materials =
         //[<FloatRange(0.0f, 0.5f, Step=0.05f)>]
         //member val Contrast = Defined(0.25f) with get, set
 
+        [<Bool>]
+        member val Painted = Defined(false) with get, set
+
         override this.Build(platform, random, color) =
             let getValue expr = Randomizeable.getValue random expr
-            TwoColorMaterial(
-                platform, 
-                color,
-                "wood/TexturesCom_Wood_Worn2_1K_colordiff.png",
-                Some("wood/TexturesCom_Wood_Worn2_1K_ao.png"),
-                Some("wood/TexturesCom_Wood_Worn2_1K_normal.png"),
-                (Some("wood/Wood_roughness.png"), 0.96f),
-                0.5f,
-                1.0f) 
-            :> Material
+            if getValue <@ this.Painted @> then
+                UniversalMaterial(
+                    platform, 
+                    color,
+                    Some("wood/TexturesCom_Wood_Worn2_1K_ao.png"),
+                    Some("wood/TexturesCom_Wood_Worn2_1K_normal.png"),
+                    (None, 0.92f),
+                    0.35f,
+                    1.0f) 
+                :> Material
+            else
+                TwoColorMaterial(
+                    platform, 
+                    color,
+                    "wood/TexturesCom_Wood_Worn2_1K_colordiff.png",
+                    Some("wood/TexturesCom_Wood_Worn2_1K_ao.png"),
+                    Some("wood/TexturesCom_Wood_Worn2_1K_normal.png"),
+                    (Some("wood/Wood_roughness.png"), 0.96f),
+                    0.5f,
+                    1.0f) 
+                :> Material
     
     type Leather() =
         inherit MaterialSettings()
