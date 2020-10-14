@@ -386,6 +386,14 @@ module Widgets =
         override this.SetProperty() =
             settingsHolder := { !settingsHolder with Background=settings }
             CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
+    
+
+    type EffectSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.EffectSettings>(name : string, settings : 'TSettings, 
+                                                                                            settingsHolder : SettingsHolder ref) =
+            inherit SettingsEditor<'TSettings>(name, settings)
+            override this.SetProperty() =
+                settingsHolder := { !settingsHolder with Effect=settings }
+                CurrentSettings.registerChange(SettingsChange.EffectChanged)
 
 
     type RendererComponentEditor<'T when 'T :> ShaderBasedComponent>(name : string, 

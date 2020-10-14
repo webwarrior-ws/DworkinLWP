@@ -83,6 +83,9 @@ module Builders =
     let backgroundEditor<'T when 'T :> MaterialSettings> name settings = 
         BackgroundSettingsEditor<'T>(name, settings, settingsHolder) :> IRendererPropertyEditor
 
+    let effectSettingsEditor<'T when 'T :> EffectSettings> name settings =
+        EffectSettingsEditor<'T>(name, settings, settingsHolder) :> IRendererPropertyEditor
+
 
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
@@ -171,16 +174,7 @@ let effectGui =
                 [ 
                     "outlineWidth", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;
                 ];
-            Builders.effectEditor<BevelEffect> "bevel"
-                [ 
-                    "contrast", box 5.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 10.0f 1.0f;
-                    "maxDistance", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
-                    "lightPos", box (Geometry.Point(0.5f, 0.75f)), Builders.ShaderComponents.directionEditor 5.0f;
-                    "bevelProfile", box BevelProfile.Linear, 
-                        Builders.ShaderComponents.dropdownListEditor [ 
-                            BevelProfile.Linear; BevelProfile.Hyperbolic; BevelProfile.Parabola1; BevelProfile.Parabola2; BevelProfile.Exp ];
-                    "mode", box BevelMode.Inner, Builders.ShaderComponents.radioButtonEditor [ BevelMode.Inner; BevelMode.Outer; BevelMode.Ridge; BevelMode.Trench ];
-                ];
+            Builders.effectSettingsEditor<Effects.Bevel> "bevel" <| Effects.Bevel();
             Builders.effectEditor<HighlightEffect> "highlight"
                 [ 
                     "lightPos", box (Geometry.Point(0.0f, 1.0f)), Builders.ShaderComponents.vec2Editor -1.0f 1.0f 0.05f;
