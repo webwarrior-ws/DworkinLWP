@@ -1,22 +1,29 @@
 ﻿precision mediump float;
 
+uniform sampler2D sdf;
+uniform sampler2D background;
+uniform sampler2D foreground;
+uniform sampler2D reflectionMap;
+
+uniform vec3 toLight;
+uniform float contrast; 
+uniform float maxDistance;
+uniform int bevelProfile; // !combobox[0, "Linear", "Hyperbolic", "Parabola1", "Parabola2", "Exp"]
+uniform int mode; // !combobox[1, "Inner", "Outer", "Ridge", "Trench"]
+
+uniform float fgRoughness;
+uniform float bgRoughness;
+uniform vec4 fgSpecular;
+uniform vec4 bgSpecular;
+
 varying vec2 pos;
 varying vec2 px1;
 varying vec2 px2;
 varying vec2 py1;
 varying vec2 py2;
-varying vec3 toLight;
 
-uniform sampler2D sdf;
-uniform sampler2D background;
-uniform sampler2D foreground;
-
-uniform float contrast; // !slider[1.0, 5.0, 10.0]
-uniform float maxDistance; // !slider[0.0, 1.0, 1.0]
-uniform int bevelProfile; // !combobox[0, "Linear", "Hyperbolic", "Parabola1", "Parabola2", "Exp"]
-uniform int mode; // !combobox[1, "Inner", "Outer", "Ridge", "Trench"]
-
-
+const float steepness = 2.4;
+const float specularContrast = 0.5;
 const float threshold = 0.05;
 
 float mask(vec2 rawPixel) {
@@ -46,10 +53,10 @@ vec2 gradient(vec4 t) {
 }
 
 vec3 normalAt(float d, vec2 grad) {
-	float z = 1.0/contrast;   
+	float z = 1.0/steepness;   
 	
 	if(bevelProfile == 1)
-		z = mix(z*0.5, z*1.5, 1.0/(contrast*d+0.001));
+		z = mix(z*0.5, z*1.5, 1.0/(steepness*d+0.001));
 	else if(bevelProfile == 2)
 		z = mix(z*0.75, z*3.5, squared(parabola(0.5*d)));
 	else if(bevelProfile == 3)
@@ -60,13 +67,9 @@ vec3 normalAt(float d, vec2 grad) {
     return normalize(vec3(grad, z*sqrt(1.0-dot(grad, grad))));
 }
 
-float bevel(vec3 toLight, vec3 normal, bool isInner, bool isDown) {
-	vec3 n = normal;
-    if(isInner == isDown) {
-        n.xy = -n.xy;
-    }
+float shade_normal(vec3 toLight, vec3 normal) {
     float flatShade = toLight.z; //dot(toLight, vec3(0.0, 0.0, 1.0));
-    float shade = clamp(dot(toLight, n), 0.0, 1.0);
+    float shade = clamp(dot(toLight, normal), 0.0, 1.0);
     return shade - flatShade;
 }
 
@@ -74,42 +77,70 @@ vec3 applyShading(vec3 c, float shade) {
     return shade <= 0.0 ? vec3(1.0+shade) * c : c + vec3(shade);
 }
 
+float specular_normal(vec3 n) {
+	vec3 e = vec3(0.0, 0.0, 2.5);
+	vec3 r = reflect(e, n);
+ 	vec3 sqrtTerm = vec3(r.xy, r.z + 1.0);
+ 	float m = 2.0 * sqrt(dot(sqrtTerm, sqrtTerm));
+	vec2 vN = r.xy / m + 0.5;
+	return texture(reflectionMap, -vN).r;
+}
 
-void main() {
-	vec3 rawPixel = texture2D(sdf, pos).rgb;
-
-	//if(rawPixel.b > 0.0) discard;
-
-	float m = mask(rawPixel.rg);
-	vec3 fgColor = texture2D(foreground, pos).rgb;
-	vec3 bgColor = texture2D(background, pos).rgb;
-
-	vec2 tx1 = texture2D(sdf, px1).rg;
-    vec2 tx2 = texture2D(sdf, px2).rg;
-    vec2 ty1 = texture2D(sdf, py1).rg;
-    vec2 ty2 = texture2D(sdf, py2).rg;
-
-	vec3 c = mix(fgColor, bgColor, m);
-
-	float inner=0.0, outer=0.0;
+vec3 getNormal(vec3 rawPixel, float mask) {
+	vec2 tx1 = texture(sdf, px1).rg;
+    vec2 tx2 = texture(sdf, px2).rg;
+    vec2 ty1 = texture(sdf, py1).rg;
+    vec2 ty2 = texture(sdf, py2).rg;
+	
+	vec3 inner = vec3(0.0, 0.0, 1.0), outer = vec3(0.0, 0.0, 1.0);
 	// outer
-	if(mode != 0 && m > 0.0) {
+	if(mode != 0 && mask > 0.0) {
 		vec4 tOuter = clamp(vec4(tx1.r, tx2.r, ty1.r, ty2.r), -maxDistance, maxDistance);
 		vec2 grad = gradient(tOuter);
 		float d = dist(rawPixel.rg, false) / maxDistance;
-		outer = bevel(toLight, normalAt(d, grad), false, mode==3);
+		outer = normalAt(d, grad);
+		if (mode != 3) { outer.xy = -outer.xy; }
 	}
 	// inner
-	if(mode != 1 && m < 1.0) {
+	if(mode != 1 && mask < 1.0) {
 		vec4 tInner = clamp(vec4(dInner(tx1), dInner(tx2), dInner(ty1), dInner(ty2)), -maxDistance, maxDistance);
 		vec2 grad = gradient(tInner);
 		float d = dist(rawPixel.rg, true) / maxDistance;
-		inner = bevel(toLight, normalAt(d, grad), true, mode==2);
+		inner = normalAt(d, grad);
+		if (mode == 2) { inner.xy = -inner.xy; }
 	}
-	float shade = mix(inner, outer, m);
-
-	vec3 col = applyShading(c, shade);
-   
-	gl_FragColor = vec4(col, 1.0);
+	return mix(inner, outer, mask);
 }
 
+
+void main() {
+	vec3 rawPixel = texture(sdf, pos).rgb;
+
+	float m = mask(rawPixel.rg);
+	vec3 fgColor = texture(foreground, pos).rgb;
+	vec3 bgColor = texture(background, pos).rgb;
+	
+	vec3 c = mix(fgColor, bgColor, m);
+	float d = rawPixel.r > 0.0 ? rawPixel.r : rawPixel.g;
+	if(d > maxDistance) { 
+		gl_FragColor = vec4(c, 1.0); 
+		return; 
+	}
+	float m2 = smoothstep(-threshold, threshold, d-maxDistance);
+	
+	vec3 normal = getNormal(rawPixel, m);
+	
+	float roughness = mix(fgRoughness, bgRoughness, m);
+	
+	float shade = shade_normal(toLight, normal);
+	vec3 colShaded = applyShading(c, shade * contrast);
+	
+	float specular = specular_normal(normal);
+	float ambientSpecular = specular_normal(vec3(0.0, 0.0, 1.0));
+	vec3 finalSpecular = vec3(specular - ambientSpecular) * specularContrast * contrast;
+	vec3 specularColor = mix(fgSpecular, bgSpecular, m).rgb;
+	
+	vec3 col = mix(finalSpecular * specularColor + c, colShaded, roughness);
+    col = mix(col, c, m2);
+	gl_FragColor = vec4(col, 1.0);
+}

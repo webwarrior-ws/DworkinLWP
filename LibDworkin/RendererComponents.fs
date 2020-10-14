@@ -77,6 +77,8 @@ module Helpers =
 
     let lightPosition = Vector2(0.4f, 0.25f)
 
+    let reflectionMapTextureName = "Pmetal_003_mod.png"
+
 
 #if __ANDROID__
 module Matrix2 =
@@ -346,7 +348,7 @@ type AbstractUniversalMaterial(platform : AbstractPlatform,
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
         GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
         // obtain all textures first so that OpenGL state is not messed up
-        let reflectionTexture = platform.GetTexture("Pmetal_003_mod.png").Value
+        let reflectionTexture = platform.GetTexture(Helpers.reflectionMapTextureName).Value
         let aoTexture =
             match aoMap with
             | Some(textureName) -> platform.GetTexture(textureName).Value
@@ -479,7 +481,8 @@ type Effect(shader : ResettableLazy<Shader>) =
             wasUsed <- false
     
     abstract member SetMaterialProperties : MaterialPropertiesForEffect * MaterialPropertiesForEffect -> unit
-    default this.SetMaterialProperties(fgProps, bgProps) = ()
+    default this.SetMaterialProperties(fgProps, bgProps) = 
+        wasUsed <- false
 
     override this.Use() =
         let needsInit = not shader.IsValueCreated || not wasUsed
@@ -539,16 +542,38 @@ type BevelMode =
     | Ridge = 2
     | Trench = 3
 
-type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : float32, lightPos : Geometry.Point, bevelProfile : BevelProfile, mode : BevelMode) =
+type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : float32, bevelProfile : BevelProfile, mode : BevelMode) =
     inherit Effect(platform.GetShader("effects/bevel.vert", "effects/bevel.frag"))
 
+    let mutable fgRoughness = 1.0f
+    let mutable bgRoughness = 1.0f
+    let mutable fgSpecular = Graphics.Color4.White
+    let mutable bgSpecular = Graphics.Color4.White
+
+    member private this.SetRoughnessAndSpecularUniforms() =
+        GL.Uniform1(this.Shader.GetUniformLocation("fgRoughness"), fgRoughness)
+        GL.Uniform1(this.Shader.GetUniformLocation("bgRoughness"), bgRoughness)
+        GL.Uniform4(this.Shader.GetUniformLocation("fgSpecular"), fgSpecular)
+        GL.Uniform4(this.Shader.GetUniformLocation("bgSpecular"), bgSpecular)
+
     override this.SetUniforms() =
+        let lightHeight = 0.6f
+        let toLight = Vector3((0.5f - Helpers.lightPosition.X) *2.0f, (0.5f - Helpers.lightPosition.Y) *2.0f, lightHeight)
         GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
         GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance)
-        GL.Uniform2(this.Shader.GetUniformLocation("lightPos"), Vector2.Normalize(lightPos))
-        GL.Uniform1(this.Shader.GetUniformLocation("lightHeight"), 1.0f)
+        GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight)
         GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
         GL.Uniform1(this.Shader.GetUniformLocation("mode"), int mode)
+        this.SetRoughnessAndSpecularUniforms()
+        this.SetTexture("reflectionMap", TextureUnit.Texture3, platform.GetTexture(Helpers.reflectionMapTextureName).Value)
+
+    override this.SetMaterialProperties(fgProps, bgProps) =
+        base.SetMaterialProperties(fgProps, bgProps)
+        fgRoughness <- fgProps.Roughness
+        fgSpecular <- fgProps.Specular
+        bgRoughness <- bgProps.Roughness
+        bgSpecular <- bgProps.Specular
+        this.SetRoughnessAndSpecularUniforms()
 
 
 type HighlightEffect(platform : AbstractPlatform, lightPos : Geometry.Point, lightIntensity : float32) =

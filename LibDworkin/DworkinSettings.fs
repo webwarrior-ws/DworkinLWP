@@ -180,7 +180,6 @@ module Effects =
                 platform,
                 getValue <@ this.Contrast @>,
                 getValue <@ this.MaxDistance @>,
-                Point(1.0f, 1.0f),
                 getValue <@ this.Profile @>,
                 getValue <@ this.Mode @>)
             :> Effect
