@@ -1,4 +1,5 @@
 ﻿precision mediump float;
+precision mediump sampler2D;
 
 uniform sampler2D sdf;
 uniform sampler2D background;
@@ -23,7 +24,7 @@ varying vec2 py1;
 varying vec2 py2;
 
 const float steepness = 2.4;
-const float specularContrast = 0.5;
+const float specularContrast = 0.25;
 const float threshold = 0.05;
 
 float mask(vec2 rawPixel) {
@@ -78,19 +79,19 @@ vec3 applyShading(vec3 c, float shade) {
 }
 
 float specular_normal(vec3 n) {
-	vec3 e = vec3(0.0, 0.0, 2.5);
+	vec3 e = vec3(0.0, 0.0, 1.7);
 	vec3 r = reflect(e, n);
  	vec3 sqrtTerm = vec3(r.xy, r.z + 1.0);
  	float m = 2.0 * sqrt(dot(sqrtTerm, sqrtTerm));
 	vec2 vN = r.xy / m + 0.5;
-	return texture(reflectionMap, -vN).r;
+	return texture2D(reflectionMap, vN).r;
 }
 
 vec3 getNormal(vec3 rawPixel, float mask) {
-	vec2 tx1 = texture(sdf, px1).rg;
-    vec2 tx2 = texture(sdf, px2).rg;
-    vec2 ty1 = texture(sdf, py1).rg;
-    vec2 ty2 = texture(sdf, py2).rg;
+	vec2 tx1 = texture2D(sdf, px1).rg;
+    vec2 tx2 = texture2D(sdf, px2).rg;
+    vec2 ty1 = texture2D(sdf, py1).rg;
+    vec2 ty2 = texture2D(sdf, py2).rg;
 	
 	vec3 inner = vec3(0.0, 0.0, 1.0), outer = vec3(0.0, 0.0, 1.0);
 	// outer
@@ -114,11 +115,11 @@ vec3 getNormal(vec3 rawPixel, float mask) {
 
 
 void main() {
-	vec3 rawPixel = texture(sdf, pos).rgb;
+	vec3 rawPixel = texture2D(sdf, pos).rgb;
 
 	float m = mask(rawPixel.rg);
-	vec3 fgColor = texture(foreground, pos).rgb;
-	vec3 bgColor = texture(background, pos).rgb;
+	vec3 fgColor = texture2D(foreground, pos).rgb;
+	vec3 bgColor = texture2D(background, pos).rgb;
 	
 	vec3 c = mix(fgColor, bgColor, m);
 	float d = rawPixel.r > 0.0 ? rawPixel.r : rawPixel.g;
@@ -142,5 +143,6 @@ void main() {
 	
 	vec3 col = mix(finalSpecular * specularColor + c, colShaded, roughness);
     col = mix(col, c, m2);
+
 	gl_FragColor = vec4(col, 1.0);
 }

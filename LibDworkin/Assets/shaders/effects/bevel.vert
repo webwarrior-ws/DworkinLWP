@@ -1,6 +1,4 @@
-﻿precision mediump float;
-
-uniform vec2 screenDimensions;
+﻿uniform vec2 screenDimensions;
 
 attribute vec2 texCoords;
 
