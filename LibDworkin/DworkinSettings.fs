@@ -160,11 +160,11 @@ module Effects =
         inherit EffectSettings()
         static do Settings.RegisterClass<Bevel>()
 
-        [<FloatRange(1.0f, 10.0f, Step=1.0f)>]
-        member val Contrast = Defined(5.0f) with get, set
+        [<FloatRange(1.0f, 3.0f, Step=0.25f)>]
+        member val Contrast = Defined(1.5f) with get, set
 
-        [<FloatRange(0.0f, 1.0f, Name="Max. distance")>]
-        member val MaxDistance = Defined(1.0f) with get, set
+        [<FloatRange(0.0f, 0.5f, Name="Max. distance")>]
+        member val MaxDistance = Defined(0.5f) with get, set
 
         [<Enum([| BevelProfile.Linear; BevelProfile.Hyperbolic; BevelProfile.Parabola1; BevelProfile.Parabola2; BevelProfile.Exp |], 
                ItemType=typeof<BevelProfile>, 

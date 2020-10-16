@@ -558,7 +558,7 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
 
     override this.SetUniforms() =
         let lightHeight = 0.6f
-        let toLight = Vector3((0.5f - Helpers.lightPosition.X) *2.0f, (0.5f - Helpers.lightPosition.Y) *2.0f, lightHeight)
+        let toLight = Vector3((Helpers.lightPosition.X - 0.5f) *2.0f, (0.5f - Helpers.lightPosition.Y) *2.0f, lightHeight)
         GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
         GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance)
         GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight)

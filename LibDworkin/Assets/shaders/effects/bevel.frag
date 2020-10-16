@@ -1,5 +1,5 @@
-﻿precision highp float;
-precision highp sampler2D;
+﻿precision mediump float;
+precision mediump sampler2D;
 
 uniform sampler2D sdf;
 uniform sampler2D background;
@@ -24,7 +24,7 @@ varying vec2 py1;
 varying vec2 py2;
 
 const float steepness = 2.4;
-const float specularContrast = 0.4;
+const float specularContrast = 1.0;
 const float threshold = 0.05;
 
 float mask(vec2 rawPixel) {
@@ -123,7 +123,7 @@ void main() {
 	
 	vec3 c = mix(fgColor, bgColor, m);
 	float d = rawPixel.r > 0.0 ? rawPixel.r : rawPixel.g;
-	if(d > maxDistance) { 
+	if(d >= maxDistance) { 
 		gl_FragColor = vec4(c, 1.0); 
 		return; 
 	}
@@ -140,7 +140,7 @@ void main() {
 	float ambientSpecular = specular_normal(vec3(0.0, 0.0, 1.0));
 	vec3 finalSpecular = vec3(specular - ambientSpecular) * specularContrast * contrast;
 	vec3 specularColor = mix(fgSpecular, bgSpecular, m).rgb;
-	
+
 	vec3 col = mix(finalSpecular * specularColor + c, colShaded, roughness);
     col = mix(col, c, m2);
 
