@@ -287,7 +287,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
         
         this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
-        this.Effect.ScreenDimensions <- Point(dimensions)
+        this.Effect.ScreenDimensions <- dimensions
         this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / (float32 width))
         this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / (float32 height))
 
@@ -551,8 +551,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         scale <- Point(xs, ys)
         polygonDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
         calcPositiveDistShader.Value.DeferredSetUniform("scale", xs, ys)
-        this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("h", this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
-        this.CalcNegativeDistShaderVertical.DeferredSetUniform("h", this.MaxDistance * float32(wallpaperWidth) * xs) // account for scale
+        let h = this.MaxDistance * float32(wallpaperWidth) * xs // account for scale
+        this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("h", h)
+        this.CalcNegativeDistShaderVertical.DeferredSetUniform("h", h)
         circleDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
         this.Foreground.Scale <- scale
         this.Background.Scale <- scale
