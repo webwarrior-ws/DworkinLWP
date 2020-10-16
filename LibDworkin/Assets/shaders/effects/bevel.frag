@@ -1,4 +1,5 @@
-﻿precision mediump float;
+﻿// these are minimum precision settings needed to avoid artifacts
+precision highp float;
 precision mediump sampler2D;
 
 uniform sampler2D sdf;
@@ -24,7 +25,7 @@ varying vec2 py1;
 varying vec2 py2;
 
 const float steepness = 2.4;
-const float specularContrast = 1.0;
+const float specularContrast = 0.75;
 const float threshold = 0.05;
 
 float mask(vec2 rawPixel) {
@@ -116,6 +117,8 @@ vec3 getNormal(vec3 rawPixel, float mask) {
 
 void main() {
 	vec3 rawPixel = texture2D(sdf, pos).rgb;
+
+	//if(rawPixel.b > 0.0) discard;
 
 	float m = mask(rawPixel.rg);
 	vec3 fgColor = texture2D(foreground, pos).rgb;

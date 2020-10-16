@@ -1,4 +1,5 @@
-﻿precision mediump float;
+﻿precision highp float;
+precision mediump sampler2D;
 
 uniform float yScale;
 uniform float h;
