@@ -102,7 +102,7 @@ module Materials =
                     1.0f) 
                 :> Material
     
-    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Wood>; |]
+    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Wood>; typeof<Metal>; |]
 
 
 module Effects =

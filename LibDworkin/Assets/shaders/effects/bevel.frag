@@ -1,5 +1,5 @@
-﻿precision mediump float;
-precision mediump sampler2D;
+﻿precision highp float;
+precision highp sampler2D;
 
 uniform sampler2D sdf;
 uniform sampler2D background;
@@ -24,7 +24,7 @@ varying vec2 py1;
 varying vec2 py2;
 
 const float steepness = 2.4;
-const float specularContrast = 0.25;
+const float specularContrast = 0.4;
 const float threshold = 0.05;
 
 float mask(vec2 rawPixel) {
