@@ -480,6 +480,9 @@ type Effect(shader : ResettableLazy<Shader>) =
             screenDimensions <- value
             wasUsed <- false
     
+    abstract member UsesStencil : bool
+    default this.UsesStencil = false
+
     abstract member SetMaterialProperties : MaterialPropertiesForEffect * MaterialPropertiesForEffect -> unit
     default this.SetMaterialProperties(fgProps, bgProps) = 
         wasUsed <- false
@@ -556,6 +559,8 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
         GL.Uniform4(this.Shader.GetUniformLocation("fgSpecular"), fgSpecular)
         GL.Uniform4(this.Shader.GetUniformLocation("bgSpecular"), bgSpecular)
 
+    override this.UsesStencil = true
+
     override this.SetUniforms() =
         let lightHeight = 0.6f
         let toLight = Vector3((Helpers.lightPosition.X - 0.5f) *2.0f, (0.5f - Helpers.lightPosition.Y) *2.0f, lightHeight)
@@ -565,7 +570,7 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
         GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
         GL.Uniform1(this.Shader.GetUniformLocation("mode"), int mode)
         this.SetRoughnessAndSpecularUniforms()
-        this.SetTexture("reflectionMap", TextureUnit.Texture3, platform.GetTexture(Helpers.reflectionMapTextureName).Value)
+        this.SetTexture("reflectionMap", TextureUnit.Texture4, platform.GetTexture(Helpers.reflectionMapTextureName).Value)
 
     override this.SetMaterialProperties(fgProps, bgProps) =
         base.SetMaterialProperties(fgProps, bgProps)
@@ -820,3 +825,53 @@ type AsyncEnvironmentStepper() =
 
     override this.FetchShapesForNextStep() =
         queueAgent.AsyncGet() |> Async.RunSynchronously
+
+
+/// A kind of stencil buffer used to keep track of what parts of image need updating in effect shader.
+/// Implemented as n x n grayscale 8-bit texture where value of a pixel 
+/// is number of frames since region occupied by that pixel was updated.
+type MakeshiftStencil(n : int) = 
+    let tempBuffer : bool[,] = Array2D.zeroCreate n n
+    let textureData : uint8[] = Array.zeroCreate (n*n)
+    let mutable needsReset = false
+
+    member this.TextureData = textureData
+
+    member (*inline*) private this.FillRect(topLeft : Vector2, bottomRight : Vector2) =
+        let inline clamp index =
+            index |> max 0 |> min (n-1)
+        for y=int(topLeft.Y) |> clamp to int(bottomRight.Y) |> clamp do
+            for x=int(topLeft.X) |> clamp to int(bottomRight.X) |> clamp do
+                tempBuffer.[y, x] <- true
+
+    member this.Reset() =
+        if needsReset then
+            Array.fill textureData 0 (n*n) 0uy
+            needsReset <- false
+
+    member this.Update(shapes : AgentAbstractions.ShapeAndPaint[], scale : Vector2, maxDistance : float32) =
+        let s = scale * float32(n)
+        for each in shapes do
+            match each with
+            | struct(AgentAbstractions.Shape.Polygon(pts), _) -> 
+                let mutable pMin = pts.[0]
+                let mutable pMax = pts.[0]
+                for i=1 to pts.Length-1 do
+                    let p = pts.[i]
+                    pMin <- Vector2.ComponentMin(pMin, p)
+                    pMax <- Vector2.ComponentMax(pMax, p)
+                this.FillRect(Vector2.Multiply(pMin - Vector2(maxDistance), s), Vector2.Multiply(pMax + Vector2(maxDistance), s))
+            | struct(AgentAbstractions.Shape.Circle(center, radius), _) ->
+                let pMin = center - Vector2(radius + maxDistance)
+                let pMax = center + Vector2(radius + maxDistance)
+                this.FillRect(Vector2.Multiply(pMin, s), Vector2.Multiply(pMax, s))
+        for y=0 to n-1 do
+            for x=0 to n-1 do
+                let filled = tempBuffer.[y, x]
+                let i = (n-1-y)*n + x
+                if filled then
+                    textureData.[i] <- 0uy
+                else
+                    textureData.[i] <- (min textureData.[i] 253uy) + 1uy
+                tempBuffer.[y, x] <- false
+        needsReset <- true

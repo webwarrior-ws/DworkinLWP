@@ -39,6 +39,10 @@ type BaseRenderer(platform : AbstractPlatform) =
     let materialTextures = [| 0; 0 |]
     let mutable materialFrameBuffer = 0
 
+    let stencilSize = 128
+    let stencil = MakeshiftStencil(stencilSize)
+    let mutable stencilTexture = 0
+
     let mutable quadVBO = 0
     let mutable shapesVBO = 0
     let mutable polygonSegmentsVBO = 0
@@ -104,6 +108,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
             GL.DeleteTextures(sdfTextures.Length, sdfTextures)
+            if stencilTexture <> 0 then GL.DeleteTexture(stencilTexture)
             GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
             GL.DeleteBuffers(5, [| quadVBO; shapesVBO; polygonSegmentsVBO; circlesVBO; circleDataVBO |])
             let disposeShader (shader : ResettableLazy<Shader>) =
@@ -246,6 +251,20 @@ type BaseRenderer(platform : AbstractPlatform) =
             [| this.ForegroundTexture; this.BackgroundTexture |] 
             [| this.Foreground; this.Background |]
     
+    member private this.InitializeStencilTexture() =
+        if stencilTexture <> 0 then GL.DeleteTexture(stencilTexture)
+        stencilTexture <- GL.GenTexture()
+        GL.BindTexture(TextureTarget.Texture2D, stencilTexture)
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Luminance, stencilSize, stencilSize, 0, 
+                      PixelFormat.Luminance, PixelType.UnsignedByte, stencil.TextureData)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Nearest)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Nearest)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+
+
+    member this.ResetStencil() = stencil.Reset()
+
     member this.DrawMaterial(material : Material, texture : int) =
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         GL.BindTexture(TextureTarget.Texture2D, texture)
@@ -278,6 +297,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         this.InitializeSDF()
         this.InitializeMaterialTextures()
+        this.InitializeStencilTexture()
         stopWatch.Stop()
 #if __ANDROID__
         Android.Util.Log.Debug("frameTime", sprintf "(re-)creating textures: %gms" stopWatch.Elapsed.TotalMilliseconds) |> ignore
@@ -296,6 +316,8 @@ type BaseRenderer(platform : AbstractPlatform) =
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+
+        this.ResetStencil()
 
         if onSurfaceCreatedCalled then
             ResettableLazy<Shader>.ResetAll()
@@ -358,6 +380,13 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.ActiveTexture(TextureUnit.Texture2)
         GL.BindTexture(TextureTarget.Texture2D, this.ForegroundTexture)
         GL.Uniform1(this.Effect.Shader.GetUniformLocation("foreground"), 2)
+
+        if this.Effect.UsesStencil then
+            GL.ActiveTexture(TextureUnit.Texture3)
+            GL.BindTexture(TextureTarget.Texture2D, stencilTexture)
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Luminance, stencilSize, stencilSize, 0, 
+                          PixelFormat.Luminance, PixelType.UnsignedByte, stencil.TextureData)
+            GL.Uniform1(this.Effect.Shader.GetUniformLocation("stencil"), 3)
 
         let aTexCoords = this.Effect.Shader.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
@@ -426,6 +455,9 @@ type BaseRenderer(platform : AbstractPlatform) =
             
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
             this.ClearBlueChannel()
+
+            if this.Effect.UsesStencil then
+                stencil.Update(shapes, scale, this.MaxDistance)
 
             let polygons, circles = 
                 shapes 
@@ -647,6 +679,8 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
             
             CurrentSettings.resetChanges()
 
+            this.ResetStencil()
+
     override this.ResetEnvironment(dimensions : Point) =
         framesAfterStop <- 0
         this.ClearSDF()
@@ -662,6 +696,8 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
         let dt = stopWatch.Elapsed
         Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
         this.StatsPrinted <- false
+#else
+        this.ResetStencil()
 #endif
 
     override this.OnSurfaceChanged(width, height) =

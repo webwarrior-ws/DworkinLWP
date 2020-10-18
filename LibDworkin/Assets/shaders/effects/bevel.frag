@@ -5,6 +5,7 @@ precision mediump sampler2D;
 uniform sampler2D sdf;
 uniform sampler2D background;
 uniform sampler2D foreground;
+uniform sampler2D stencil;
 uniform sampler2D reflectionMap;
 
 uniform vec3 toLight;
@@ -27,6 +28,7 @@ varying vec2 py2;
 const float steepness = 2.4;
 const float specularContrast = 0.75;
 const float threshold = 0.05;
+
 
 float mask(vec2 rawPixel) {
 	float d = rawPixel.r > 0.0 ? rawPixel.r : -rawPixel.g;
@@ -118,7 +120,9 @@ vec3 getNormal(vec3 rawPixel, float mask) {
 void main() {
 	vec3 rawPixel = texture2D(sdf, pos).rgb;
 
-	//if(rawPixel.b > 0.0) discard;
+	if(texture2D(stencil, pos).r > 4.0 / 255.0) 
+		//{ gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);  return; } 
+		discard;
 
 	float m = mask(rawPixel.rg);
 	vec3 fgColor = texture2D(foreground, pos).rgb;
