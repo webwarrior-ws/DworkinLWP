@@ -161,7 +161,8 @@ let effectGui =
                     "frequency", box 32.0f, Builders.ShaderComponents.floatSliderEditor 8.0f 64.0f 4.0f;
                 ];
             Builders.effectEditor<PlainEffect> "plain" [];
-            Builders.effectEditor<ShadowEffect> "shadow"
+            Builders.effectSettingsEditor<Effects.Shadow> "shadow" <| Effects.Shadow();
+            (*Builders.effectEditor<ShadowEffect> "shadow"
                 [ 
                     "shadowDir", box (Geometry.Point(0.5f, 0.5f)), Builders.ShaderComponents.directionEditor 5.0f;
                     "shadowOffset", box 5.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 20.0f 1.0f;
@@ -169,7 +170,7 @@ let effectGui =
                     "shadowSoftness", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.05f 1.0f 0.05f;
                     "shadowStrength", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.1f 1.0f 0.05f;
                     "inner", box false, Builders.ShaderComponents.checkboxEditor;
-                ];
+                ];*)
             Builders.effectEditor<OutlineEffect> "outline"
                 [ 
                     "outlineWidth", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;

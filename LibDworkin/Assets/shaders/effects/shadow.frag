@@ -21,13 +21,23 @@ float mask(vec2 rawPixel) {
     return smoothstep(-threshold, threshold, d);
 }
 
+// http://c0de517e.blogspot.com/2014/04/smoothen-your-functions.html
+float sbias(float x, float a) {
+	return x/((1.0/a - 2.0)*(1.0 - x) + 1.0);
+}
+
+float sgain(float x, float a) {
+	return x < 0.5 ? 
+		sbias(2.0*x, a) * 0.5 : 
+		1.0 - 0.5*sbias(2.0 - 2.0*x, a);
+}
+
 float shadow(vec2 p, sampler2D sdfTex, bool isInner) {
-    vec4 rawPixel = texture2D(sdfTex, clamp(p, 0.001, 0.999));
+    vec4 rawPixel = texture2D(sdfTex, clamp(p, 0.0001, 0.9999));
 	float d = rawPixel.r > 0.0 ? rawPixel.r : -rawPixel.g;
 	if(isInner) d = -d;
-    d = clamp(d / shadowSize, 0.0, 1.0);
-    d = pow(d, shadowSize/shadowSoftness);
-    return clamp(d, 1.0 - shadowStrength, 1.0);
+    float s = sgain(d/shadowSize, shadowSoftness*0.5);
+    return clamp(s, 1.0 - shadowStrength, 1.0);
 }
 
 void main() {
@@ -44,6 +54,4 @@ void main() {
 		bgColor *= s;
    
 	gl_FragColor = vec4(mix(fgColor, bgColor, m), 1.0);
-	//gl_FragColor = vec4(vec3(rawPixel.r > 0.0 ? 0.0 : rawPixel.g) * 5.0, 1.0);
-	//gl_FragColor = vec4(rawPixel.r > 0.0 ? vec3(rawPixel.r * 30.0, 0.0, 0.0) : vec3(0.0, 0.0, rawPixel.g * 8.0), 1.0);
 }

@@ -125,13 +125,10 @@ module Effects =
         inherit EffectSettings()
         static do Settings.RegisterClass<Shadow>()
 
-        [<FloatRange(0.0f, 360.0f, Step=5.0f, Name="Direction")>]
-        member val Dir = Defined(0.0f) with get, set
-
         [<FloatRange(0.0f, 20.0f, Step=1.0f)>]
         member val Offset = Defined(5.0f) with get, set
 
-        [<FloatRange(0.0f, 1.0f)>]
+        [<FloatRange(0.1f, 1.0f)>]
         member val Size = Defined(0.5f) with get, set
 
         [<FloatRange(0.005f, 1.0f, Step=0.05f)>]
@@ -144,14 +141,25 @@ module Effects =
         member val Inner = Defined(false) with get, set
         
         override this.Build(platform, random) = 
+            // https://iquilezles.org/www/articles/functions/functions.htm
+            let almostIdentity x m n =
+                if x > m then 
+                    x
+                else
+                    let a = 2.0f * n - m
+                    let b = 2.0f * m - 3.0f * n
+                    let t = x / m
+                    (a * t + b) * t*t + n
             let getValue expr = Randomizeable.getValue random expr
-            let shadowDir = Point.One.Rotate(deg2rad <| getValue <@ this.Dir @>)
+            let shadowDir = Point(0.5f - Helpers.lightPosition.X, Helpers.lightPosition.Y - 0.5f)
+            let softness = getValue <@ this.Softness @>
+            let size = almostIdentity (getValue <@ this.Size @>) softness 0.2f
             ShadowEffect(
                 platform,
                 shadowDir,
                 getValue <@ this.Offset @>,
-                getValue <@ this.Size @>,
-                getValue <@ this.Softness @>,
+                size,
+                softness,
                 getValue <@ this.Strength @>,
                 getValue <@ this.Inner @>) 
             :> Effect
