@@ -203,7 +203,7 @@ module Effects =
         member val Intensity = Defined(0.4f) with get, set
 
         [<Enum([| GlowInsideType.Empty; GlowInsideType.Glow; GlowInsideType.Foreground |], ItemType=typeof<GlowInsideType>)>]
-        member val Type = Defined(GlowInsideType.Empty) with get, set
+        member val Inside = Defined(GlowInsideType.Empty) with get, set
 
         override this.Build(platform, random) =
             let getValue expr = Randomizeable.getValue random expr
@@ -212,7 +212,7 @@ module Effects =
                 platform,
                 getValue <@ this.Size @>,
                 bloomPower,
-                getValue <@ this.Type @>)
+                getValue <@ this.Inside @>)
             :> Effect
     
     type Highlight() =
