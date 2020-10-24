@@ -118,12 +118,11 @@ vec3 getNormal(vec3 rawPixel, float mask) {
 
 
 void main() {
-	vec3 rawPixel = texture2D(sdf, pos).rgb;
-
 	if(texture2D(stencil, pos).r > 4.0 / 255.0) 
 		//{ gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);  return; } 
 		discard;
 
+	vec3 rawPixel = texture2D(sdf, pos).rgb;
 	float m = mask(rawPixel.rg);
 	vec3 fgColor = texture2D(foreground, pos).rgb;
 	vec3 bgColor = texture2D(background, pos).rgb;

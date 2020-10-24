@@ -188,21 +188,22 @@ module Effects =
         inherit EffectSettings()
         static do Settings.RegisterClass<Glow>()
 
-        [<Color>]
-        member val Color = Defined(OpenTK.Graphics.Color4.Aquamarine.AsRGBTriple) with get, set
+        [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
+        member val Size = Defined(1.0f) with get, set
 
-        [<FloatRange(0.05f, 1.0f, Step=0.05f)>]
-        member val Strength = Defined(1.0f) with get, set
+        [<FloatRange(0.1f, 0.7f, Step=0.05f)>]
+        member val Intensity = Defined(0.4f) with get, set
 
-        [<Enum([| GlowType.Outer; GlowType.Inner |], ItemType=typeof<GlowType>)>]
-        member val Type = Defined(GlowType.Outer) with get, set
+        [<Enum([| GlowInsideType.Empty; GlowInsideType.Glow; GlowInsideType.Foreground |], ItemType=typeof<GlowInsideType>)>]
+        member val Type = Defined(GlowInsideType.Empty) with get, set
 
         override this.Build(platform, random) =
             let getValue expr = Randomizeable.getValue random expr
+            let bloomPower = 1.0f / (getValue <@ this.Intensity @>)
             GlowEffect(
                 platform,
-                getValue <@ this.Color @> |> OpenTK.Graphics.Color4.FromRGBTriple,
-                getValue <@ this.Strength @>,
+                getValue <@ this.Size @>,
+                bloomPower,
                 getValue <@ this.Type @>)
             :> Effect
     

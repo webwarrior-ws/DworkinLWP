@@ -589,18 +589,25 @@ type HighlightEffect(platform : AbstractPlatform, lightPos : Geometry.Point, lig
         GL.Uniform1(this.Shader.GetUniformLocation("lightIntensity"), lightIntensity)
 
 
-type GlowType =
-    | Outer = 0
-    | Inner = 1
+type GlowInsideType =
+    | Empty = 0
+    | Glow = 1
+    | Foreground = 2
     
-type GlowEffect(platform : AbstractPlatform, glowColor : Graphics.Color4, glowStrength : float32, glowType : GlowType) =
+type GlowEffect(platform : AbstractPlatform, glowStrength : float32, bloomPower : float32, insideType : GlowInsideType) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/glow.frag"))
     
+    let mutable glowColor = Graphics.Color4.White
+
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("glowColor"), glowColor)  
         GL.Uniform1(this.Shader.GetUniformLocation("glowStrength"), glowStrength)  
-        GL.Uniform1(this.Shader.GetUniformLocation("glowType"), int glowType)
+        GL.Uniform1(this.Shader.GetUniformLocation("bloomPower"), bloomPower)
+        GL.Uniform1(this.Shader.GetUniformLocation("insideType"), int insideType)
 
+    override this.SetMaterialProperties(fgProps, bgProps) =
+        base.SetMaterialProperties(fgProps, bgProps)
+        glowColor <- fgProps.Color
 
     
 /// Use Measure() method in for loops to take measurement.
