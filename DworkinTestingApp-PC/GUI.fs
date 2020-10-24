@@ -316,7 +316,8 @@ module Widgets =
                 CheckboxPropertyEditor<'TSettings>(name, this.GetLens()) :> ConfigPropertyEditor<'TSettings>
             
             override this.BuildColorControl() = 
-                CheckboxPropertyEditor<'TSettings>(name, this.GetLens()) :> ConfigPropertyEditor<'TSettings>
+                let lens = this.GetLens() >-> (Graphics.Color4.FromRGBTriple, fun (c : Graphics.Color4) -> c.AsRGBTriple)
+                ColorPropertyEditor<'TSettings>(name, lens) :> ConfigPropertyEditor<'TSettings>
     
 
     type SettingsEditor<'TSettings when 'TSettings :> Settings.Settings>(name : string, settings : 'TSettings) =
