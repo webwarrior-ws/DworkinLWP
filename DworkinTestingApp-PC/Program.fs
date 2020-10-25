@@ -162,15 +162,14 @@ let effectGui =
                 ];
             Builders.effectEditor<PlainEffect> "plain" [];
             Builders.effectSettingsEditor<Effects.Shadow> "shadow" <| Effects.Shadow();
-            (*Builders.effectEditor<ShadowEffect> "shadow"
+            Builders.effectEditor<FuzzyTextureEffect> "fuzzy texture"
                 [ 
-                    "shadowDir", box (Geometry.Point(0.5f, 0.5f)), Builders.ShaderComponents.directionEditor 5.0f;
-                    "shadowOffset", box 5.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 20.0f 1.0f;
-                    "shadowSize", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
-                    "shadowSoftness", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.05f 1.0f 0.05f;
-                    "shadowStrength", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.1f 1.0f 0.05f;
-                    "inner", box false, Builders.ShaderComponents.checkboxEditor;
-                ];*)
+                    "textureScale", box 1.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 4.0f 1.0f;
+                    "falloff", box 0.2f, Builders.ShaderComponents.floatSliderEditor 0.1f 0.5f 0.01f;
+                    "absorbThreshold", box 0.15f, Builders.ShaderComponents.floatSliderEditor 0.05f 0.25f 0.01f;
+                    "fill", box 0.75f, Builders.ShaderComponents.floatSliderEditor 0.25f 0.75f 0.05f;
+                    "noiseTexture", box "FuzzyTexture__fbm.png", Builders.ShaderComponents.dropdownListEditor [ "FuzzyTexture__fbm.png"; "FuzzyTexture__grain.png" ];
+                ];
             Builders.effectEditor<OutlineEffect> "outline"
                 [ 
                     "outlineWidth", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;

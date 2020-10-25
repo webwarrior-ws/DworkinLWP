@@ -608,6 +608,23 @@ type GlowEffect(platform : AbstractPlatform, glowStrength : float32, bloomPower 
     override this.SetMaterialProperties(fgProps, bgProps) =
         base.SetMaterialProperties(fgProps, bgProps)
         glowColor <- fgProps.Color
+        GL.Uniform4(this.Shader.GetUniformLocation("glowColor"), glowColor)
+
+
+type FuzzyTextureEffect(platform : AbstractPlatform, 
+                        noiseTexture : string, 
+                        textureScale : float32, 
+                        falloff : float32, 
+                        absorbThreshold : float32, 
+                        fill : float32) =
+    inherit Effect(platform.GetShader("effects/fuzzyTexture.vert", "effects/fuzzyTexture.frag"))
+
+    override this.SetUniforms() =
+        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), textureScale)
+        GL.Uniform1(this.Shader.GetUniformLocation("falloff"), falloff)
+        GL.Uniform1(this.Shader.GetUniformLocation("absorbThreshold"), absorbThreshold)
+        GL.Uniform1(this.Shader.GetUniformLocation("fill"), fill)
+        this.SetTexture("noise", TextureUnit.Texture4, platform.GetTexture(noiseTexture).Value)
 
     
 /// Use Measure() method in for loops to take measurement.

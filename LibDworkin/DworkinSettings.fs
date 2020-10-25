@@ -115,8 +115,8 @@ module Effects =
         inherit EffectSettings()
         static do Settings.RegisterClass<Outline>()
 
-        [<FloatRange(0.01f, 0.5f)>]
-        member val OutlineWidth = Defined(0.1f) with get, set
+        [<FloatRange(0.01f, 0.2f)>]
+        member val OutlineWidth = Defined(0.05f) with get, set
 
         override this.Build(platform, random) = 
             OutlineEffect(platform, Randomizeable.getValue random <@ this.OutlineWidth @>) :> Effect

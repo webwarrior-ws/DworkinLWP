@@ -76,6 +76,8 @@
     <AndroidAsset Include="Assets\shaders\effects\highlight.frag" />
     <AndroidAsset Include="Assets\shaders\effects\highlight.vert" />
     <AndroidAsset Include="Assets\shaders\effects\glow.frag" />
+    <AndroidAsset Include="Assets\shaders\effects\fuzzyTexture.vert" />
+    <AndroidAsset Include="Assets\shaders\effects\fuzzyTexture.frag" />
     <AndroidAsset Include="Assets\textures\Pmetal_003_mod.png" />
     <AndroidAsset Include="Assets\textures\paper\Watercolor_Paper_001_NORM.jpg" />
     <AndroidAsset Include="Assets\textures\paper\Watercolor_Paper_001_OCC.jpg" />
