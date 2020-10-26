@@ -85,6 +85,8 @@
     <AndroidAsset Include="Assets\textures\wood\TexturesCom_Wood_Worn2_1K_colordiff.png" />
     <AndroidAsset Include="Assets\textures\wood\TexturesCom_Wood_Worn2_1K_normal.png" />
     <AndroidAsset Include="Assets\textures\wood\Wood_roughness.png" />
+    <AndroidAsset Include="Assets\textures\fuzzy_texture\FuzzyTexture__fbm.png" />
+    <AndroidAsset Include="Assets\textures\fuzzy_texture\FuzzyTexture__grain.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />

@@ -231,8 +231,43 @@ module Effects =
                 Geometry.Point(0.0f, Randomizeable.getValue random <@ this.LightPosition @>), 
                 Randomizeable.getValue random <@ this.LightIntensity @>)
             :> Effect
+    
+    type FuzzyTextureType =
+        | Ink = 0
+        | Chalk = 1
 
-    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<Highlight>; |]
+    type FuzzyTexture() = 
+        inherit EffectSettings()
+        static do Settings.RegisterClass<FuzzyTexture>()
+
+        [<Enum([| FuzzyTextureType.Ink; FuzzyTextureType.Chalk |], ItemType=typeof<FuzzyTextureType>)>]
+        member val TextureType = Defined(FuzzyTextureType.Ink) with get, set
+
+        [<FloatRange(0.25f, 0.75f, Step=0.05f)>]
+        member val Fill = Defined(0.75f) with get, set
+        
+        [<FloatRange(0.05f, 0.25f, Step=0.025f)>]
+        member val Distortion = Defined(0.1f) with get, set
+
+        [<FloatRange(0.05f, 0.25f, Step=0.025f)>]
+        member val Softness = Defined(0.1f) with get, set
+
+        override this.Build(platform, random) =
+            let getValue expr = Randomizeable.getValue random expr
+            let textureName, textureScale =
+                match getValue <@ this.TextureType @> with
+                | FuzzyTextureType.Ink   -> "fuzzy_texture/FuzzyTexture__fbm.png",   2.0f
+                | FuzzyTextureType.Chalk -> "fuzzy_texture/FuzzyTexture__grain.png", 4.0f
+            FuzzyTextureEffect(
+                platform, 
+                textureName,
+                textureScale,
+                getValue <@ this.Distortion @>,
+                getValue <@ this.Softness @>,
+                getValue <@ this.Fill @>)
+            :> Effect
+
+    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<Highlight>; typeof<FuzzyTexture> |]
 
 
 type SettingsHolder =

@@ -162,14 +162,7 @@ let effectGui =
                 ];
             Builders.effectEditor<PlainEffect> "plain" [];
             Builders.effectSettingsEditor<Effects.Shadow> "shadow" <| Effects.Shadow();
-            Builders.effectEditor<FuzzyTextureEffect> "fuzzy texture"
-                [ 
-                    "textureScale", box 1.0f, Builders.ShaderComponents.floatSliderEditor 1.0f 4.0f 1.0f;
-                    "falloff", box 0.2f, Builders.ShaderComponents.floatSliderEditor 0.1f 0.5f 0.01f;
-                    "absorbThreshold", box 0.15f, Builders.ShaderComponents.floatSliderEditor 0.05f 0.25f 0.01f;
-                    "fill", box 0.75f, Builders.ShaderComponents.floatSliderEditor 0.25f 0.75f 0.05f;
-                    "noiseTexture", box "FuzzyTexture__fbm.png", Builders.ShaderComponents.dropdownListEditor [ "FuzzyTexture__fbm.png"; "FuzzyTexture__grain.png" ];
-                ];
+            Builders.effectSettingsEditor<Effects.FuzzyTexture> "fuzzy texture" <| Effects.FuzzyTexture();
             Builders.effectEditor<OutlineEffect> "outline"
                 [ 
                     "outlineWidth", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.01f 0.5f 0.01f;
