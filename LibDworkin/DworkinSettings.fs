@@ -52,21 +52,40 @@ module Materials =
                 1.5f,
                 1.5f) :> Material
     
+    type MetalType =
+        | Smooth = 0
+        | Brushed = 1
+        | Bumpy = 2
+        | Rough = 3
+
     type Metal() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Metal>()
 
+        [<Enum([| MetalType.Smooth; MetalType.Brushed; MetalType.Bumpy; MetalType.Rough |], ItemType=typeof<MetalType>)>]
+        member val Type = Defined(MetalType.Smooth) with get, set
+
         override this.Build(platform, random, color) =
-            // smooth
-            UniversalMaterial(
-                platform, 
-                color, 
-                None, 
-                None,
-                (None, 0.5f),
-                1.0f,
-                1.5f,
-                0.85f) :> Material
+            let h = 1.0f // lightHeight
+            let m = 0.85f // metalness
+            match Randomizeable.getValue random <@ this.Type @> with
+            | MetalType.Smooth ->
+                UniversalMaterial(platform,  color, None, None, (None, 0.5f), h, 1.5f, m) 
+                    :> Material
+            | MetalType.Brushed ->
+                UniversalMaterial(platform, color, None, 
+                                  Some("metal/Metal_normal_brushed.png"), 
+                                  (Some("metal/Metal_roughness_brushed.png"), 0.4f), 
+                                  h, 
+                                  4.0f, 
+                                  m) 
+                    :> Material
+            | MetalType.Bumpy ->
+                UniversalMaterial(platform, color, None, Some("metal/Metal_normal_bumpy.png"), (None, 0.6f), h, 2.0f, m) 
+                    :> Material
+            | MetalType.Rough ->
+                UniversalMaterial(platform, color, None, Some("metal/Metal_normal_fineBumps.png"), (None, 0.65f), h, 5.0f, m) 
+                    :> Material
     
     type Wood() =
         inherit MaterialSettings()

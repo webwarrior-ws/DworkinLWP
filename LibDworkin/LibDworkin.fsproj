@@ -87,6 +87,10 @@
     <AndroidAsset Include="Assets\textures\wood\Wood_roughness.png" />
     <AndroidAsset Include="Assets\textures\fuzzy_texture\FuzzyTexture__fbm.png" />
     <AndroidAsset Include="Assets\textures\fuzzy_texture\FuzzyTexture__grain.png" />
+    <AndroidAsset Include="Assets\textures\metal\Metal_normal_brushed.png" />
+    <AndroidAsset Include="Assets\textures\metal\Metal_normal_bumpy.png" />
+    <AndroidAsset Include="Assets\textures\metal\Metal_normal_fineBumps.png" />
+    <AndroidAsset Include="Assets\textures\metal\Metal_roughness_brushed.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
