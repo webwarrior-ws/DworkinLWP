@@ -42,7 +42,6 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Content Include="packages.config" />
     <Compile Include="../DworkinConfigs/CurvatureFormula.fs">
       <Link>CurvatureFormula.fs</Link>
     </Compile>
@@ -55,7 +54,7 @@
     <Compile Include="../DworkinConfigs/DworkinEnvironmentConfigCustom.fs">
       <Link>DworkinEnvironmentConfigCustom.fs</Link>
     </Compile>
-	<Compile Include="../DworkinConfigs/PCB.fs">
+    <Compile Include="../DworkinConfigs/PCB.fs">
       <Link>PCB.fs</Link>
     </Compile>
     <Compile Include="../DworkinConfigs/FlowingLeaves.fs">
@@ -67,6 +66,7 @@
     <Compile Include="../DworkinConfigs/ConfigSettings.fs">
       <Link>ConfigSettings.fs</Link>
     </Compile>
+    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
@@ -83,17 +83,15 @@
       <HintPath>..\packages\System.Drawing.Common.4.5.0\lib\net461\System.Drawing.Common.dll</HintPath>
     </Reference>
     <Reference Include="System.Numerics" />
-    <Reference Include="System.ValueTuple">
-      <HintPath>..\packages\System.ValueTuple.4.4.0\lib\net461\System.ValueTuple.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\LibDworkin-PC\LibDworkin-PC.fsproj">
       <Name>LibDworkin-PC</Name>
       <Project>{c248ef0d-99e1-4345-ac48-8d9270bc4ebd}</Project>
       <Private>True</Private>
     </ProjectReference>
+    <Reference Include="System.ValueTuple">
+      <HintPath>..\packages\System.ValueTuple.4.4.0\lib\net461\System.ValueTuple.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
