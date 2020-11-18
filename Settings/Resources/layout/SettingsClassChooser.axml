@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<merge xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+	android:paddingHorizontal="@dimen/editor_padding_h"
+    android:paddingVertical="@dimen/editor_padding_v">
 	<TextView 
 		android:text="Title"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
+		android:paddingBottom="@dimen/editor_title_padding_bottom"
 		android:textAppearance="@style/SettingTitle"
 		android:id="@+id/title" />
 	<Spinner
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:id="@+id/spinner" />
-</merge>
+</LinearLayout>

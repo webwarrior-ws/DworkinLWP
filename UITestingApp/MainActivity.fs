@@ -19,7 +19,7 @@ type AllKindsOfSettings() =
     inherit Settings()
     static do Settings.RegisterClass<AllKindsOfSettings>()
 
-    [<Enum([| 1; 2; 3; 4; |], Name="Integer Spinner (randomized)")>]
+    [<Enum([| 1; 2; 3; 4; |], Name="Integer Spinner")>]
     member val IntEnum = Defined(1) with get, set
 
     [<IntRange(2, 5)>]

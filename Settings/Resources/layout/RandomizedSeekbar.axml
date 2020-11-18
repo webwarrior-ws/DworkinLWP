@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<merge
+<LinearLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:orientation="vertical"
 	android:layout_width="match_parent"
-	android:layout_height="wrap_content">
-	<TextView 
-		android:text="Title"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:textAppearance="@style/SettingTitle"
-		android:id="@+id/title">
-	</TextView>
+	android:layout_height="wrap_content"
+	android:paddingHorizontal="@dimen/editor_padding_h"
+    android:paddingVertical="@dimen/editor_padding_v">
+    <TextView
+        android:text="Title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+		android:paddingBottom="@dimen/editor_title_padding_bottom"
+        android:textAppearance="@style/SettingTitle"
+        android:id="@+id/title" >
+    </TextView>
 	<LinearLayout
 		android:orientation="horizontal"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content">
-		<SeekBar
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:layout_weight="1"
-			android:id="@+id/seek_bar" >
-		</SeekBar>
+        <SeekBar
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:id="@+id/seek_bar" >
+        </SeekBar>
 		<TextView 
 			android:text="0"
-			android:layout_width="40dp"
+			android:layout_width="60dp"
 			android:layout_height="match_parent"
 			android:textAppearance="@style/SettingTitle"
 			android:id="@+id/number_display">
 		</TextView>
 		<Settings.ToggleImageButton
-			android:layout_width="40dp"
-			android:layout_height="40dp"
+			android:layout_width="@dimen/dice_button_size"
+			android:layout_height="@dimen/dice_button_size"
 			android:src="@drawable/dice"
 			android:scaleType="fitCenter"
 			android:background="#ffffff"
 			android:id="@+id/dice" />
 	</LinearLayout>
-</merge>
+</LinearLayout>

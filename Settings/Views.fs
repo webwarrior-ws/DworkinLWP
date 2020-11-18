@@ -40,7 +40,7 @@ type ISettingsView =
 type SettingsView(context : Context, attrs : IAttributeSet, defStyle : int) as this =
     inherit LinearLayout(context, attrs, defStyle)
     do
-        this.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
+        this.LayoutParameters <- new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
         this.Orientation <- Orientation.Vertical
 
     let mutable editors : ISettingEditor[] = [||]
@@ -151,8 +151,6 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSpinner, this)
-        view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
-        (view :?> LinearLayout).Orientation <- Orientation.Vertical
         randomizedEditorComponent.Initialize()
         this.Spinner.ItemSelected.Add(fun args -> randomizedEditorComponent.FireChangedEvent())
     
@@ -197,8 +195,6 @@ type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defSty
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSeekbar, this)
-        view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
-        (view :?> LinearLayout).Orientation <- Orientation.Vertical
         randomizedEditorComponent.Initialize()
         let seekbar = this.SeekBar
         seekbar.ProgressChanged.Add(fun args -> 
@@ -300,8 +296,6 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedColorPicker, this)
-        view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
-        (view :?> LinearLayout).Orientation <- Orientation.Horizontal
         randomizedEditorComponent.Initialize()
         this.Swatch.Click.Add(fun args ->
             let dialog = 
@@ -339,12 +333,14 @@ type RandomizedCheckbox(context : Context, attrs : IAttributeSet, defStyle : int
         
         member this.IsEnabled
             with get() = this.Checkbox.Enabled
-            and set(value) = this.Checkbox.Enabled <- value
+            and set(value) = 
+                this.Enabled <- value
+                this.Checkbox.Enabled <- value
 
     interface ISettingEditor with
         member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
-            with set(value) = this.Checkbox.Text <- value
+            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
         member this.Accessor 
             with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
@@ -352,11 +348,12 @@ type RandomizedCheckbox(context : Context, attrs : IAttributeSet, defStyle : int
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedCheckbox, this)
-        view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
-        (view :?> LinearLayout).Orientation <- Orientation.Horizontal
         randomizedEditorComponent.Initialize()
-        this.Checkbox.CheckedChange.Add(fun args -> randomizedEditorComponent.FireChangedEvent())
-    
+        this.Click.Add(fun args ->
+            this.Checkbox.Checked <- not this.Checkbox.Checked
+            randomizedEditorComponent.FireChangedEvent())
+        this.Checkbox.Clickable <- false
+
     override this.OnFinishInflate() =
         this.Initialize()
         base.OnFinishInflate()    

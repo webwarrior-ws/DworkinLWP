@@ -56,6 +56,7 @@
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\values\attrs.xml" />
+    <AndroidResource Include="Resources\values\dimens.xml" />
     <AndroidResource Include="Resources\values\style.xml" />
     <AndroidResource Include="Resources\drawable\dice.png" />
     <AndroidResource Include="Resources\layout\RandomizedSpinner.axml" />
