@@ -2,9 +2,9 @@
 <resources>
 
   <dimen name="editor_padding_h">8dp</dimen>
-  <dimen name="editor_padding_v">12dp</dimen>
+  <dimen name="editor_padding_v">10dp</dimen>
 
-  <dimen name="dice_button_size">40dp</dimen>
+  <dimen name="dice_button_size">32dp</dimen>
 
   <dimen name="editor_title_padding_bottom">4dp</dimen>
 

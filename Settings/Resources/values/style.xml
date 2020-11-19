@@ -9,7 +9,12 @@
   </style>
   
   <style name="SettingTitle" parent="TextAppearance.AppCompat.Headline">
-    
+    <item name="android:textSize">18sp</item>
+  </style>
+
+  <style name="SettingsGroupTitle" parent="TextAppearance.AppCompat.Button">
+    <item name="android:textSize">18sp</item>
+    <item name="android:textColor">?android:colorAccent</item>
   </style>
 
 </resources>

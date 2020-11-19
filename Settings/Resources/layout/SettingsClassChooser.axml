@@ -4,16 +4,19 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
 	android:paddingHorizontal="@dimen/editor_padding_h"
-    android:paddingVertical="@dimen/editor_padding_v">
+    android:paddingVertical="@dimen/editor_padding_v"
+	android:divider="@drawable/divider_thick"
+	android:showDividers="middle">
 	<TextView 
 		android:text="Title"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:paddingBottom="@dimen/editor_title_padding_bottom"
-		android:textAppearance="@style/SettingTitle"
+		android:textAppearance="@style/SettingsGroupTitle"
 		android:id="@+id/title" />
 	<Spinner
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
+		android:paddingTop="16dp"
 		android:id="@+id/spinner" />
 </LinearLayout>
