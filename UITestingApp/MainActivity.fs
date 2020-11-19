@@ -62,6 +62,7 @@ type MainActivity () =
         let settingsView = settings.CreateView(this)
         settings.UseView(settingsView)
         this.FindViewById<ViewGroup>(Resources.Id.root).AddView(settingsView)
+        this.FindViewById<ViewGroup>(Resources.Id.root).SetPadding(20, 0 , 20, 0)
 
         settingsView.Changed.Add(fun _ -> 
             this.UpdateDisplay() )

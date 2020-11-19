@@ -39,9 +39,19 @@ type ISettingsView =
 /// View that contains setting editors. Doesn't include title.
 type SettingsView(context : Context, attrs : IAttributeSet, defStyle : int) as this =
     inherit LinearLayout(context, attrs, defStyle)
+    let dpToPixels(dp : float32) : int =
+        TypedValue.ApplyDimension(ComplexUnitType.Dip, dp, this.Resources.DisplayMetrics) |> round |> int |> max 1
+
     do
         this.LayoutParameters <- new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
         this.Orientation <- Orientation.Vertical
+        // dividers
+        this.DividerPadding <- dpToPixels 2.0f
+        this.ShowDividers <- ShowDividers.Middle
+        let dividerDrawable = new Android.Graphics.Drawables.ShapeDrawable(new Android.Graphics.Drawables.Shapes.RectShape())
+        dividerDrawable.SetIntrinsicHeight(dpToPixels 1.0f)
+        dividerDrawable.Paint.Color <- Android.Graphics.Color.DarkGray
+        this.SetDividerDrawable(dividerDrawable)
 
     let mutable editors : ISettingEditor[] = [||]
     let mutable settingsClass : System.Type = null
@@ -297,21 +307,23 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedColorPicker, this)
         randomizedEditorComponent.Initialize()
-        this.Swatch.Click.Add(fun args ->
-            let dialog = 
-                ColorPickerPopup.Builder(context)
-                    .InitialColor(this.AndroidColor.ToArgb())
-                    .OkTitle("Choose")
-                    .CancelTitle("Cancel")
-                    .ShowValue(false)
-                    .Build()
-            let handler = 
-                { new ColorPickerPopup.IColorPickerObserver with 
-                    override popup.OnColorPicked(c) = 
-                        this.AndroidColor <- Android.Graphics.Color(c)
-                        randomizedEditorComponent.FireChangedEvent()
-                    override popup.OnColor(c, fromUser) = () }
-            dialog.Show(this, handler) )
+        this.Click.Add(fun args ->
+            if (this :> IRandomizedEditor<RGBTriple>).IsEnabled then
+                let dialog = 
+                    ColorPickerPopup.Builder(context)
+                        .InitialColor(this.AndroidColor.ToArgb())
+                        .OkTitle("Choose")
+                        .CancelTitle("Cancel")
+                        .ShowValue(false)
+                        .Build()
+                let handler = 
+                    { new ColorPickerPopup.IColorPickerObserver with 
+                        override popup.OnColorPicked(c) = 
+                            this.AndroidColor <- Android.Graphics.Color(c)
+                            randomizedEditorComponent.FireChangedEvent()
+                        override popup.OnColor(c, fromUser) = () }
+                dialog.Show(this, handler) )
+        this.Swatch.Clickable <- false
     
     override this.OnFinishInflate() =
         this.Initialize()

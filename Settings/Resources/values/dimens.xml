@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <resources>
 
-  <dimen name="editor_padding_h">10dp</dimen>
+  <dimen name="editor_padding_h">8dp</dimen>
   <dimen name="editor_padding_v">12dp</dimen>
 
   <dimen name="dice_button_size">40dp</dimen>

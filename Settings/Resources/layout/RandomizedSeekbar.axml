@@ -22,12 +22,15 @@
             android:layout_width="match_parent"
             android:layout_height="32dp"
             android:layout_weight="1"
+			android:layout_gravity="center_vertical"
             android:id="@+id/seek_bar" >
         </SeekBar>
 		<TextView 
 			android:text="0"
 			android:layout_width="60dp"
 			android:layout_height="match_parent"
+			android:singleLine="true"
+			android:layout_gravity="center_vertical"
 			android:textAppearance="@style/SettingTitle"
 			android:id="@+id/number_display">
 		</TextView>
