@@ -17,7 +17,10 @@
 			android:id="@+id/editors_group"
 			android:orientation="vertical"
 			android:layout_width="match_parent"
-			android:layout_height="wrap_content">
+			android:layout_height="wrap_content"
+			android:divider="@drawable/divider_thick"
+			android:showDividers="middle"
+			android:paddingHorizontal="?android:attr/scrollbarSize">
 			<LinearLayout
 				android:orientation="horizontal"
 				android:layout_width="match_parent"
