@@ -1,16 +1,12 @@
 ﻿namespace Settings
 
-#if __ANDROID__
-open Android.Views
-open Views
-#else
+
 type ISettingsUIBuilder<'TControl> =
     abstract BuildEnumControl : obj[] * System.Type -> 'TControl
     abstract BuildIntRangeControl : int * int -> 'TControl
     abstract BuildFloatRangeControl : float32 * float32 * float32 -> 'TControl
     abstract BuildBoolControl : unit -> 'TControl
     abstract BuildColorControl : unit -> 'TControl
-#endif
 
 
 /// Attribute used to give custom names to classes (specifically concrete Settings subclasses) to be used in UI etc.
@@ -26,15 +22,8 @@ type SettingAttribute() =
     member val Name = "" with get, set
 
     abstract member RandomValue : System.Random -> obj
-#if __ANDROID__
-    abstract member CreateView : Android.Content.Context * System.Reflection.PropertyInfo -> ISettingEditor
-    abstract member UseView : ISettingEditor * Settings * System.Reflection.PropertyInfo -> unit
-    default this.UseView(view, object, property) =
-        view.Accessor <- Accessor((fun () -> property.GetValue(object)), (fun value -> property.SetValue(object, value)))
-        view.Title <- if System.String.IsNullOrEmpty this.Name then property.Name else this.Name
-#else
+    
     abstract member BuildUIControl : ISettingsUIBuilder<'TControl> -> 'TControl
-#endif
 
 and [<AbstractClass>] 
     Settings() = 
@@ -99,28 +88,7 @@ and [<AbstractClass>]
         match Settings.ClassToNameMap.TryGetValue(typ) with
         | true, name -> name
         | false, _ -> failwithf "Type %s is not registered" typ.Name
-        
 
-
-#if __ANDROID__
-    abstract member CreateView : Android.Content.Context -> SettingsView
-    default this.CreateView(context) =
-        let view = new SettingsView(context, SettingsClass=this.GetType())
-        view.Editors <- 
-            this.SettingProperties 
-            |> Array.map (fun prop -> 
-                let attr = prop.GetCustomAttributes(typeof<SettingAttribute>, true).[0] :?> SettingAttribute
-                attr.CreateView(context, prop) )
-        view
-    
-    abstract member UseView : ISettingsView -> unit
-    default this.UseView(view) =
-        Seq.iter2 (fun (editor : ISettingEditor) (prop : System.Reflection.PropertyInfo) ->
-            let attr = prop.GetCustomAttributes(typeof<SettingAttribute>, true).[0] :?> SettingAttribute
-            attr.UseView(editor, this, prop) )
-            view.Editors 
-            this.SettingProperties
-#endif
 
 
 module Randomizeable =
@@ -253,24 +221,10 @@ type EnumAttribute(options: obj[]) =
 
     override this.RandomValue(random) =
         options.[random.Next(options.Length)]
-#if __ANDROID__
-    member this.CreateRandomizeableView<'T when 'T : equality>(context, options : obj[]) : ISettingEditor = 
-        let view = new RandomizedSpinner<'T>(context)
-        view.Initialize()
-        let typedOptions = options |> Array.map (unbox<'T>)
-        view.SetItems([| for item in typedOptions -> item, (item.ToString()) |])
-        view :> ISettingEditor
-    
-    override this.CreateView(context, property) = 
-        if Randomizeable.isRandomizableType property.PropertyType then
-            let method = this.GetType().GetMethod("CreateRandomizeableView").MakeGenericMethod([| this.ItemType |])
-            method.Invoke(this, [| context; options |]) :?> ISettingEditor
-        else
-            failwith "Non-randomizeable version of enum editor is not implemented"
-#else
+
     override this.BuildUIControl(builder) = 
         builder.BuildEnumControl(options, this.ItemType)
-#endif
+
 
 /// Inclusive integer range
 type IntRangeAttribute(minVal: int, maxVal: int) =
@@ -279,18 +233,8 @@ type IntRangeAttribute(minVal: int, maxVal: int) =
 
     override this.RandomValue(random) =
         random.Next(minVal, maxVal+1) |> box
-#if __ANDROID__
-    override this.CreateView(context, property) = 
-        if Randomizeable.isRandomizableType property.PropertyType then
-            let view = new RandomizedIntSeekBar(context)
-            view.Initialize()
-            view.SetRange(minVal, maxVal)
-            view :> ISettingEditor
-        else
-            failwith "Non-randomizeable version of int range editor is not implemented"
-#else
+
     override this.BuildUIControl(builder) = builder.BuildIntRangeControl(minVal, maxVal)
-#endif
 
 /// Float range (single precision)
 type FloatRangeAttribute(minVal: float32, maxVal: float32) =
@@ -311,18 +255,9 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
             (float32(random.NextDouble()) * (maxVal - minVal) + minVal) |> box
         else
             minVal + float32(random.Next(this.NumSteps+1)) / float32(this.NumSteps) * extent |> box
-#if __ANDROID__
-    override this.CreateView(context, property) = 
-        if Randomizeable.isRandomizableType property.PropertyType then
-            let view = new RandomizedFloatSeekBar(context)
-            view.Initialize()
-            view.SetRange(minVal, maxVal, this.NumSteps)
-            view :> ISettingEditor
-        else
-            failwith "Non-randomizeable version of int range editor is not implemented"
-#else
+    
     override this.BuildUIControl(builder) = builder.BuildFloatRangeControl(minVal, maxVal, this.Step)
-#endif
+
 
 /// Color (RGB float32 triple). Each component is in range [1; 0].
 /// float32*float32*float32 is chosen to be independent of different color implementations
@@ -334,17 +269,9 @@ type ColorAttribute() =
         let g = float32(random.NextDouble())
         let b = float32(random.NextDouble())
         (r, g, b) |> box
-#if __ANDROID__
-    override this.CreateView(context, property) = 
-        if Randomizeable.isRandomizableType property.PropertyType then
-            let view = new RandomizedColorPicker(context)
-            view.Initialize()
-            view :> ISettingEditor
-        else
-            failwith "Non-randomizeable version of color picker editor is not implemented"
-#else
+
     override this.BuildUIControl(builder) = builder.BuildColorControl()
-#endif
+
 
 
 type BoolAttribute() =
@@ -352,14 +279,6 @@ type BoolAttribute() =
 
     override this.RandomValue(random) =
         (random.NextDouble() < 0.5)  |> box
-#if __ANDROID__
-    override this.CreateView(context, property) = 
-        if Randomizeable.isRandomizableType property.PropertyType then
-            let view = new RandomizedCheckbox(context)
-            view.Initialize()
-            view :> ISettingEditor
-        else
-            failwith "Non-randomizeable version of bool editor is not implemented"
-#else
+
     override this.BuildUIControl(builder) = builder.BuildBoolControl()
-#endif
+
