@@ -10,11 +10,20 @@ open Android.OS
 open Java.Interop
 
 
+type AndroidColor = Android.Graphics.Color
+
 
 type ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int) =
-    inherit ImageButton(context, attrs, defStyle)
+    inherit Android.Support.V7.Widget.AppCompatImageButton(context, attrs, defStyle)
     
     static let CHECKED_STATE_SET = [| Android.Resource.Attribute.StateChecked |]
+
+    let highlightColor = lazy(
+        let typedValue = new TypedValue()
+        context.Theme.ResolveAttribute(Android.Resource.Attribute.ColorAccent, typedValue, true) |> ignore
+        let cd = Application.Context.GetDrawable(typedValue.ResourceId) :?> Android.Graphics.Drawables.ColorDrawable
+        cd.Color
+    )
 
     let mutable isChecked = false
     let mutable isBroadCasting = false
@@ -27,6 +36,7 @@ type ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int)
         let a = context.ObtainStyledAttributes(attrs, Resources.Styleable.ToogleImageButton, defStyle, 0)
         (this :> ICheckable).Checked <- a.GetBoolean(Resources.Styleable.ToogleImageButton_checked, false)
         a.Recycle()
+        this.Clickable <- true
 
     member this.Checked
         with get() : bool = isChecked
@@ -34,9 +44,9 @@ type ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int)
             if value <> isChecked then
                 isChecked <- value
                 if isChecked then
-                    this.SetColorFilter(Android.Graphics.Color.Navy)
+                    this.SetBackgroundColor(highlightColor.Value)
                 else
-                    this.ClearColorFilter()
+                    this.SetBackgroundColor(AndroidColor.White)
                 this.RefreshDrawableState()
                 if not isBroadCasting then
                     isBroadCasting <- true

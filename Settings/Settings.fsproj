@@ -58,8 +58,8 @@
     <AndroidResource Include="Resources\values\attrs.xml" />
     <AndroidResource Include="Resources\values\dimens.xml" />
     <AndroidResource Include="Resources\values\style.xml" />
-    <AndroidResource Include="Resources\drawable\dice.png" />
     <AndroidResource Include="Resources\drawable\divider_thick.xml" />
+    <AndroidResource Include="Resources\drawable\dice.xml" />
     <AndroidResource Include="Resources\layout\RandomizedSpinner.axml" />
     <AndroidResource Include="Resources\layout\RandomizedSeekbar.axml" />
     <AndroidResource Include="Resources\layout\RandomizedColorPicker.axml">
