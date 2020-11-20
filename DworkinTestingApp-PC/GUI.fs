@@ -297,7 +297,7 @@ module Widgets =
             value |> List.map unbox<'T> 
 
         interface Settings.ISettingsUIBuilder<ConfigPropertyEditor<'TSettings>> with
-            override this.BuildEnumControl(options, optionType) = 
+            override this.BuildEnumControl(options, optionType, _) = 
                 let editorType = typeof<DropdownListPropertyEditor<_,_>>.GetGenericTypeDefinition().MakeGenericType([| typeof<'TSettings>; optionType |])
                 let constructor = editorType.GetConstructors().[0]
                 let thisType = this.GetType()

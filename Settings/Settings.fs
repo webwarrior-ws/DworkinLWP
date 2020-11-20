@@ -1,8 +1,14 @@
 ﻿namespace Settings
 
 
+
+/// Determines which UI control to use for EnumAttribute
+type EnumRepresentation =
+   | Simple = 0 // dropdown with text entries
+
+
 type ISettingsUIBuilder<'TControl> =
-    abstract BuildEnumControl : obj[] * System.Type -> 'TControl
+    abstract BuildEnumControl : obj[] * System.Type * EnumRepresentation -> 'TControl
     abstract BuildIntRangeControl : int * int -> 'TControl
     abstract BuildFloatRangeControl : float32 * float32 * float32 -> 'TControl
     abstract BuildBoolControl : unit -> 'TControl
@@ -209,7 +215,6 @@ module Serialization =
         let converter = Converters.getOrSetIfAbsent typ (Converters.resolver typ)
         converter.FromJsonValue(value) |> unbox<'T>
 
-    
 
 
 // concrete attributes
@@ -217,13 +222,15 @@ module Serialization =
 type EnumAttribute(options: obj[]) = 
     inherit SettingAttribute()
 
+    member val Representation = EnumRepresentation.Simple with get, set
+
     member val ItemType = options |> Seq.map (fun each -> each.GetType()) |> Seq.distinct |> Seq.exactlyOne with get, set
 
     override this.RandomValue(random) =
         options.[random.Next(options.Length)]
 
     override this.BuildUIControl(builder) = 
-        builder.BuildEnumControl(options, this.ItemType)
+        builder.BuildEnumControl(options, this.ItemType, this.Representation)
 
 
 /// Inclusive integer range
