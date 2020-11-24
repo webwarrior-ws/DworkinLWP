@@ -154,10 +154,14 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
 
     member private this.Spinner = this.FindViewById<Spinner>(Resources.Id.spinner1)
 
-    member this.SetItems(itemLabelPairs : ('TItem * string)[]) =
-        items <- itemLabelPairs |> Array.map fst
-        let labels = itemLabelPairs |> Array.map snd
-        this.Spinner.Adapter <- new ArrayAdapter(context, Android.Resource.Layout.SimpleSpinnerDropDownItem, labels)
+    abstract GetAdapterForSpinner : 'TItem[] -> ArrayAdapter
+    default this.GetAdapterForSpinner(itemsArray) =
+        let labels = itemsArray |> Array.map (fun each -> each.ToString())
+        new ArrayAdapter(context, Android.Resource.Layout.SimpleSpinnerDropDownItem, labels)
+
+    member this.SetItems(newItems : 'TItem[]) =
+        items <- newItems
+        this.Spinner.Adapter <- this.GetAdapterForSpinner(items)
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSpinner, this)

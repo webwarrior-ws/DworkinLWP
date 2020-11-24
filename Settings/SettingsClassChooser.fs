@@ -21,7 +21,7 @@ type AndroidSettingsUIBuilder(context : Android.Content.Context, property : Syst
         let view = new RandomizedSpinner<'T>(context)
         view.Initialize()
         let typedOptions = options |> Array.map (unbox<'T>)
-        view.SetItems([| for item in typedOptions -> item, (item.ToString()) |])
+        view.SetItems(typedOptions)
         view :> ISettingEditor
 
     member this.BuildEnumControl(options, itemType, representation) = 
