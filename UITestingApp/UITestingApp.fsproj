@@ -19,7 +19,7 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <Name>UITestingApp</Name>
     <AndroidDesignerPreferredDevice>Nexus 4</AndroidDesignerPreferredDevice>
-    <SelectedDevice>Android Emulator</SelectedDevice>
+    <SelectedDevice>Samsung GT-I9500</SelectedDevice>
     <DefaultDevice>AVD_for_4_65_720p_Galaxy_Nexus</DefaultDevice>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>

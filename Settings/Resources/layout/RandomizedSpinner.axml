@@ -20,7 +20,7 @@
 		android:layout_height="wrap_content">
 		<Spinner
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
+			android:layout_height="wrap_content"
 			android:layout_weight="1"
 			android:layout_marginHorizontal="16dp"
 			android:id="@+id/spinner1" >
@@ -28,6 +28,7 @@
 		<Settings.ToggleImageButton
 			android:layout_width="@dimen/dice_button_size"
 			android:layout_height="@dimen/dice_button_size"
+			android:layout_gravity="center"
 			android:src="@drawable/dice"
 			android:scaleType="fitCenter"
 			android:background="#ffffff"
