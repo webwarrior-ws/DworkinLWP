@@ -14,10 +14,25 @@ open Settings
 type Resources = UITestingApp.Resource
 
 
+type Endpoint = 
+    | Hollow = 0
+    | Filled = 1
+
 
 type AllKindsOfSettings() =
     inherit Settings()
-    static do Settings.RegisterClass<AllKindsOfSettings>()
+    static do 
+        Settings.RegisterClass<AllKindsOfSettings>()
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.PCBEndpoints, 
+            Views.RandomizedSpinnerWithImages<Endpoint>.GetFactoryForMapping(
+                function 
+                | Endpoint.Hollow -> { ImageID=Resources.Drawable.endpoint_hollow; Label="hollow" } 
+                | Endpoint.Filled -> { ImageID=Resources.Drawable.endpoint_filled; Label="filled" }) )
+    
+    [<Enum([| Endpoint.Hollow; Endpoint.Filled |], ItemType=typeof<Endpoint>, Name="Custom Spinner", 
+      Representation=EnumRepresentation.PCBEndpoints)>]
+    member val CustomEnum = Defined(Endpoint.Hollow) with get, set
 
     [<Enum([| 1; 2; 3; 4; |], Name="Integer Spinner")>]
     member val IntEnum = Defined(1) with get, set

@@ -19,7 +19,7 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <Name>UITestingApp</Name>
     <AndroidDesignerPreferredDevice>Nexus 4</AndroidDesignerPreferredDevice>
-    <SelectedDevice>Samsung GT-I9500</SelectedDevice>
+    <SelectedDevice>Android Emulator</SelectedDevice>
     <DefaultDevice>AVD_for_4_65_720p_Galaxy_Nexus</DefaultDevice>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
@@ -59,6 +59,8 @@
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\layout\Main.axml" />
     <AndroidResource Include="Resources\values\Strings.xml" />
+    <AndroidResource Include="Resources\drawable\endpoint_filled.xml" />
+    <AndroidResource Include="Resources\drawable\endpoint_hollow.xml" />
     <AndroidResource Include="Resources\mipmap-hdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-mdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-xhdpi\Icon.png" />

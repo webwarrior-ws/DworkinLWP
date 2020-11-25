@@ -373,3 +373,41 @@ type RandomizedCheckbox(context : Context, attrs : IAttributeSet, defStyle : int
     override this.OnFinishInflate() =
         this.Initialize()
         base.OnFinishInflate()    
+
+
+// customized spinner editors
+type SpinnerItem = 
+    {
+        ImageID : int
+        Label : string
+    }
+
+type ImageSpinnerAdapter(context : Context, itemsArray : SpinnerItem[]) =
+    inherit ArrayAdapter<SpinnerItem>(context, Resources.Layout.SpinnerItemWithImage, itemsArray)
+
+    let inflater : LayoutInflater = context.GetSystemService(Context.LayoutInflaterService) :?> LayoutInflater
+
+    override this.GetView(position, convertView, parent) = 
+        let itemView = inflater.Inflate(Resources.Layout.SpinnerItemWithImage, parent, false)
+        let imageView = itemView.FindViewById<ImageView>(Resources.Id.image)
+        imageView.SetImageResource(itemsArray.[position].ImageID)
+        let textView = itemView.FindViewById<TextView>(Resources.Id.text)
+        textView.Text <- itemsArray.[position].Label
+        itemView
+
+    override this.GetDropDownView(position, convertView, parent) =
+        this.GetView(position, convertView, parent)
+
+
+type RandomizedSpinnerWithImages<'TItem when 'TItem : equality>(context : Context, mapping : 'TItem -> SpinnerItem) =
+    inherit RandomizedSpinner<'TItem>(context)
+    
+    override this.GetAdapterForSpinner(items) =
+        new ImageSpinnerAdapter(context, items |> Array.map mapping) :> ArrayAdapter
+
+    static member GetFactoryForMapping(mapping : 'TItem -> SpinnerItem) =
+        fun context options ->
+            let view = new RandomizedSpinnerWithImages<'TItem>(context, mapping)
+            view.Initialize()
+            view.SetItems(options |> Array.map unbox<'TItem>)
+            view :> ISettingEditor

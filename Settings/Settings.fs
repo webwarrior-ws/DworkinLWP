@@ -2,9 +2,11 @@
 
 
 
-/// Determines which UI control to use for EnumAttribute
+/// Determines which UI control to use for EnumAttribute.
+/// To register custom editor for an EnumRepresentation, call AndroidSettingsUIBuilder.RegisterEnumEditorFactory method.
 type EnumRepresentation =
    | Simple = 0 // dropdown with text entries
+   | PCBEndpoints = 1
 
 
 type ISettingsUIBuilder<'TControl> =

@@ -53,6 +53,8 @@
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
   <ItemGroup>
+    <!--<AndroidResource Include="Resources\drawable\endpoint_hollow.xml" />
+    <AndroidResource Include="Resources\drawable\endpoint_filled.xml" />-->
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\values\attrs.xml" />
@@ -69,6 +71,9 @@
       <SubType>Designer</SubType>
     </AndroidResource>
     <AndroidResource Include="Resources\layout\SettingsClassChooser.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
+    <AndroidResource Include="Resources\layout\SpinnerItemWithImage.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
     <Compile Include="Properties\AssemblyInfo.fs" />

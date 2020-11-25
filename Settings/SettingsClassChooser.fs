@@ -10,6 +10,11 @@ open Views
 
 
 type AndroidSettingsUIBuilder(context : Android.Content.Context, property : System.Reflection.PropertyInfo) =
+    static let specificEnumEditorFactories = System.Collections.Generic.Dictionary<EnumRepresentation, Context -> obj[] -> ISettingEditor>()
+
+    static member RegisterEnumEditorFactory(representation : EnumRepresentation, factory :  Context -> obj[] -> ISettingEditor) =
+        specificEnumEditorFactories.Add(representation, factory)
+
     interface ISettingsUIBuilder<ISettingEditor> with
         override this.BuildEnumControl(options, typ, representation) = this.BuildEnumControl(options, typ, representation)
         override this.BuildIntRangeControl(minVal, maxVal) = this.BuildIntRangeControl(minVal, maxVal) 
@@ -26,10 +31,12 @@ type AndroidSettingsUIBuilder(context : Android.Content.Context, property : Syst
 
     member this.BuildEnumControl(options, itemType, representation) = 
         if Randomizeable.isRandomizableType property.PropertyType then
-            match representation with
-            | EnumRepresentation.Simple ->
+            if representation = EnumRepresentation.Simple || not <| specificEnumEditorFactories.ContainsKey(representation) then
                 let method = this.GetType().GetMethod("CreateRandomizeableEnumEditor").MakeGenericMethod([| itemType |])
                 method.Invoke(this, [| options |]) :?> ISettingEditor
+            else
+                let factory = specificEnumEditorFactories.[representation]
+                factory context options
         else
             failwith "Non-randomizeable version of enum editor is not implemented"
 
