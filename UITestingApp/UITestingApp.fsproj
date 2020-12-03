@@ -71,6 +71,8 @@
     <AndroidResource Include="Resources\mipmap-xxxhdpi\Icon.png" />
     <None Include="Properties\AndroidManifest.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
+    <Compile Include="Data.fs" />
+    <Compile Include="PresetPreviews.fs" />
     <Compile Include="MainActivity.fs" />
     <AndroidAsset Include="Assets\AboutAssets.txt" />
     <Content Include="packages.config" />
