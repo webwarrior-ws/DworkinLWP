@@ -411,3 +411,128 @@ type RandomizedSpinnerWithImages<'TItem when 'TItem : equality>(context : Contex
             view.Initialize()
             view.SetItems(options |> Array.map unbox<'TItem>)
             view :> ISettingEditor
+
+
+
+type PresetPreviewState =
+    | Pending
+    | Generating
+    | Complete
+    | Error
+
+/// Abstract base class for preset preview control. 
+[<AbstractClass>]
+type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
+    inherit FrameLayout(context, attrs, defStyle)
+    
+    let mutable state = PresetPreviewState.Pending
+    let cancellationSource = new System.Threading.CancellationTokenSource()
+
+    new(context, attrs) = new PresetPreview(context, attrs, 0)
+    new(context) = new PresetPreview(context, null)
+
+    member val PresetName = "" with get, set
+    member val ImageSize = (480, 320) with get, set // in pixels
+
+    member this.State = state
+    
+    member internal this.StatusDisplay = this.FindViewById<TextView>(Resources.Id.statusDisplay)
+
+    override this.Dispose(disposing) =
+        cancellationSource.Dispose()
+        base.Dispose(disposing)
+
+    override this.OnFinishInflate() =
+        this.Initialize()
+        base.OnFinishInflate() 
+        
+    member this.Initialize() =
+        FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
+        this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- this.PresetName
+        this.SetInitialState()
+        this.Click.Add(fun args -> this.Selected())
+
+    /// Called when user clicks on it
+    abstract Selected : unit -> unit
+
+    abstract GeneratePreview : unit -> Android.Graphics.Bitmap
+    
+    abstract CacheDirName : string
+    
+    // previews cache management
+    member this.CacheFilePath =
+        let filename = "img-" + Java.Net.URLEncoder.Encode(this.PresetName, "UTF-8") + ".png"
+        context.CacheDir.Path + "/" + this.CacheDirName + "/" + filename
+    
+    member private this.EnsureCacheDir() =
+        System.IO.Directory.CreateDirectory(context.CacheDir.Path + "/" + this.CacheDirName) |> ignore
+
+    member this.SavePreview(bitmap : Android.Graphics.Bitmap) =
+        let saveFileTask = 
+            async {
+                try
+                    this.EnsureCacheDir()
+                    use ostream = new System.IO.FileStream(this.CacheFilePath, System.IO.FileMode.Create)
+                    do! bitmap.CompressAsync(Android.Graphics.Bitmap.CompressFormat.Png, 1, ostream) |> Async.AwaitTask |> Async.Ignore
+                with
+                | e -> this.ShowError()
+            }
+        Async.Start(saveFileTask, cancellationSource.Token)
+        
+    member this.GetCachedPreview() : Android.Graphics.Bitmap option =
+        use file = new Java.IO.File(this.CacheFilePath)
+        if file.Exists() then
+            let bitmap = Android.Graphics.BitmapFactory.DecodeFile(this.CacheFilePath)
+            if (bitmap.Width, bitmap.Height) = this.ImageSize then
+                Some(bitmap)
+            else
+                None // force re-generation of thumbnail with correct dimensions
+        else
+            None
+
+    // state changes
+    member this.SetInitialState() =
+        state <- PresetPreviewState.Pending
+        match this.GetCachedPreview() with
+        | Some(bitmap) -> this.SetImage(bitmap)
+        | None -> this.RequestGeneration()
+
+    /// Pending | Generating -> Complete
+    member this.SetImage(bitmap : Android.Graphics.Bitmap) =
+        let imageView = this.FindViewById<ImageView>(Resources.Id.image)
+        // using Post method because one must only change UI state from UI thread
+        imageView.Post(fun () ->
+            imageView.SetImageBitmap(bitmap)
+            this.StatusDisplay.Visibility <- ViewStates.Invisible
+            state <- PresetPreviewState.Complete
+        ) |> ignore
+
+    /// Generating -> Error
+    member this.ShowError() =
+        let statusDisplay = this.StatusDisplay
+        statusDisplay.Text <- "error"
+        statusDisplay.SetTextColor(Android.Graphics.Color.Red)
+        state <- PresetPreviewState.Error
+
+    /// Pending -> Generating
+    abstract RequestGeneration : unit -> unit
+    default this.RequestGeneration() =
+        let generationTask = async {
+            try
+                let bitmap = this.GeneratePreview()
+                this.SetImage(bitmap)
+                this.SavePreview(bitmap)
+            with
+            | e -> this.ShowError()
+        } 
+        Async.Start(generationTask, cancellationSource.Token)
+        this.StatusDisplay.Text <- "Generating preview..."
+        state <- PresetPreviewState.Generating
+    
+    /// Generating -> Pending
+    abstract CancelGeneration : unit -> unit
+    default this.CancelGeneration() =
+        cancellationSource.Cancel()
+        if state = PresetPreviewState.Generating then
+            this.StatusDisplay.Text <- "Loading preview..."
+            state <- PresetPreviewState.Pending
