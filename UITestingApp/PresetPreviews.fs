@@ -7,7 +7,7 @@ open Android.Widget
 open Android.Util
 
 open Settings
-open Settings.Views
+open Settings.Presets
 
 
 type TestPresetPreview(context : Context, name : string, settingsObject : AllKindsOfSettings) =
@@ -33,7 +33,7 @@ type TestPresetPreview(context : Context, name : string, settingsObject : AllKin
         selectedEvent.Trigger(settingsObject)
 
 
-type PresetPreviewAdapter(context : Context, previews : #Views.PresetPreview[]) =
+type PresetPreviewAdapter(context : Context, previews : #PresetPreview[]) =
     inherit BaseAdapter()
 
     override this.Count = previews.Length
