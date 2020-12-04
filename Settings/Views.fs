@@ -432,7 +432,10 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
     new(context) = new PresetPreview(context, null)
 
     member val PresetName = "" with get, set
-    member val ImageSize = (480, 320) with get, set // in pixels
+    /// indicates whether preset is saved so it can have cahced preview on disk
+    member val IsPresetSaved = false with get, set 
+    /// Size of preview in pixels
+    member val ImageSize = (480, 320) with get, set
 
     member this.State = state
     
@@ -448,6 +451,7 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
         
     member this.Initialize() =
         FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
+        this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
         this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- this.PresetName
         this.SetInitialState()
         this.Click.Add(fun args -> this.Selected())
@@ -481,7 +485,7 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
         
     member this.GetCachedPreview() : Android.Graphics.Bitmap option =
         use file = new Java.IO.File(this.CacheFilePath)
-        if file.Exists() then
+        if this.IsPresetSaved && file.Exists() then
             let bitmap = Android.Graphics.BitmapFactory.DecodeFile(this.CacheFilePath)
             if (bitmap.Width, bitmap.Height) = this.ImageSize then
                 Some(bitmap)
@@ -521,7 +525,8 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
             try
                 let bitmap = this.GeneratePreview()
                 this.SetImage(bitmap)
-                this.SavePreview(bitmap)
+                if this.IsPresetSaved then
+                    this.SavePreview(bitmap)
             with
             | e -> this.ShowError()
         } 
