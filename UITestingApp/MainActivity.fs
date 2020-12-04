@@ -32,13 +32,10 @@ type MainActivity () =
         display.Text <- settings.ToString()
 
     override this.OnCreate(bundle) =
-
         base.OnCreate(bundle)
 
         // Set our view from the "main" layout resource
         this.SetContentView(Resources.Layout.Main)
-
-        
 
         let settingsView = settings.CreateView(this)
         settings.UseView(settingsView)

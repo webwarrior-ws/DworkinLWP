@@ -13,6 +13,9 @@ open Settings.Views
 type TestPresetPreview(context : Context, name : string, settingsObject : AllKindsOfSettings) =
     inherit PresetPreview(context, PresetName = name)
 
+    let selectedEvent = Event<AllKindsOfSettings>()
+    member val PresetSelected = selectedEvent.Publish
+
     override this.GeneratePreview() =
         let bmp = Android.Graphics.Bitmap.CreateBitmap(fst this.ImageSize, snd this.ImageSize, Android.Graphics.Bitmap.Config.Argb8888)
         let c = 
@@ -27,6 +30,7 @@ type TestPresetPreview(context : Context, name : string, settingsObject : AllKin
 
     override this.Selected() = 
         Toast.MakeText(context, sprintf "%s selected" name, ToastLength.Short).Show()
+        selectedEvent.Trigger(settingsObject)
 
 
 type PresetPreviewAdapter(context : Context, previews : #Views.PresetPreview[]) =
@@ -64,16 +68,22 @@ type PresetsSelectionView(context : Context, attrs : IAttributeSet, defStyle : i
 type PresetSelectionActivity() =
     inherit Activity()
 
+    let mutable allPreviews : TestPresetPreview[] = [||]
+
+    member this.OnPresetSelected(object) =
+        //...
+        ()
+
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
-        let allPreviews = 
+        allPreviews <-
             [| 
                 "default", AllKindsOfSettings(); 
                 "red", AllKindsOfSettings(Color=Defined(1.0f, 0.0f, 0.0f)); 
-                "third", AllKindsOfSettings(Color=Defined(0.5f, 0.5f, 1.0f)); 
-                "white", AllKindsOfSettings(Color=Defined(1.0f, 1.0f, 1.0f)) 
+                "custom", AllKindsOfSettings(Color=Defined(0.5f, 0.5f, 1.0f)); 
+                "white", AllKindsOfSettings(Color=Defined(1.0f, 1.0f, 1.0f)); 
             |]
-            |> Array.map (fun (name, o) -> new TestPresetPreview(this, name, o, ImageSize=(512, 320)))
+            |> Array.map (fun (name, o) -> new TestPresetPreview(this, name, o, ImageSize=(512, 320), IsPresetSaved=(name<>"custom")))
         let view = new PresetsSelectionView(this)
         view.SetGravity(GravityFlags.CenterHorizontal)
         let containerView = new FrameLayout(this)
@@ -81,4 +91,12 @@ type PresetSelectionActivity() =
         containerView.AddView(view)
         for each in allPreviews do each.Initialize()
         view.SetPreviews(allPreviews)
+        for each in allPreviews do
+            each.PresetSelected.Add(this.OnPresetSelected)
         this.SetContentView(containerView)
+
+    override this.OnStop() =
+        base.OnStop()
+        for each in allPreviews do
+            each.CancelGeneration()
+
