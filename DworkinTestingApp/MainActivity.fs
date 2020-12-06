@@ -12,6 +12,9 @@ open LibDworkin.DworkinSettings
 open Settings
 
 
+type Resources = DworkinTestingApp.Resource
+
+
 [<Activity(Label = "DworkinTestingApp", 
            ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), 
            Icon = "@mipmap/icon", 
@@ -42,11 +45,15 @@ type MainActivity() =
             p
     
     member this.OpenSettings() =
-        let intent = new Android.Content.Intent(this, typeof<SettingsActivity>)
+        let intent = new Android.Content.Intent(this, typeof<DworkinUI.SettingsActivity>)
         this.StartActivity(intent)
 
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
+
+        if isNull bundle then
+            // TODO: see if this is no longer needed
+            XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<DworkinUI.Resources>
 
         // Create our OpenGL view, and display it
         view <- new GLSurfaceView(this)

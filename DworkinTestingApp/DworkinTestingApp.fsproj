@@ -19,7 +19,7 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
     <Name>DworkinTestingApp</Name>
-    <SelectedDevice>Android Emulator</SelectedDevice>
+    <SelectedDevice>Samsung GT-I9500</SelectedDevice>
     <DefaultDevice>AVD_for_4_65_720p_Galaxy_Nexus</DefaultDevice>
     <AndroidDesignerPreferredDevice>Nexus 4</AndroidDesignerPreferredDevice>
     <NuGetPackageImportStamp>
@@ -69,9 +69,6 @@
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\layout\Main.axml" />
-    <AndroidResource Include="Resources\layout\SettingsScreen.axml">
-      <SubType>Designer</SubType>
-    </AndroidResource>
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\mipmap-hdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-mdpi\Icon.png" />
@@ -84,9 +81,6 @@
     <AndroidAsset Include="Assets\AboutAssets.txt" />
     <Compile Include="TestRenderers.fs" />
     <Compile Include="TestConfigs.fs" />
-    <Compile Include="SettingsActivity.fs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="MainActivity.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
@@ -105,6 +99,11 @@
     <ProjectReference Include="..\DworkinConfigs\DworkinConfigs.fsproj">
       <Name>DworkinConfigs</Name>
       <Project>{f363393a-ce6b-4f3c-874d-e5f46860d812}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\DworkinUI\DworkinUI.fsproj">
+      <Name>DworkinUI</Name>
+      <Project>{d0e44cf4-aa15-457a-80dc-3f60c9bce2eb}</Project>
       <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\LibDworkin\LibDworkin.fsproj">
