@@ -14,10 +14,9 @@ type Preset() =
     member val IsSaved = false with get, set 
     /// True if preset is pre-installed with application
     member val IsBuiltin = false with get, set
-    /// Size of preview in pixels
-    member val PreviewImageSize = (480, 320) with get, set
+    
     // to be overriden in subclasses:
-    abstract GeneratePreview : unit -> Android.Graphics.Bitmap
+    abstract GeneratePreview : int * int -> Android.Graphics.Bitmap
     /// Name used to define sub-directories for storage of presets and preview cache. 
     /// Has to be unique for each type of preset.
     abstract DirName : string
@@ -30,20 +29,14 @@ type PresetPreviewState =
     | Complete
     | Error
 
-/// Abstract base class for preset preview control. 
-[<AbstractClass>]
-type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
-    inherit FrameLayout(context, attrs, defStyle)
+/// Preset preview widget 
+type PresetPreview(context : Context, preset : Preset) =
+    inherit FrameLayout(context, null, 0)
     
     let mutable state = PresetPreviewState.Pending
     let cancellationSource = new System.Threading.CancellationTokenSource()
 
-    new(context, attrs) = new PresetPreview(context, attrs, 0)
-    new(context) = new PresetPreview(context, null)
-
-    member val PresetName = "" with get, set
-    /// indicates whether preset is saved so it can have cahced preview on disk
-    member val IsPresetSaved = false with get, set 
+    member this.Preset = preset
     /// Size of preview in pixels
     member val ImageSize = (480, 320) with get, set
 
@@ -54,32 +47,21 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
     override this.Dispose(disposing) =
         cancellationSource.Dispose()
         base.Dispose(disposing)
-
-    override this.OnFinishInflate() =
-        this.Initialize()
         base.OnFinishInflate() 
         
     member this.Initialize() =
         FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
         this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
-        this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- this.PresetName
+        this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- preset.Name
         this.SetInitialState()
-        this.Click.Add(fun args -> this.Selected())
-
-    /// Called when user clicks on it
-    abstract Selected : unit -> unit
-
-    abstract GeneratePreview : unit -> Android.Graphics.Bitmap
-    
-    abstract CacheDirName : string
     
     // previews cache management
     member this.CacheFilePath =
-        let filename = "img-" + Java.Net.URLEncoder.Encode(this.PresetName, "UTF-8") + ".png"
-        context.CacheDir.Path + "/" + this.CacheDirName + "/" + filename
+        let filename = "img-" + Java.Net.URLEncoder.Encode(preset.Name, "UTF-8") + ".png"
+        context.CacheDir.Path + "/" + preset.DirName + "/" + filename
     
     member private this.EnsureCacheDir() =
-        System.IO.Directory.CreateDirectory(context.CacheDir.Path + "/" + this.CacheDirName) |> ignore
+        System.IO.Directory.CreateDirectory(context.CacheDir.Path + "/" + preset.DirName) |> ignore
 
     member this.SavePreview(bitmap : Android.Graphics.Bitmap) =
         let saveFileTask = 
@@ -95,7 +77,7 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
         
     member this.GetCachedPreview() : Android.Graphics.Bitmap option =
         use file = new Java.IO.File(this.CacheFilePath)
-        if this.IsPresetSaved && file.Exists() then
+        if preset.IsSaved && file.Exists() then
             let bitmap = Android.Graphics.BitmapFactory.DecodeFile(this.CacheFilePath)
             if (bitmap.Width, bitmap.Height) = this.ImageSize then
                 Some(bitmap)
@@ -133,9 +115,9 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
     default this.RequestGeneration() =
         let generationTask = async {
             try
-                let bitmap = this.GeneratePreview()
+                let bitmap = preset.GeneratePreview(this.ImageSize)
                 this.SetImage(bitmap)
-                if this.IsPresetSaved then
+                if preset.IsSaved then
                     this.SavePreview(bitmap)
             with
             | e -> this.ShowError()
@@ -151,3 +133,14 @@ type PresetPreview(context : Context, attrs : IAttributeSet, defStyle : int) =
         if state = PresetPreviewState.Generating then
             this.StatusDisplay.Text <- "Loading preview..."
             state <- PresetPreviewState.Pending
+
+
+type PresetPreviewAdapter(context : Context, previews : PresetPreview[]) =
+    inherit BaseAdapter()
+
+    override this.Count = previews.Length
+    override this.GetItem(pos) = previews.[pos] :> Java.Lang.Object
+    override this.GetItemId(pos) = int64 pos
+
+    override this.GetView(pos, convertView, parent) =
+        previews.[pos] :> View

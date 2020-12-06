@@ -10,14 +10,11 @@ open Settings
 open Settings.Presets
 
 
-type TestPresetPreview(context : Context, name : string, settingsObject : AllKindsOfSettings) =
-    inherit PresetPreview(context, PresetName = name)
-
-    let selectedEvent = Event<AllKindsOfSettings>()
-    member val PresetSelected = selectedEvent.Publish
-
-    override this.GeneratePreview() =
-        let bmp = Android.Graphics.Bitmap.CreateBitmap(fst this.ImageSize, snd this.ImageSize, Android.Graphics.Bitmap.Config.Argb8888)
+type TestPreset(settingsObject : AllKindsOfSettings) =
+    inherit Preset()
+    
+    override this.GeneratePreview(h : int, w : int) =
+        let bmp = Android.Graphics.Bitmap.CreateBitmap(h, w, Android.Graphics.Bitmap.Config.Argb8888)
         let c = 
             match settingsObject.Color with
             | Defined(r, g, b) -> Android.Graphics.Color.Rgb(int(r * 255.0f), int(g * 255.0f), int(b * 255.0f))
@@ -26,28 +23,13 @@ type TestPresetPreview(context : Context, name : string, settingsObject : AllKin
         System.Threading.Thread.Sleep(1000) // simulate lengthy thumbnail generation
         bmp
 
-    override this.CacheDirName = "test"
-
-    override this.Selected() = 
-        Toast.MakeText(context, sprintf "%s selected" name, ToastLength.Short).Show()
-        selectedEvent.Trigger(settingsObject)
-
-
-type PresetPreviewAdapter(context : Context, previews : #PresetPreview[]) =
-    inherit BaseAdapter()
-
-    override this.Count = previews.Length
-    override this.GetItem(pos) = previews.[pos] :> Java.Lang.Object
-    override this.GetItemId(pos) = int64 pos
-
-    override this.GetView(pos, convertView, parent) =
-        previews.[pos] :> View
+    override this.DirName = "test"
 
 
 type PresetsSelectionView(context : Context, attrs : IAttributeSet, defStyle : int) =
     inherit GridView(context, attrs, defStyle)
     
-    let mutable previews : #PresetPreview[] = [||]
+    let mutable previews : PresetPreview[] = [||]
 
     new(context, attrs) = new PresetsSelectionView(context, attrs, 0)
     new(context) = new PresetsSelectionView(context, null)
@@ -68,22 +50,21 @@ type PresetsSelectionView(context : Context, attrs : IAttributeSet, defStyle : i
 type PresetSelectionActivity() =
     inherit Activity()
 
-    let mutable allPreviews : TestPresetPreview[] = [||]
+    let mutable allPreviews : PresetPreview[] = [||]
 
-    member this.OnPresetSelected(object) =
-        //...
-        ()
+    member this.OnPresetSelected(preset : Preset) =
+        Toast.MakeText(this, sprintf "%s selected" preset.Name, ToastLength.Short).Show()
 
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
         allPreviews <-
             [| 
-                "default", AllKindsOfSettings(); 
-                "red", AllKindsOfSettings(Color=Defined(1.0f, 0.0f, 0.0f)); 
-                "custom", AllKindsOfSettings(Color=Defined(0.5f, 0.5f, 1.0f)); 
-                "white", AllKindsOfSettings(Color=Defined(1.0f, 1.0f, 1.0f)); 
+                TestPreset(AllKindsOfSettings(), Name="default", IsSaved=true); 
+                TestPreset(AllKindsOfSettings(Color=Defined(1.0f, 0.0f, 0.0f)), Name="red", IsSaved=true); 
+                TestPreset(AllKindsOfSettings(Color=Defined(0.5f, 0.5f, 1.0f)), Name="custom"); 
+                TestPreset(AllKindsOfSettings(Color=Defined(1.0f, 1.0f, 1.0f)), Name="white", IsSaved=true); 
             |]
-            |> Array.map (fun (name, o) -> new TestPresetPreview(this, name, o, ImageSize=(512, 320), IsPresetSaved=(name<>"custom")))
+            |> Array.map (fun preset -> new PresetPreview(this, preset, ImageSize=(512, 320)))
         let view = new PresetsSelectionView(this)
         view.SetGravity(GravityFlags.CenterHorizontal)
         let containerView = new FrameLayout(this)
@@ -92,11 +73,10 @@ type PresetSelectionActivity() =
         for each in allPreviews do each.Initialize()
         view.SetPreviews(allPreviews)
         for each in allPreviews do
-            each.PresetSelected.Add(this.OnPresetSelected)
+            each.Click.Add(fun _ -> this.OnPresetSelected(each.Preset))
         this.SetContentView(containerView)
 
     override this.OnStop() =
         base.OnStop()
         for each in allPreviews do
             each.CancelGeneration()
-
