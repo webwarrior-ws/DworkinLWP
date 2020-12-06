@@ -61,6 +61,9 @@
     <AndroidResource Include="Resources\layout\SettingsFragment.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\PresetSelection.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\drawable\endpoint_filled.xml" />
     <AndroidResource Include="Resources\drawable\endpoint_hollow.xml" />

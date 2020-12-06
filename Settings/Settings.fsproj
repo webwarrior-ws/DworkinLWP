@@ -79,6 +79,9 @@
     <AndroidResource Include="Resources\layout\PresetPreview.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\PresetSelectionFragment.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Compile Include="Resources.fs" />
     <Compile Include="Randomizeable.fs" />
