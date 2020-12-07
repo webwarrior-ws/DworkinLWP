@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <ScrollView 
+		android:orientation="vertical"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content">
+		<LinearLayout
+			android:orientation="vertical"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:paddingHorizontal="?android:attr/scrollbarSize">
+			
+			<LinearLayout
+				android:id="@+id/pattern_link"
+				android:orientation="vertical"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:paddingHorizontal="@dimen/editor_padding_h"
+				android:paddingVertical="@dimen/editor_padding_v">
+				<TextView 
+					android:text="Pattern"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingBottom="@dimen/editor_title_padding_bottom"
+					android:textAppearance="@style/SettingsGroupTitle" />
+				<TextView
+					android:text="Click to change pattern settings"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content" />
+			</LinearLayout>
+
+			<LinearLayout
+				android:id="@+id/appearance_link"
+				android:orientation="vertical"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:paddingHorizontal="@dimen/editor_padding_h"
+				android:paddingVertical="@dimen/editor_padding_v">
+				<TextView 
+					android:text="Appearance"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingBottom="@dimen/editor_title_padding_bottom"
+					android:textAppearance="@style/SettingsGroupTitle" />
+				<TextView
+					android:text="Click to change colors, materials, and effect"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content" />
+			</LinearLayout>
+			
+			<LinearLayout
+				android:orientation="horizontal"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:paddingHorizontal="@dimen/editor_padding_h">
+				<TextView
+					android:text="Seed"
+					android:textAppearance="@style/SettingTitle"
+					android:padding="6dp"
+					android:layout_width="wrap_content"
+					android:layout_height="match_parent"
+					android:gravity="center_vertical"/>
+				<EditText
+					android:id="@+id/seed_display"
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_marginHorizontal="6dp"
+					android:layout_weight="1"
+					android:inputType="number"
+					android:text="0"/>
+				<Button
+					android:id="@+id/next_seed_button"
+					android:text="Next"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginBottom="6dp"
+					android:layout_weight="1"/>
+			</LinearLayout>
+
+		</LinearLayout>
+	</ScrollView>
+</FrameLayout>

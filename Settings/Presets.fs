@@ -135,7 +135,7 @@ type PresetPreview(context : Context, preset : Preset) =
             state <- PresetPreviewState.Pending
 
 
-type PresetPreviewAdapter(context : Context, previews : PresetPreview[]) =
+type PresetPreviewAdapter(previews : PresetPreview[]) =
     inherit BaseAdapter()
 
     override this.Count = previews.Length
@@ -163,7 +163,7 @@ type PresetSelectionFragment() =
             gridView.SetColumnWidth(fst this.Previews.[0].ImageSize)
         for each in this.Previews do
             each.Click.Add(fun _ -> presetSelectedEvent.Trigger(each.Preset))
-        gridView.Adapter <- new PresetPreviewAdapter(this.Context, this.Previews)
+        gridView.Adapter <- new PresetPreviewAdapter(this.Previews)
         view
 
     override this.OnStop() =
