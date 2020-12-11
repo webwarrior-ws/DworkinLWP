@@ -44,10 +44,7 @@ type PresetSelectionActivity() =
                 TestPreset(AllKindsOfSettings(Color=Defined(1.0f, 1.0f, 1.0f)), Name="white", IsSaved=true); 
             |]
         let allPreviews =
-            [| for preset in presets do
-                let preview = new PresetPreview(this, preset, ImageSize=(512, 320))
-                preview.Initialize()
-                yield preview |]
+            [| for preset in presets ->  new PresetPreview(this, preset, ImageSize=(512, 320)) |]
         let fragment = new PresetSelectionFragment(Previews=allPreviews)
         fragment.PresetSelected.Add(this.OnPresetSelected)
 

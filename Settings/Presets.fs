@@ -14,13 +14,68 @@ type Preset() =
     member val IsSaved = false with get, set 
     /// True if preset is pre-installed with application
     member val IsBuiltin = false with get, set
-    
+
     // to be overriden in subclasses:
     abstract GeneratePreview : int * int -> Android.Graphics.Bitmap
     /// Name used to define sub-directories for storage of presets and preview cache. 
     /// Has to be unique for each type of preset.
     abstract DirName : string
 
+
+/// Functions and classes used to manage presets (save/load/etc.)
+module PresetManagement =
+    let getPresetsDirPath (context : Context) (dirName : string) =
+        context.FilesDir.Path + "/presets/" + dirName
+
+    let ensurePresetsDir (context : Context) (dirName : string) =
+        System.IO.Directory.CreateDirectory(getPresetsDirPath context dirName) |> ignore
+
+    let getFilePath (context : Context) (dirName : string) (name : string) =
+        let filename = Java.Net.URLEncoder.Encode(name, "UTF-8") + ".preset"
+        (getPresetsDirPath context dirName) + "/" + filename
+
+    let savePreset<'TPreset when 'TPreset :> Preset>(context : Context) (preset : 'TPreset) =
+        if preset.IsBuiltin then
+            failwith "Built-in presets cannot be saved"
+        else
+            ensurePresetsDir context preset.DirName
+            use ostream = new System.IO.FileStream((getFilePath context preset.DirName preset.Name), System.IO.FileMode.Create)
+            let json = Serialization.toJsonValue(preset)
+            json.Save(ostream)
+            preset.IsSaved <- true
+
+    let renamePreset (context : Context) (preset : Preset) (newName : string) =
+        if preset.IsBuiltin then
+            failwith "Built-in presets cannot be renamed"
+        else
+            use file = new Java.IO.File(getFilePath context preset.DirName preset.Name)
+            if file.Exists() then
+                use newFile = new Java.IO.File(getFilePath context preset.DirName newName)
+                if file.RenameTo(newFile) then
+                    preset.Name <- newName
+    
+    let deletePreset (context : Context) (preset : Preset) =
+        if preset.IsBuiltin then
+            failwith "Built-in presets cannot be deleted"
+        else
+            use file = new Java.IO.File(getFilePath context preset.DirName preset.Name)
+            if file.Exists() then
+                file.Delete() |> ignore
+            preset.IsSaved <- false
+
+    let loadPreset<'TPreset when 'TPreset :> Preset> (context : Context) (filePath : string) : 'TPreset =
+        if not (filePath.EndsWith ".preset") then
+            failwith "preset files must end with .preset"
+        else
+            use file = new Java.IO.File(filePath)
+            let encodedName = file.Name.Remove(file.Name.Length - ".preset".Length)
+            let name = Java.Net.URLDecoder.Decode(encodedName, "UTF-8")
+            use stream = new System.IO.FileStream(file.AbsolutePath, System.IO.FileMode.Open)
+            let json = System.Json.JsonValue.Load(stream)
+            let preset : 'TPreset = Serialization.fromJsonValue(json)
+            preset.Name <- name
+            preset.IsSaved <- true
+            preset
 
 
 type PresetPreviewState =
@@ -46,14 +101,16 @@ type PresetPreview(context : Context, preset : Preset) =
 
     override this.Dispose(disposing) =
         cancellationSource.Dispose()
-        base.Dispose(disposing)
-        base.OnFinishInflate() 
-        
+        base.Dispose(disposing) 
+
+    override this.OnAttachedToWindow() =
+        base.OnAttachedToWindow()
+        this.SetInitialState() // if called earlier, may result in preview not being set
+
     member this.Initialize() =
         FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
         this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
         this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- preset.Name
-        this.SetInitialState()
     
     // previews cache management
     member this.CacheFilePath =
@@ -71,7 +128,7 @@ type PresetPreview(context : Context, preset : Preset) =
                     use ostream = new System.IO.FileStream(this.CacheFilePath, System.IO.FileMode.Create)
                     do! bitmap.CompressAsync(Android.Graphics.Bitmap.CompressFormat.Png, 1, ostream) |> Async.AwaitTask |> Async.Ignore
                 with
-                | e -> this.ShowError()
+                | e -> this.Post(this.ShowError) |> ignore
             }
         Async.Start(saveFileTask, cancellationSource.Token)
         
@@ -79,7 +136,7 @@ type PresetPreview(context : Context, preset : Preset) =
         use file = new Java.IO.File(this.CacheFilePath)
         if preset.IsSaved && file.Exists() then
             let bitmap = Android.Graphics.BitmapFactory.DecodeFile(this.CacheFilePath)
-            if (bitmap.Width, bitmap.Height) = this.ImageSize then
+            if not (isNull bitmap) && (bitmap.Width, bitmap.Height) = this.ImageSize then
                 Some(bitmap)
             else
                 None // force re-generation of thumbnail with correct dimensions
@@ -96,12 +153,9 @@ type PresetPreview(context : Context, preset : Preset) =
     /// Pending | Generating -> Complete
     member this.SetImage(bitmap : Android.Graphics.Bitmap) =
         let imageView = this.FindViewById<ImageView>(Resources.Id.image)
-        // using Post method because one must only change UI state from UI thread
-        imageView.Post(fun () ->
-            imageView.SetImageBitmap(bitmap)
-            this.StatusDisplay.Visibility <- ViewStates.Invisible
-            state <- PresetPreviewState.Complete
-        ) |> ignore
+        imageView.SetImageBitmap(bitmap)
+        this.StatusDisplay.Visibility <- ViewStates.Invisible
+        state <- PresetPreviewState.Complete
 
     /// Generating -> Error
     member this.ShowError() =
@@ -116,11 +170,12 @@ type PresetPreview(context : Context, preset : Preset) =
         let generationTask = async {
             try
                 let bitmap = preset.GeneratePreview(this.ImageSize)
-                this.SetImage(bitmap)
+                // using Post method because one must only change UI state from UI thread
+                this.Post(fun () -> this.SetImage(bitmap)) |> ignore
                 if preset.IsSaved then
                     this.SavePreview(bitmap)
             with
-            | e -> this.ShowError()
+            | e -> this.Post(this.ShowError) |> ignore
         } 
         Async.Start(generationTask, cancellationSource.Token)
         this.StatusDisplay.Text <- "Generating preview..."
@@ -162,9 +217,10 @@ type PresetSelectionFragment() =
         if this.Previews.Length > 0 then
             gridView.SetColumnWidth(fst this.Previews.[0].ImageSize)
         for each in this.Previews do
+            each.Initialize()
             each.Click.Add(fun _ -> presetSelectedEvent.Trigger(each.Preset))
         gridView.Adapter <- new PresetPreviewAdapter(this.Previews)
-        view
+        view         
 
     override this.OnStop() =
         base.OnStop()

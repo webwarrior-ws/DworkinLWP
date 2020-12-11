@@ -158,16 +158,48 @@ type PatternSettingsActivity() =
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
 
 
-[<Activity(Label = "Pattern Settings")>]
+[<Activity(Label = "Appearance Settings")>]
 type AppearanceSettingsActivity() =
     inherit ActivityWithBackButton()
-        
+    
     override this.OnCreate(bundle) =
-        base.OnCreate (bundle)
+        base.OnCreate(bundle)
         this.SetContentView(Resources.Layout.Empty)
         this.SetupToolbar()
         let fragment = new AppearanceSettingsFragment()
+        let transaction = this.SupportFragmentManager.BeginTransaction()
+        transaction
+            .Replace(Resources.Id.content, fragment)
+            .RunOnCommit(new Java.Lang.Runnable(fun () -> 
+                // open presets manager for appearance
+                this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
+                    this.StartActivity(typeof<AppearancePresetSelectionActivity>) ) ))
+            .Commit() |> ignore
+
+and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity() =
+    inherit ActivityWithBackButton()
+
+    override this.OnCreate(bundle) =
+        base.OnCreate(bundle)
+
+        let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this AppearancePreset.DirectoryName
+        use presetsDir = new Java.IO.File(presetsDirPath)
+        let builtinPresets = BuiltinPresets.getAppearancePresets(LibDworkin.RendererComponents.AndroidPlatform(this))
+        let presets =
+            if presetsDir.Exists() then
+                [| for file in presetsDir.ListFiles() do
+                    let preset : AppearancePreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
+                    yield preset |]
+            else [||]
+        let previews = [| 
+            for preset in (Array.append builtinPresets presets) -> 
+                new Settings.Presets.PresetPreview(this, preset) |]
+
+        this.SetContentView(Resources.Layout.Empty)
+        this.SetupToolbar()
+        let fragment = new Settings.Presets.PresetSelectionFragment(Previews=previews)
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
+
 
 
 [<Activity(Label = "Settings")>]
@@ -192,9 +224,3 @@ type SettingsActivity() =
 
         this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
             this.StartActivity(typeof<AppearanceSettingsActivity>) )
-    
-
-
-
-
-

@@ -20,18 +20,30 @@
 				android:layout_height="wrap_content"
 				android:paddingHorizontal="@dimen/editor_padding_h"
 				android:paddingVertical="@dimen/editor_padding_v">
-				<TextView 
-					android:text="Preset"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:paddingBottom="@dimen/editor_title_padding_bottom"
-					android:textAppearance="@style/SettingsGroupTitle" />
+				<LinearLayout
+					android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+					<TextView 
+						android:text="Preset:"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:paddingRight="20sp"
+						android:paddingBottom="@dimen/editor_title_padding_bottom"
+						android:textAppearance="@style/SettingsGroupTitle" />
+					<TextView
+						android:id="@+id/preset_name_display"
+						android:text="Custom"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_gravity="right"
+						android:layout_weight="1"
+						android:textAppearance="@style/SettingTitle"/>
+				</LinearLayout>
 				<TextView
-					android:id="@+id/preset_name_display"
-					android:text="Custom"
+					android:text="Click to open preset manager"
 					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:textAppearance="@style/SettingTitle"/>
+					android:layout_height="wrap_content" />
 			</LinearLayout>
 		</LinearLayout>
 	</ScrollView>

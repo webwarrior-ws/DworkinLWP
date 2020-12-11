@@ -87,9 +87,9 @@
     <Compile Include="Randomizeable.fs" />
     <Compile Include="ToggleImageButton.fs" />
     <Compile Include="Views.fs" />
-    <Compile Include="Presets.fs" />
     <Compile Include="Settings.fs" />
     <Compile Include="SettingsClassChooser.fs" />
+    <Compile Include="Presets.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
