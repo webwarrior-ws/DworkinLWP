@@ -73,7 +73,7 @@ and [<AbstractClass>]
     override this.ToString() =
         let propertyStrings = this.SettingProperties |> Array.map(fun prop -> sprintf "%s=%A" prop.Name (prop.GetValue(this)))
         sprintf "%s(%s)" (this.GetType().Name) (System.String.Join(", ", propertyStrings))
-    
+
     // Serialization
     static member val private NameToClassMap = System.Collections.Concurrent.ConcurrentDictionary<string, System.Type>()
     static member val private ClassToNameMap = System.Collections.Concurrent.ConcurrentDictionary<System.Type, string>()
@@ -216,6 +216,8 @@ module Serialization =
         let typ = typeof<'T>
         let converter = Converters.getOrSetIfAbsent typ (Converters.resolver typ)
         converter.FromJsonValue(value) |> unbox<'T>
+
+    let copy<'T> : 'T -> 'T = toJsonValue >> fromJsonValue
 
 
 
