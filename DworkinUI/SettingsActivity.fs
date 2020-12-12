@@ -65,6 +65,19 @@ type PatternSettingsFragment() =
 type AppearanceSettingsFragment() =
     inherit Android.Support.V4.App.Fragment()
 
+    let updateEditorsEvent = Event<unit>()
+    let updateEditors = updateEditorsEvent.Publish
+
+    let settingChangedEvent = Event<unit>()
+
+    let changeHandler (change : SettingsChange) () =
+        CurrentSettings.registerChange change
+        settingChangedEvent.Trigger()
+
+    member this.SettingChanged = settingChangedEvent.Publish
+
+    member this.UpdateEditors() = updateEditorsEvent.Trigger()
+
     member private this.GetEffectEditor() =
         let editor = SettingsClassChooser<EffectSettings>.Create(this.Context, Effects.allTypes)
         editor.Title <- "Effect"
@@ -72,7 +85,8 @@ type AppearanceSettingsFragment() =
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Effect |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Effect=unbox<EffectSettings>(value) } ))
-        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.EffectChanged))
+        editor.Changed.Add(changeHandler SettingsChange.EffectChanged)
+        updateEditors.Add(editor.UpdateValue)
         editor
     
     member private this.GetForegroundEditor() =
@@ -82,7 +96,8 @@ type AppearanceSettingsFragment() =
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Foreground |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Foreground=unbox<MaterialSettings>(value) } ))
-        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.ForegroundChanged))
+        editor.Changed.Add(changeHandler SettingsChange.ForegroundChanged)
+        updateEditors.Add(editor.UpdateValue)
         editor
     
     member private this.GetBackgroundEditor() =
@@ -92,7 +107,8 @@ type AppearanceSettingsFragment() =
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Background |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Background=unbox<MaterialSettings>(value) } ))
-        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.BackgroundChanged))
+        editor.Changed.Add(changeHandler SettingsChange.BackgroundChanged)
+        updateEditors.Add(editor.UpdateValue)
         editor
 
     member private this.GetForegroundColorEditor() =
@@ -100,10 +116,13 @@ type AppearanceSettingsFragment() =
         editor.Initialize()
         let e = editor :> Views.ISettingEditor
         e.Title <- "Foreground color"
-        e.Accessor <- Views.Accessor(
-            (fun () -> CurrentSettings.get().ForegroundColor |> box), 
-            (fun value -> CurrentSettings.set { CurrentSettings.get() with ForegroundColor=unbox(value) } ))
-        e.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.ForegroundChanged))
+        let accessor =
+            Views.Accessor(
+                (fun () -> CurrentSettings.get().ForegroundColor |> box), 
+                (fun value -> CurrentSettings.set { CurrentSettings.get() with ForegroundColor=unbox(value) } ))
+        e.Accessor <- accessor
+        e.Changed.Add(changeHandler SettingsChange.ForegroundChanged)
+        updateEditors.Add(fun () -> e.Accessor <- accessor)
         editor
 
     member private this.GetBackgroundColorEditor() =
@@ -111,10 +130,13 @@ type AppearanceSettingsFragment() =
         editor.Initialize()
         let e = editor :> Views.ISettingEditor
         e.Title <- "Background color"
-        e.Accessor <- Views.Accessor(
-            (fun () -> CurrentSettings.get().BackgroundColor |> box), 
-            (fun value -> CurrentSettings.set { CurrentSettings.get() with BackgroundColor=unbox(value) } ))
-        e.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.BackgroundChanged))
+        let accessor =
+            Views.Accessor(
+                (fun () -> CurrentSettings.get().BackgroundColor |> box), 
+                (fun value -> CurrentSettings.set { CurrentSettings.get() with BackgroundColor=unbox(value) } ))
+        e.Accessor <- accessor
+        e.Changed.Add(changeHandler SettingsChange.BackgroundChanged)
+        updateEditors.Add(fun () -> e.Accessor <- accessor)
         editor
 
     override this.OnCreateView(inflater, container, bundle) = 
@@ -162,15 +184,35 @@ type PatternSettingsActivity() =
 type AppearanceSettingsActivity() =
     inherit ActivityWithBackButton()
     
+    member private this.UpdatePresetName() =
+        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        if not (isNull display) then
+            display.Text <- 
+                match CurrentPresetSelection.Appearance.name with
+                | Some(s) -> s
+                | None -> "custom"
+    
+    override this.OnRestart() =
+        base.OnRestart()
+        this.UpdatePresetName()
+        // update editors
+        let fragment = this.SupportFragmentManager.FindFragmentById(Resources.Id.content) :?> AppearanceSettingsFragment
+        fragment.UpdateEditors()
+
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
         this.SetContentView(Resources.Layout.Empty)
         this.SetupToolbar()
         let fragment = new AppearanceSettingsFragment()
+        fragment.SettingChanged.Add(
+            fun() -> 
+                CurrentPresetSelection.Appearance.name <- None
+                this.UpdatePresetName())
         let transaction = this.SupportFragmentManager.BeginTransaction()
         transaction
             .Replace(Resources.Id.content, fragment)
             .RunOnCommit(new Java.Lang.Runnable(fun () -> 
+                this.UpdatePresetName()
                 // open presets manager for appearance
                 this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
                     this.StartActivity(typeof<AppearancePresetSelectionActivity>) ) ))
@@ -184,7 +226,7 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
 
         let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this AppearancePreset.DirectoryName
         use presetsDir = new Java.IO.File(presetsDirPath)
-        let builtinPresets = BuiltinPresets.getAppearancePresets(LibDworkin.RendererComponents.AndroidPlatform(this))
+        let builtinPresets = BuiltinPresets.getAppearancePresets(this)
         let presets =
             if presetsDir.Exists() then
                 [| for file in presetsDir.ListFiles() do
@@ -198,8 +240,27 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
         this.SetContentView(Resources.Layout.Empty)
         this.SetupToolbar()
         let fragment = new Settings.Presets.PresetSelectionFragment(Previews=previews)
+        fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> AppearancePreset) )
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
 
+    member this.OnPresetSelected(preset : AppearancePreset) =
+        let currSettings = CurrentSettings.get()
+        let newSettings = 
+            { currSettings with 
+                Effect=preset.Effect
+                BackgroundColor=preset.BackgroundColor
+                ForegroundColor=preset.ForegroundColor
+                Background=preset.Background
+                Foreground=preset.Foreground }
+        CurrentSettings.set(newSettings)
+        if currSettings.Effect <> newSettings.Effect then
+            CurrentSettings.registerChange(SettingsChange.EffectChanged)
+        if currSettings.Background <> newSettings.Background || currSettings.BackgroundColor <> newSettings.BackgroundColor then
+            CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
+        if currSettings.Foreground <> newSettings.Foreground || currSettings.ForegroundColor <> newSettings.ForegroundColor then
+            CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
+        CurrentPresetSelection.Appearance.name <- Some(preset.Name)
+        this.Finish()
 
 
 [<Activity(Label = "Settings")>]

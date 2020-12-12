@@ -69,5 +69,10 @@ module BuiltinPresets =
                 Name="Painted wood", IsBuiltin=true, IsSaved=true);
         |]
 
-    let getAppearancePresets(platform : LibDworkin.RendererComponents.AndroidPlatform) : AppearancePreset[] =
+    let getAppearancePresets(context : Android.Content.Context) : AppearancePreset[] =
         appearancePresets
+
+
+module CurrentPresetSelection =
+    module Appearance =
+        let mutable name : string option = None
