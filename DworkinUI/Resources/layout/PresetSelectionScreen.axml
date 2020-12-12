@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <android.support.v7.widget.Toolbar
+	   android:id="@+id/app_toolbar"
+	   android:layout_width="match_parent"
+	   android:layout_height="?attr/actionBarSize"
+	   android:elevation="4dp"
+	   android:theme="@style/ThemeOverlay.AppCompat.ActionBar" />
+	<LinearLayout
+		android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+		android:paddingHorizontal="?android:attr/scrollbarSize">
+		<TextView 
+			android:text="Current:"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_gravity="center_vertical"
+			android:paddingRight="20sp"
+			android:paddingBottom="@dimen/editor_title_padding_bottom"
+			android:textAppearance="@style/SettingsGroupTitle" />
+		<TextView
+			android:id="@+id/preset_name_display"
+			android:text="custom"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_gravity="center_vertical"
+			android:layout_weight="1"
+			android:paddingBottom="@dimen/editor_title_padding_bottom"
+			android:textAppearance="@style/SettingTitle"/>
+		<Button
+			android:id="@+id/save_preset_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+			android:text="Save..."/>
+	</LinearLayout>
+	<FrameLayout
+		android:id="@+id/content"
+        android:layout_width="match_parent"
+		android:layout_height="match_parent"/>
+</LinearLayout>

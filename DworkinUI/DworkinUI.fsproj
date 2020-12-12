@@ -58,6 +58,9 @@
     <AndroidResource Include="Resources\layout\Empty.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\PresetSelectionScreen.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <AndroidResource Include="Resources\layout\OverallSettingsFragment.axml">
       <SubType>Designer</SubType>
     </AndroidResource>

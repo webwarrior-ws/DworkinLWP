@@ -3,14 +3,14 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="6dp">
+    android:padding="@dimen/preset_preview_padding">
     <GridView
         android:id="@+id/previewGrid"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:numColumns="auto_fit"
-        android:horizontalSpacing="4dp"
-        android:verticalSpacing="4dp"
+        android:horizontalSpacing="@dimen/preset_preview_spacing"
+        android:verticalSpacing="@dimen/preset_preview_spacing"
         android:stretchMode="none"
         android:gravity="center_horizontal"/>
 </FrameLayout>

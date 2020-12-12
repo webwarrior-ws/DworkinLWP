@@ -189,17 +189,9 @@ type AppearanceSettingsActivity() =
         if not (isNull display) then
             display.Text <- 
                 match CurrentPresetSelection.appearance with
-                | Some(preset) -> 
-                    let currSettings = CurrentSettings.get()
-                    if preset.Effect = currSettings.Effect && 
-                       preset.BackgroundColor = currSettings.BackgroundColor &&
-                       preset.ForegroundColor = currSettings.ForegroundColor &&
-                       preset.Background = currSettings.Background &&
-                       preset.Foreground = currSettings.Foreground then 
-                        preset.Name
-                    else
-                        "custom"
-                | None -> "custom"
+                | Some(preset) when preset.IsUsedInSettings(CurrentSettings.get()) -> 
+                    preset.Name
+                | _ -> "custom"
     
     override this.OnRestart() =
         base.OnRestart()
@@ -238,12 +230,19 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
                     let preset : AppearancePreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
                     yield preset |]
             else [||]
-        let previews = [| 
-            for preset in (Array.append builtinPresets presets) -> 
-                new Settings.Presets.PresetPreview(this, preset) |]
+        let previews = 
+            let previewSize = AppearancePreset.GetPreviewSize(this)
+            [| for preset in (Array.append builtinPresets presets) -> 
+                new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize) |]
 
-        this.SetContentView(Resources.Layout.Empty)
+        this.SetContentView(Resources.Layout.PresetSelectionScreen)
         this.SetupToolbar()
+
+        //this.FindViewById<TextView>(Resources.Id.preset_name_display).Text
+        this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
+            // TODO: show save preset dialog
+            () )
+
         let fragment = new Settings.Presets.PresetSelectionFragment(Previews=previews)
         fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> AppearancePreset) )
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore

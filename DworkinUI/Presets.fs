@@ -39,6 +39,19 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
     member val Foreground : MaterialSettings = fgMaterial with get, set
     member val Background : MaterialSettings = bgMaterial with get, set
     
+    /// Return size in pixels of preview based on screen size
+    static member GetPreviewSize(context : Android.Content.Context) : (int * int) =
+        let displayMetrics = context.Resources.DisplayMetrics
+        let smallerSide = min displayMetrics.WidthPixels displayMetrics.HeightPixels
+        let spacing = (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing)) / displayMetrics.Density // in dp
+        let targetSize = displayMetrics.Density * (150.0f + float32(spacing * 2.0f))
+        let n : int = int <| round(float32(smallerSide) / targetSize)
+        let n = max n 3
+        let padding = context.Resources.GetDimension(Resources.Dimension.preset_preview_padding) // in pixels
+        let numPixels = (smallerSide - int(spacing * displayMetrics.Density)*(n+1) - int(padding * 2.0f)) / n
+        let numPixels = numPixels - (numPixels%2) // make it even
+        (numPixels, numPixels)
+
     static member DirectoryName = "appearance"
     override this.DirName = AppearancePreset.DirectoryName
 
@@ -51,6 +64,14 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
             | Randomized -> Android.Graphics.Color.Transparent
         bmp.EraseColor(c.ToArgb())
         bmp
+
+    /// Return true if provided settings have same effect, materials and colors as receiver
+    member this.IsUsedInSettings(settings : SettingsHolder) : bool =
+        this.Effect = settings.Effect && 
+        this.BackgroundColor = settings.BackgroundColor &&
+        this.ForegroundColor = settings.ForegroundColor &&
+        this.Background = settings.Background &&
+        this.Foreground = settings.Foreground
 
 
 /// This module contains references to built-in presets.

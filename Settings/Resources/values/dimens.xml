@@ -8,4 +8,7 @@
 
   <dimen name="editor_title_padding_bottom">4dp</dimen>
 
+  <dimen name="preset_preview_spacing">4dp</dimen>
+  <dimen name="preset_preview_padding">6dp</dimen>
+
 </resources>
