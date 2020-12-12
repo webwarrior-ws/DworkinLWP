@@ -247,11 +247,11 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
         let currSettings = CurrentSettings.get()
         let newSettings = 
             { currSettings with 
-                Effect=preset.Effect
+                Effect=Serialization.copy preset.Effect
                 BackgroundColor=preset.BackgroundColor
                 ForegroundColor=preset.ForegroundColor
-                Background=preset.Background
-                Foreground=preset.Foreground }
+                Background=Serialization.copy preset.Background
+                Foreground=Serialization.copy preset.Foreground }
         CurrentSettings.set(newSettings)
         if currSettings.Effect <> newSettings.Effect then
             CurrentSettings.registerChange(SettingsChange.EffectChanged)

@@ -89,6 +89,7 @@ type IRandomizedEditor<'TItem> =
 type RandomizedEditorComponent<'TEditor, 'TItem when 'TEditor :> View and 'TEditor :> IRandomizedEditor<'TItem>> (editor : 'TEditor) =
     let changedEvent = Event<unit>()
     let mutable accessor = Empty
+    let mutable setValueOnChange = true
     
     member this.Initialize() =
         this.RandomButton.OnCheckedChangeListener <- 
@@ -97,12 +98,13 @@ type RandomizedEditorComponent<'TEditor, 'TItem when 'TEditor :> View and 'TEdit
                     editor.IsEnabled <- not isChecked
                     changedEvent.Trigger()
         this.Changed.Add(fun () -> 
-            let value = 
-                if this.RandomButton.Checked then
-                    Randomized
-                else
-                    Defined(editor.CurrentValue)
-            accessor.Set(value))
+            if setValueOnChange then
+                let value = 
+                    if this.RandomButton.Checked then
+                        Randomized
+                    else
+                        Defined(editor.CurrentValue)
+                accessor.Set(value))
 
     member val Changed : IEvent<unit> = changedEvent.Publish
 
@@ -117,11 +119,14 @@ type RandomizedEditorComponent<'TEditor, 'TItem when 'TEditor :> View and 'TEdit
             | Accessor(getter, _) ->
                 let currItemUntyped = getter()
                 let currItem = currItemUntyped :?> Randomizeable<'TItem>
+                setValueOnChange <- false
                 match currItem with
-                | Randomized -> this.RandomButton.Checked <- true
+                | Randomized -> 
+                    this.RandomButton.Checked <- true
                 | Defined(value) -> 
                     this.RandomButton.Checked <- false
                     editor.CurrentValue <- value
+                setValueOnChange <- true
             accessor <- newAccessor
 
 
