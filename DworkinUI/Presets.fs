@@ -74,5 +74,4 @@ module BuiltinPresets =
 
 
 module CurrentPresetSelection =
-    module Appearance =
-        let mutable name : string option = None
+    let mutable appearance : AppearancePreset option = None

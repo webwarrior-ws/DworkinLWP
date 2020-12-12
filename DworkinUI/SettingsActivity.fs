@@ -188,14 +188,22 @@ type AppearanceSettingsActivity() =
         let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
         if not (isNull display) then
             display.Text <- 
-                match CurrentPresetSelection.Appearance.name with
-                | Some(s) -> s
+                match CurrentPresetSelection.appearance with
+                | Some(preset) -> 
+                    let currSettings = CurrentSettings.get()
+                    if preset.Effect = currSettings.Effect && 
+                       preset.BackgroundColor = currSettings.BackgroundColor &&
+                       preset.ForegroundColor = currSettings.ForegroundColor &&
+                       preset.Background = currSettings.Background &&
+                       preset.Foreground = currSettings.Foreground then 
+                        preset.Name
+                    else
+                        "custom"
                 | None -> "custom"
     
     override this.OnRestart() =
         base.OnRestart()
         this.UpdatePresetName()
-        // update editors
         let fragment = this.SupportFragmentManager.FindFragmentById(Resources.Id.content) :?> AppearanceSettingsFragment
         fragment.UpdateEditors()
 
@@ -204,10 +212,7 @@ type AppearanceSettingsActivity() =
         this.SetContentView(Resources.Layout.Empty)
         this.SetupToolbar()
         let fragment = new AppearanceSettingsFragment()
-        fragment.SettingChanged.Add(
-            fun() -> 
-                CurrentPresetSelection.Appearance.name <- None
-                this.UpdatePresetName())
+        fragment.SettingChanged.Add(fun() -> this.UpdatePresetName())
         let transaction = this.SupportFragmentManager.BeginTransaction()
         transaction
             .Replace(Resources.Id.content, fragment)
@@ -259,7 +264,7 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
             CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
         if currSettings.Foreground <> newSettings.Foreground || currSettings.ForegroundColor <> newSettings.ForegroundColor then
             CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
-        CurrentPresetSelection.Appearance.name <- Some(preset.Name)
+        CurrentPresetSelection.appearance <- Some(preset)
         this.Finish()
 
 
