@@ -169,29 +169,58 @@ type ActivityWithBackButton() =
             base.OnOptionsItemSelected(item)
 
 
-type PresetSelectionDialog<'TPreset when 'TPreset :> Preset>(preset : 'TPreset, previewSize : (int*int), allPresets : 'TPreset[]) =
+type private PresetNameCollision =
+    | NoCollision
+    | UserPreset
+    | BuiltinPreset
+
+type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset, previewSize : (int*int), allPresets : 'TPreset[]) =
     inherit Android.Support.V4.App.DialogFragment()
+
+    let presetSavedEvent = Event<Preset>()
+    member this.PresetSaved = presetSavedEvent.Publish
+
+    member private this.UpdateWarningsAndSaveButton(dialog : AlertDialog, collision : PresetNameCollision) = 
+        let saveButton = dialog.GetButton(int Android.Content.DialogButtonType.Positive)
+        saveButton.Enabled <- collision <> BuiltinPreset
+        let warningWidget = dialog.FindViewById<View>(Resources.Id.preset_name_warning)
+        warningWidget.Visibility <- if collision <> NoCollision then ViewStates.Visible else ViewStates.Invisible
+        let setWarningText s =
+            dialog.FindViewById<TextView>(Resources.Id.preset_name_warning_text).Text <- s  
+        match collision with
+        | BuiltinPreset -> setWarningText "Built-in preset with this name already exists. Choose another name."
+        | UserPreset -> setWarningText "Warning: preset with this name already exists and will be overwritten."
+        | NoCollision -> ()
 
     override this.OnCreateDialog(bundle) =
         use builder = new AlertDialog.Builder(this.Context)
+        let dialogView = this.Activity.LayoutInflater.Inflate(Resources.Layout.SavePresetDialog, null)
+        let nameInput = dialogView.FindViewById<EditText>(Resources.Id.preset_name_input)
         let dialog = 
             builder
-                .SetView(Resources.Layout.SavePresetDialog)
-                .SetPositiveButton("save", (fun _ args -> PresetManagement.savePreset this.Context preset))
+                .SetView(dialogView)
+                .SetPositiveButton("save", 
+                    fun _ args -> 
+                        currentPreset.Name <- nameInput.Text
+                        PresetManagement.savePreset this.Context currentPreset
+                        presetSavedEvent.Trigger(currentPreset) )
                 .SetNegativeButton("cancel", fun _ _ -> this.Dialog.Cancel())
                 .Create()
         
-        let preview = new PresetPreview(this.Context, preset, ImageSize=previewSize)
-        dialog.FindViewById<ViewGroup>(Resources.Id.preview_display).AddView(preview)
-
-        let nameInput = dialog.FindViewById<EditText>(Resources.Id.preset_name_input)
-        nameInput.Text <- preset.Name
+        let preview = new PresetPreview(this.Context, currentPreset, ImageSize=previewSize)
+        preview.Initialize()
+        dialogView.FindViewById<ViewGroup>(Resources.Id.preview_display).AddView(preview)
+        
+        nameInput.Text <- currentPreset.Name
         nameInput.TextChanged.Add(fun args -> 
-            let saveButton = dialog.GetButton(int Android.Content.DialogButtonType.Positive)
-            let currText = "" //extract from args
+            let currText = args.Text.ToString()
             let existingPreset = allPresets |> Array.tryFind (fun preset -> preset.Name = currText)
-            //saveButton.Enabled <- false
-            () )
+            let collision =
+                match existingPreset with
+                | None -> NoCollision
+                | Some(preset) when preset.IsBuiltin -> BuiltinPreset
+                | Some(_) -> UserPreset
+            this.UpdateWarningsAndSaveButton(dialog, collision) )
 
         dialog :> Dialog
 
@@ -242,6 +271,10 @@ type AppearanceSettingsActivity() =
 and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity() =
     inherit ActivityWithBackButton()
 
+    member private this.UpdatePresetNameDisplay() =
+        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
+
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
 
@@ -254,26 +287,39 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
                     let preset : AppearancePreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
                     yield preset |]
             else [||]
+        let allPresets = Array.append builtinPresets presets
+        let previewSize = AppearancePreset.GetPreviewSize(this)
         let previews = 
-            let previewSize = AppearancePreset.GetPreviewSize(this)
-            [| for preset in (Array.append builtinPresets presets) -> 
+            [| for preset in allPresets -> 
                 new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize) |]
 
         this.SetContentView(Resources.Layout.PresetSelectionScreen)
         this.SetupToolbar()
 
-        this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
-            // TODO: show save preset dialog
-            () )
-
         let fragment = new Settings.Presets.PresetSelectionFragment(Previews=previews)
         fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> AppearancePreset) )
+        
+        this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
+            let currPreset =
+                match CurrentPresetSelection.appearance with
+                | Some(preset) -> preset
+                | None -> 
+                    let cs = CurrentSettings.get()
+                    AppearancePreset(cs.Effect, cs.ForegroundColor, cs.BackgroundColor, cs.Foreground, cs.Background, 
+                                     Name="Custom", IsSaved=false)
+            let dialog = new SavePresetDialog<AppearancePreset>(currPreset, previewSize, allPresets)
+            dialog.PresetSaved.Add(fun preset -> 
+                this.UpdatePresetNameDisplay()
+                // TODO: update previews grid
+                //fragment.Previews 
+                )
+            dialog.Show(this.SupportFragmentManager, dialog.GetType().Name) )
+
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
     
     override this.OnResume() =
         base.OnResume()
-        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
-        display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
+        this.UpdatePresetNameDisplay()
 
     member this.OnPresetSelected(preset : AppearancePreset) =
         let currSettings = CurrentSettings.get()
