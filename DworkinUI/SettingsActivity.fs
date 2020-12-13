@@ -1,5 +1,6 @@
 ﻿namespace DworkinUI
 
+
 open Android.App
 open Android.Widget
 open Android.Views
@@ -180,6 +181,15 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
     let presetSavedEvent = Event<Preset>()
     member this.PresetSaved = presetSavedEvent.Publish
 
+    member private this.ValidateName(dialog : AlertDialog, name : string) =
+        let existingPreset = allPresets |> Array.tryFind (fun preset -> preset.Name = name)
+        let collision =
+            match existingPreset with
+            | None -> NoCollision
+            | Some(preset) when preset.IsBuiltin -> BuiltinPreset
+            | Some(_) -> UserPreset
+        this.UpdateWarningsAndSaveButton(dialog, collision)
+
     member private this.UpdateWarningsAndSaveButton(dialog : AlertDialog, collision : PresetNameCollision) = 
         let saveButton = dialog.GetButton(int Android.Content.DialogButtonType.Positive)
         saveButton.Enabled <- collision <> BuiltinPreset
@@ -208,21 +218,18 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
                 .Create()
         
         let preview = new PresetPreview(this.Context, currentPreset, ImageSize=previewSize)
+        preview.InvalidateCache()
         preview.Initialize()
         dialogView.FindViewById<ViewGroup>(Resources.Id.preview_display).AddView(preview)
         
         nameInput.Text <- currentPreset.Name
         nameInput.TextChanged.Add(fun args -> 
             let currText = args.Text.ToString()
-            let existingPreset = allPresets |> Array.tryFind (fun preset -> preset.Name = currText)
-            let collision =
-                match existingPreset with
-                | None -> NoCollision
-                | Some(preset) when preset.IsBuiltin -> BuiltinPreset
-                | Some(_) -> UserPreset
-            this.UpdateWarningsAndSaveButton(dialog, collision) )
+            this.ValidateName(dialog, currText) )
+        dialog.ShowEvent.Add(fun args -> this.ValidateName(dialog, currentPreset.Name))
 
         dialog :> Dialog
+        
 
 
 [<Activity(Label = "Pattern Settings")>]
@@ -271,6 +278,9 @@ type AppearanceSettingsActivity() =
 and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity() =
     inherit ActivityWithBackButton()
 
+    let allPresets = ResizeArray<AppearancePreset>()
+    let previews = ResizeArray<PresetPreview>()
+
     member private this.UpdatePresetNameDisplay() =
         let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
         display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
@@ -287,11 +297,11 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
                     let preset : AppearancePreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
                     yield preset |]
             else [||]
-        let allPresets = Array.append builtinPresets presets
+        allPresets.AddRange(builtinPresets)
+        allPresets.AddRange(presets)
         let previewSize = AppearancePreset.GetPreviewSize(this)
-        let previews = 
-            [| for preset in allPresets -> 
-                new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize) |]
+        for preset in allPresets do
+            previews.Add <| new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
 
         this.SetContentView(Resources.Layout.PresetSelectionScreen)
         this.SetupToolbar()
@@ -307,12 +317,21 @@ and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity(
                     let cs = CurrentSettings.get()
                     AppearancePreset(cs.Effect, cs.ForegroundColor, cs.BackgroundColor, cs.Foreground, cs.Background, 
                                      Name="Custom", IsSaved=false)
-            let dialog = new SavePresetDialog<AppearancePreset>(currPreset, previewSize, allPresets)
+            let dialog = new SavePresetDialog<AppearancePreset>(currPreset, previewSize, allPresets.ToArray())
             dialog.PresetSaved.Add(fun preset -> 
                 this.UpdatePresetNameDisplay()
-                // TODO: update previews grid
-                //fragment.Previews 
-                )
+                // update preset selection grid
+                let newPreview = new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
+                newPreview.Initialize()
+                try
+                    let i = allPresets.FindIndex(fun x -> x.Name = preset.Name)
+                    allPresets.[i] <- preset :?> AppearancePreset
+                    previews.[i] <- newPreview
+                with
+                | :? System.ArgumentNullException ->
+                    allPresets.Add(preset :?> AppearancePreset)
+                    previews.Add(newPreview)
+                fragment.Update() )
             dialog.Show(this.SupportFragmentManager, dialog.GetType().Name) )
 
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore

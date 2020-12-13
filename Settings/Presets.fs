@@ -1,5 +1,8 @@
 ﻿module Settings.Presets
 
+
+open System.Collections.Generic
+
 open Android.Content
 open Android.Util
 open Android.Widget
@@ -142,6 +145,11 @@ type PresetPreview(context : Context, preset : Preset) =
                 None // force re-generation of thumbnail with correct dimensions
         else
             None
+    
+    member this.InvalidateCache() =
+        use file = new Java.IO.File(this.CacheFilePath)
+        if file.Exists() then
+            file.Delete() |> ignore
 
     // state changes
     member this.SetInitialState() =
@@ -190,36 +198,46 @@ type PresetPreview(context : Context, preset : Preset) =
             state <- PresetPreviewState.Pending
 
 
-type PresetPreviewAdapter(previews : PresetPreview[]) =
+type PresetPreviewAdapter(previews : System.Collections.Generic.IList<PresetPreview>) =
     inherit BaseAdapter()
 
-    override this.Count = previews.Length
-    override this.GetItem(pos) = previews.[pos] :> Java.Lang.Object
+    member val Previews = previews with get, set
+
+    override this.Count = this.Previews.Count
+    override this.GetItem(pos) = this.Previews.[pos] :> Java.Lang.Object
     override this.GetItemId(pos) = int64 pos
 
     override this.GetView(pos, convertView, parent) =
-        previews.[pos] :> View
+        this.Previews.[pos] :> View
 
 
 type PresetSelectionFragment() =
     inherit Android.Support.V4.App.Fragment()
     
-    let presetSelectedEvent = Event<Preset>()
+    let adapter = new PresetPreviewAdapter([||])
 
+    let presetSelectedEvent = Event<Preset>()
     member this.PresetSelected = presetSelectedEvent.Publish
 
-    member val Previews : PresetPreview[] = [||] with get, set
+    member this.Previews
+        with get() : IList<PresetPreview> = adapter.Previews
+        and set(newValue : IList<PresetPreview>) = 
+            adapter.Previews <- newValue
+            this.Update()
+    
+    member this.Update() =
+        adapter.NotifyDataSetChanged()
 
     override this.OnCreateView(inflater, container, bundle) = 
          // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
         let view = inflater.Inflate(Resources.Layout.PresetSelectionFragment, container, false)
         let gridView = view.FindViewById<GridView>(Resources.Id.previewGrid)
-        if this.Previews.Length > 0 then
+        if this.Previews.Count > 0 then
             gridView.SetColumnWidth(fst this.Previews.[0].ImageSize)
         for each in this.Previews do
             each.Initialize()
             each.Click.Add(fun _ -> presetSelectedEvent.Trigger(each.Preset))
-        gridView.Adapter <- new PresetPreviewAdapter(this.Previews)
+        gridView.Adapter <- adapter
         view         
 
     override this.OnStop() =
