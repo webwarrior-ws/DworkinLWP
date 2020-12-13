@@ -96,3 +96,8 @@ module BuiltinPresets =
 
 module CurrentPresetSelection =
     let mutable appearance : AppearancePreset option = None
+    let getAppearancePresetDisplayText() = 
+        match appearance with
+        | Some(preset) when preset.IsUsedInSettings(CurrentSettings.get()) -> 
+            preset.Name
+        | _ -> "custom"
