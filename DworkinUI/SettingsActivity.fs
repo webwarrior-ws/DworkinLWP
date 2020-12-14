@@ -285,34 +285,44 @@ type private PresetContextMenuChoice =
     | Rename = 1
     | Delete = 2
 
-[<Activity(Label = "Appearance Preset")>] 
-type AppearancePresetSelectionActivity() =
+[<AbstractClass>]
+type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
     inherit ActivityWithBackButton()
 
-    let allPresets = ResizeArray<AppearancePreset>()
+    let allPresets = ResizeArray<'TPreset>()
     let previews = ResizeArray<PresetPreview>()
 
     let mutable fragment : Settings.Presets.PresetSelectionFragment = null
 
-    member private this.UpdatePresetNameDisplay() =
-        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
-        display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
+    abstract PresetsDirName : string
+    
+    abstract BuiltinPresets : 'TPreset[]
+
+    abstract CurrentPresetSelection : 'TPreset option with get, set
+
+    abstract GetCurrentPreset : unit -> 'TPreset
+    
+    abstract GetPreviewSize : unit -> (int*int)
+
+    abstract UpdatePresetNameDisplay : unit -> unit
+    
+    abstract OnPresetSelected : 'TPreset -> unit
 
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
 
-        let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this AppearancePreset.DirectoryName
+        let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this this.PresetsDirName
         use presetsDir = new Java.IO.File(presetsDirPath)
-        let builtinPresets = BuiltinPresets.getAppearancePresets(this)
+        let builtinPresets = this.BuiltinPresets
         let presets =
             if presetsDir.Exists() then
                 [| for file in presetsDir.ListFiles() do
-                    let preset : AppearancePreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
+                    let preset : 'TPreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
                     yield preset |]
             else [||]
         allPresets.AddRange(builtinPresets)
         allPresets.AddRange(presets)
-        let previewSize = AppearancePreset.GetPreviewSize(this)
+        let previewSize = this.GetPreviewSize()
         for preset in allPresets do
             previews.Add <| new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
 
@@ -320,38 +330,36 @@ type AppearancePresetSelectionActivity() =
         this.SetupToolbar()
 
         fragment <- new Settings.Presets.PresetSelectionFragment(Previews=previews)
-        fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> AppearancePreset) )
-        
+        fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> 'TPreset) )
+    
         this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
-            let currPreset =
-                let cs = CurrentSettings.get()
-                AppearancePreset(cs.Effect, cs.ForegroundColor, cs.BackgroundColor, cs.Foreground, cs.Background, IsSaved=false)
-            match CurrentPresetSelection.appearance with
+            let currPreset = this.GetCurrentPreset()
+            match this.CurrentPresetSelection with
             | Some(preset) -> currPreset.Name <- preset.Name
             | None -> currPreset.Name <- "Custom"
-            let dialog = new SavePresetDialog<AppearancePreset>(currPreset, previewSize, allPresets.ToArray())
+            let dialog = new SavePresetDialog<'TPreset>(currPreset, previewSize, allPresets.ToArray())
             dialog.PresetSaved.Add(fun preset -> 
-                CurrentPresetSelection.appearance <- Some(preset :?> AppearancePreset)
+                this.CurrentPresetSelection <- Some(preset :?> 'TPreset)
                 this.UpdatePresetNameDisplay()
                 // update preset selection grid
                 let newPreview = new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
                 newPreview.Initialize()
                 let i = allPresets.FindIndex(fun x -> x.Name = preset.Name)
                 if i >= 0 then
-                    allPresets.[i] <- preset :?> AppearancePreset
+                    allPresets.[i] <- preset :?> 'TPreset 
                     previews.[i] <- newPreview
                 else
-                    allPresets.Add(preset :?> AppearancePreset)
+                    allPresets.Add(preset :?> 'TPreset) 
                     previews.Add(newPreview)
                 fragment.Update() )
             dialog.Show(this.SupportFragmentManager, dialog.GetType().Name) )
 
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
-    
+
     override this.OnResume() =
         base.OnResume()
         this.UpdatePresetNameDisplay()
-    
+
     override this.OnCreateContextMenu(menu, v, menuInfo) =  
         match v with
         | :? GridView as gridView ->
@@ -364,7 +372,7 @@ type AppearancePresetSelectionActivity() =
                 menu.Add(menuInfo.Position, int PresetContextMenuChoice.Delete, 2, "Delete") |> ignore
         | _ -> ()
         base.OnCreateContextMenu(menu, v, menuInfo)
-    
+
     override this.OnContextItemSelected(item) =
         let pos = item.GroupId
         match LanguagePrimitives.EnumOfValue item.ItemId with
@@ -373,14 +381,14 @@ type AppearancePresetSelectionActivity() =
             true
         | PresetContextMenuChoice.Rename ->
             let builtinPresetNames = [| for preset in allPresets do if preset.IsBuiltin then yield preset.Name |]
-            let dialog = new RenamePresetDialog<AppearancePreset>(allPresets.[pos], builtinPresetNames)
+            let dialog = new RenamePresetDialog<'TPreset>(allPresets.[pos], builtinPresetNames)
             dialog.PresetRenamed.Add(fun (oldName, newName) ->
-                match CurrentPresetSelection.appearance with
+                match this.CurrentPresetSelection with
                 | Some(preset) when preset.Name = oldName -> 
                     preset.Name <- newName
                     this.UpdatePresetNameDisplay()
                 | _ -> ()
-                previews.[pos].InvalidateCache() // delete old preview cached image
+                previews.[pos].InvalidateCache() // delete cached preview image under old name
                 assert (previews.[pos].Preset.Name = newName)
                 previews.[pos].UpdateName()
                 fragment.Update() )
@@ -395,8 +403,31 @@ type AppearancePresetSelectionActivity() =
             true
         | _ -> 
             base.OnContextItemSelected(item)
+    
 
-    member this.OnPresetSelected(preset : AppearancePreset) =
+[<Activity(Label = "Appearance Preset")>] 
+type AppearancePresetSelectionActivity() =
+    inherit PresetSelectionActivity<AppearancePreset>()
+
+    override this.PresetsDirName = AppearancePreset.DirectoryName
+
+    override this.BuiltinPresets = BuiltinPresets.getAppearancePresets(this)
+
+    override this.GetCurrentPreset() =
+        let cs = CurrentSettings.get()
+        AppearancePreset(cs.Effect, cs.ForegroundColor, cs.BackgroundColor, cs.Foreground, cs.Background, IsSaved=false)
+
+    override this.CurrentPresetSelection 
+        with get() = CurrentPresetSelection.appearance
+        and set(value) = CurrentPresetSelection.appearance <- value
+
+    override this.GetPreviewSize() = AppearancePreset.GetPreviewSize(this)
+    
+    override this.UpdatePresetNameDisplay() =
+        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
+
+    override this.OnPresetSelected(preset) =  
         let currSettings = CurrentSettings.get()
         let newSettings = 
             { currSettings with 
@@ -412,7 +443,7 @@ type AppearancePresetSelectionActivity() =
             CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
         if currSettings.Foreground <> newSettings.Foreground || currSettings.ForegroundColor <> newSettings.ForegroundColor then
             CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
-        CurrentPresetSelection.appearance <- Some(preset)
+        this.CurrentPresetSelection <- Some(preset)
         this.Finish()
 
 
