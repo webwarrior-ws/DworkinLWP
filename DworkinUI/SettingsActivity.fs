@@ -209,14 +209,14 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
         let dialog = 
             builder
                 .SetView(dialogView)
-                .SetPositiveButton("save", 
+                .SetPositiveButton("Save", 
                     fun _ args -> 
                         let newPreset = Serialization.copy currentPreset
                         newPreset.Name <- nameInput.Text
                         newPreset.IsSaved <- false
                         PresetManagement.savePreset this.Context newPreset
                         presetSavedEvent.Trigger(newPreset) )
-                .SetNegativeButton("cancel", fun _ _ -> this.Dialog.Cancel())
+                .SetNegativeButton("Cancel", fun _ _ -> this.Dialog.Cancel())
                 .Create()
         
         let preview = new PresetPreview(this.Context, currentPreset, ImageSize=previewSize)
@@ -232,6 +232,40 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
 
         dialog :> Dialog
         
+
+type RenamePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset, builtinPresetNames : string[]) =
+    inherit Android.Support.V4.App.DialogFragment()
+    
+    let presetRenamedEvent = Event<string * string>()
+    member this.PresetRenamed = presetRenamedEvent.Publish
+
+    override this.OnCreateDialog(bundle) =
+        use builder = new AlertDialog.Builder(this.Context)
+        let dialogView = this.Activity.LayoutInflater.Inflate(Resources.Layout.RenamePresetDialog, null)
+        let nameInput = dialogView.FindViewById<EditText>(Resources.Id.preset_name_input)
+        nameInput.Text <- currentPreset.Name
+        nameInput.TextChanged.Add(fun args -> 
+            let currText = args.Text.ToString()
+            let warning = dialogView.FindViewById<View>(Resources.Id.preset_name_warning)
+            warning.Visibility <- 
+                if builtinPresetNames |> Array.contains currText then 
+                    ViewStates.Visible 
+                else 
+                    ViewStates.Invisible )
+
+        let dialog = 
+            builder
+                .SetView(dialogView)
+                .SetTitle("Rename preset")
+                .SetPositiveButton("OK", fun _ args -> 
+                    let oldName = currentPreset.Name
+                    if PresetManagement.renamePreset this.Context currentPreset nameInput.Text then
+                        presetRenamedEvent.Trigger(oldName, currentPreset.Name) )
+                .SetNegativeButton("Cancel", fun _ _ -> this.Dialog.Cancel())
+                .Create()
+
+        dialog :> Dialog
+
 
 
 [<Activity(Label = "Pattern Settings")>]
@@ -338,10 +372,23 @@ type AppearancePresetSelectionActivity() =
             this.OnPresetSelected(allPresets.[pos])
             true
         | PresetContextMenuChoice.Rename ->
-            
+            let builtinPresetNames = [| for preset in allPresets do if preset.IsBuiltin then yield preset.Name |]
+            let dialog = new RenamePresetDialog<AppearancePreset>(allPresets.[pos], builtinPresetNames)
+            dialog.PresetRenamed.Add(fun (oldName, newName) ->
+                match CurrentPresetSelection.appearance with
+                | Some(preset) when preset.Name = oldName -> 
+                    preset.Name <- newName
+                    this.UpdatePresetNameDisplay()
+                | _ -> ()
+                previews.[pos].InvalidateCache() // delete old preview cached image
+                assert (previews.[pos].Preset.Name = newName)
+                previews.[pos].UpdateName()
+                fragment.Update() )
+            dialog.Show(this.SupportFragmentManager, dialog.GetType().Name)
             true
         | PresetContextMenuChoice.Delete ->
             PresetManagement.deletePreset this allPresets.[pos]
+            previews.[pos].InvalidateCache()
             allPresets.RemoveAt(pos)
             previews.RemoveAt(pos)
             fragment.Update()

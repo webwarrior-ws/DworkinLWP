@@ -56,6 +56,11 @@ module PresetManagement =
                 use newFile = new Java.IO.File(getFilePath context preset.DirName newName)
                 if file.RenameTo(newFile) then
                     preset.Name <- newName
+                    true
+                else
+                    false
+            else 
+                false
     
     let deletePreset (context : Context) (preset : Preset) =
         if preset.IsBuiltin then
@@ -113,8 +118,11 @@ type PresetPreview(context : Context, preset : Preset) =
     member this.Initialize() =
         FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
         this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
-        this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- preset.Name
+        this.UpdateName()
     
+    member this.UpdateName() =
+        this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- preset.Name
+
     // previews cache management
     member this.CacheFilePath =
         let filename = "img-" + Java.Net.URLEncoder.Encode(preset.Name, "UTF-8") + ".png"

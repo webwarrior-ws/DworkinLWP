@@ -64,6 +64,9 @@
     <AndroidResource Include="Resources\layout\SavePresetDialog.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\RenamePresetDialog.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <AndroidResource Include="Resources\layout\OverallSettingsFragment.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
