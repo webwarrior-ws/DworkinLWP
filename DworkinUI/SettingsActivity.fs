@@ -211,9 +211,11 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
                 .SetView(dialogView)
                 .SetPositiveButton("save", 
                     fun _ args -> 
-                        currentPreset.Name <- nameInput.Text
-                        PresetManagement.savePreset this.Context currentPreset
-                        presetSavedEvent.Trigger(currentPreset) )
+                        let newPreset = Serialization.copy currentPreset
+                        newPreset.Name <- nameInput.Text
+                        newPreset.IsSaved <- false
+                        PresetManagement.savePreset this.Context newPreset
+                        presetSavedEvent.Trigger(newPreset) )
                 .SetNegativeButton("cancel", fun _ _ -> this.Dialog.Cancel())
                 .Create()
         
@@ -242,6 +244,129 @@ type PatternSettingsActivity() =
         this.SetupToolbar()
         let fragment = new PatternSettingsFragment()
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
+
+
+type private PresetContextMenuChoice =
+    | Select = 0
+    | Rename = 1
+    | Delete = 2
+
+[<Activity(Label = "Appearance Preset")>] 
+type AppearancePresetSelectionActivity() =
+    inherit ActivityWithBackButton()
+
+    let allPresets = ResizeArray<AppearancePreset>()
+    let previews = ResizeArray<PresetPreview>()
+
+    let mutable fragment : Settings.Presets.PresetSelectionFragment = null
+
+    member private this.UpdatePresetNameDisplay() =
+        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
+
+    override this.OnCreate(bundle) =
+        base.OnCreate(bundle)
+
+        let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this AppearancePreset.DirectoryName
+        use presetsDir = new Java.IO.File(presetsDirPath)
+        let builtinPresets = BuiltinPresets.getAppearancePresets(this)
+        let presets =
+            if presetsDir.Exists() then
+                [| for file in presetsDir.ListFiles() do
+                    let preset : AppearancePreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
+                    yield preset |]
+            else [||]
+        allPresets.AddRange(builtinPresets)
+        allPresets.AddRange(presets)
+        let previewSize = AppearancePreset.GetPreviewSize(this)
+        for preset in allPresets do
+            previews.Add <| new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
+
+        this.SetContentView(Resources.Layout.PresetSelectionScreen)
+        this.SetupToolbar()
+
+        fragment <- new Settings.Presets.PresetSelectionFragment(Previews=previews)
+        fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> AppearancePreset) )
+        
+        this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
+            let currPreset =
+                let cs = CurrentSettings.get()
+                AppearancePreset(cs.Effect, cs.ForegroundColor, cs.BackgroundColor, cs.Foreground, cs.Background, IsSaved=false)
+            match CurrentPresetSelection.appearance with
+            | Some(preset) -> currPreset.Name <- preset.Name
+            | None -> currPreset.Name <- "Custom"
+            let dialog = new SavePresetDialog<AppearancePreset>(currPreset, previewSize, allPresets.ToArray())
+            dialog.PresetSaved.Add(fun preset -> 
+                CurrentPresetSelection.appearance <- Some(preset :?> AppearancePreset)
+                this.UpdatePresetNameDisplay()
+                // update preset selection grid
+                let newPreview = new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
+                newPreview.Initialize()
+                let i = allPresets.FindIndex(fun x -> x.Name = preset.Name)
+                if i >= 0 then
+                    allPresets.[i] <- preset :?> AppearancePreset
+                    previews.[i] <- newPreview
+                else
+                    allPresets.Add(preset :?> AppearancePreset)
+                    previews.Add(newPreview)
+                fragment.Update() )
+            dialog.Show(this.SupportFragmentManager, dialog.GetType().Name) )
+
+        this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
+    
+    override this.OnResume() =
+        base.OnResume()
+        this.UpdatePresetNameDisplay()
+    
+    override this.OnCreateContextMenu(menu, v, menuInfo) =  
+        match v with
+        | :? GridView as gridView ->
+            let menuInfo = menuInfo :?> AdapterView.AdapterContextMenuInfo
+            let preview = gridView.GetChildAt(menuInfo.Position) :?> PresetPreview
+            menu.SetHeaderTitle(preview.Preset.Name) |> ignore
+            menu.Add(menuInfo.Position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
+            if not preview.Preset.IsBuiltin then
+                menu.Add(menuInfo.Position, int PresetContextMenuChoice.Rename, 1, "Rename") |> ignore
+                menu.Add(menuInfo.Position, int PresetContextMenuChoice.Delete, 2, "Delete") |> ignore
+        | _ -> ()
+        base.OnCreateContextMenu(menu, v, menuInfo)
+    
+    override this.OnContextItemSelected(item) =
+        let pos = item.GroupId
+        match LanguagePrimitives.EnumOfValue item.ItemId with
+        | PresetContextMenuChoice.Select ->
+            this.OnPresetSelected(allPresets.[pos])
+            true
+        | PresetContextMenuChoice.Rename ->
+            
+            true
+        | PresetContextMenuChoice.Delete ->
+            PresetManagement.deletePreset this allPresets.[pos]
+            allPresets.RemoveAt(pos)
+            previews.RemoveAt(pos)
+            fragment.Update()
+            true
+        | _ -> 
+            base.OnContextItemSelected(item)
+
+    member this.OnPresetSelected(preset : AppearancePreset) =
+        let currSettings = CurrentSettings.get()
+        let newSettings = 
+            { currSettings with 
+                Effect=Serialization.copy preset.Effect
+                BackgroundColor=preset.BackgroundColor
+                ForegroundColor=preset.ForegroundColor
+                Background=Serialization.copy preset.Background
+                Foreground=Serialization.copy preset.Foreground }
+        CurrentSettings.set(newSettings)
+        if currSettings.Effect <> newSettings.Effect then
+            CurrentSettings.registerChange(SettingsChange.EffectChanged)
+        if currSettings.Background <> newSettings.Background || currSettings.BackgroundColor <> newSettings.BackgroundColor then
+            CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
+        if currSettings.Foreground <> newSettings.Foreground || currSettings.ForegroundColor <> newSettings.ForegroundColor then
+            CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
+        CurrentPresetSelection.appearance <- Some(preset)
+        this.Finish()
 
 
 [<Activity(Label = "Appearance Settings")>]
@@ -274,90 +399,6 @@ type AppearanceSettingsActivity() =
                 this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
                     this.StartActivity(typeof<AppearancePresetSelectionActivity>) ) ))
             .Commit() |> ignore
-
-and [<Activity(Label = "Appearance Preset")>] AppearancePresetSelectionActivity() =
-    inherit ActivityWithBackButton()
-
-    let allPresets = ResizeArray<AppearancePreset>()
-    let previews = ResizeArray<PresetPreview>()
-
-    member private this.UpdatePresetNameDisplay() =
-        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
-        display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
-
-    override this.OnCreate(bundle) =
-        base.OnCreate(bundle)
-
-        let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this AppearancePreset.DirectoryName
-        use presetsDir = new Java.IO.File(presetsDirPath)
-        let builtinPresets = BuiltinPresets.getAppearancePresets(this)
-        let presets =
-            if presetsDir.Exists() then
-                [| for file in presetsDir.ListFiles() do
-                    let preset : AppearancePreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
-                    yield preset |]
-            else [||]
-        allPresets.AddRange(builtinPresets)
-        allPresets.AddRange(presets)
-        let previewSize = AppearancePreset.GetPreviewSize(this)
-        for preset in allPresets do
-            previews.Add <| new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
-
-        this.SetContentView(Resources.Layout.PresetSelectionScreen)
-        this.SetupToolbar()
-
-        let fragment = new Settings.Presets.PresetSelectionFragment(Previews=previews)
-        fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> AppearancePreset) )
-        
-        this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
-            let currPreset =
-                match CurrentPresetSelection.appearance with
-                | Some(preset) -> preset
-                | None -> 
-                    let cs = CurrentSettings.get()
-                    AppearancePreset(cs.Effect, cs.ForegroundColor, cs.BackgroundColor, cs.Foreground, cs.Background, 
-                                     Name="Custom", IsSaved=false)
-            let dialog = new SavePresetDialog<AppearancePreset>(currPreset, previewSize, allPresets.ToArray())
-            dialog.PresetSaved.Add(fun preset -> 
-                this.UpdatePresetNameDisplay()
-                // update preset selection grid
-                let newPreview = new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
-                newPreview.Initialize()
-                try
-                    let i = allPresets.FindIndex(fun x -> x.Name = preset.Name)
-                    allPresets.[i] <- preset :?> AppearancePreset
-                    previews.[i] <- newPreview
-                with
-                | :? System.ArgumentNullException ->
-                    allPresets.Add(preset :?> AppearancePreset)
-                    previews.Add(newPreview)
-                fragment.Update() )
-            dialog.Show(this.SupportFragmentManager, dialog.GetType().Name) )
-
-        this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
-    
-    override this.OnResume() =
-        base.OnResume()
-        this.UpdatePresetNameDisplay()
-
-    member this.OnPresetSelected(preset : AppearancePreset) =
-        let currSettings = CurrentSettings.get()
-        let newSettings = 
-            { currSettings with 
-                Effect=Serialization.copy preset.Effect
-                BackgroundColor=preset.BackgroundColor
-                ForegroundColor=preset.ForegroundColor
-                Background=Serialization.copy preset.Background
-                Foreground=Serialization.copy preset.Foreground }
-        CurrentSettings.set(newSettings)
-        if currSettings.Effect <> newSettings.Effect then
-            CurrentSettings.registerChange(SettingsChange.EffectChanged)
-        if currSettings.Background <> newSettings.Background || currSettings.BackgroundColor <> newSettings.BackgroundColor then
-            CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
-        if currSettings.Foreground <> newSettings.Foreground || currSettings.ForegroundColor <> newSettings.ForegroundColor then
-            CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
-        CurrentPresetSelection.appearance <- Some(preset)
-        this.Finish()
 
 
 [<Activity(Label = "Settings")>]

@@ -105,7 +105,7 @@ type PresetPreview(context : Context, preset : Preset) =
     override this.Dispose(disposing) =
         cancellationSource.Dispose()
         base.Dispose(disposing) 
-
+    
     override this.OnAttachedToWindow() =
         base.OnAttachedToWindow()
         this.SetInitialState() // if called earlier, may result in preview not being set
@@ -208,9 +208,12 @@ type PresetPreviewAdapter(previews : System.Collections.Generic.IList<PresetPrev
     override this.GetItemId(pos) = int64 pos
 
     override this.GetView(pos, convertView, parent) =
-        this.Previews.[pos] :> View
+        let view = this.Previews.[pos]
+        view.LongClickable <- true
+        view :> View
 
 
+[<AllowNullLiteral>]
 type PresetSelectionFragment() =
     inherit Android.Support.V4.App.Fragment()
     
@@ -238,6 +241,7 @@ type PresetSelectionFragment() =
             each.Initialize()
             each.Click.Add(fun _ -> presetSelectedEvent.Trigger(each.Preset))
         gridView.Adapter <- adapter
+        this.Activity.RegisterForContextMenu(gridView)
         view         
 
     override this.OnStop() =
