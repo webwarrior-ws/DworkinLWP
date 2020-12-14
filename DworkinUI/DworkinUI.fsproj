@@ -79,6 +79,8 @@
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="Presets.fs" />
+    <Compile Include="SettingsFragments.fs" />
+    <Compile Include="Dialogs.fs" />
     <Compile Include="SettingsActivity.fs" />
   </ItemGroup>
   <ItemGroup>
