@@ -54,6 +54,7 @@ type MainActivity() =
         if isNull bundle then
             // TODO: see if this is no longer needed
             XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<DworkinUI.Resources>
+            XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
 
         // Create our OpenGL view, and display it
         view <- new GLSurfaceView(this)

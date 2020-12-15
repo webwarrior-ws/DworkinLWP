@@ -61,6 +61,9 @@
     <AndroidResource Include="Resources\layout\PresetSelectionScreen.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\PresetNameCollisionWarning.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
     <AndroidResource Include="Resources\layout\SavePresetDialog.axml">
       <SubType>Designer</SubType>
     </AndroidResource>

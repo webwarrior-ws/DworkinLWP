@@ -11,15 +11,9 @@
         android:minWidth="120sp"
         android:inputType="text"
         android:singleLine="true"/>
-    <LinearLayout
+    <DworkinUI.PresetNameCollisionWarning
         android:id="@+id/preset_name_warning"
-        android:orientation="horizontal"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="invisible">
-        <TextView
-            android:text="Built-in preset with this name already exists. Choose another name."
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-    </LinearLayout>
+        android:layout_gravity="center_horizontal"/>
 </LinearLayout>

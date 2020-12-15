@@ -137,7 +137,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
             true
         | PresetContextMenuChoice.Rename ->
             let builtinPresetNames = [| for preset in allPresets do if preset.IsBuiltin then yield preset.Name |]
-            let dialog = new RenamePresetDialog<'TPreset>(allPresets.[pos], builtinPresetNames)
+            let dialog = new RenamePresetDialog<'TPreset>(allPresets.[pos], allPresets.ToArray())
             dialog.PresetRenamed.Add(fun (oldName, newName) ->
                 match this.CurrentPresetSelection with
                 | Some(preset) when preset.Name = oldName -> 
