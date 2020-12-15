@@ -16,7 +16,7 @@ type internal PresetNameCollision =
     | UserPreset
     | BuiltinPreset
     with 
-        static member Determine<'TPreset when 'TPreset :> Preset>(candidateName : string, allPresets : 'TPreset[]) =
+        static member Determine(candidateName : string, allPresets : #Preset[]) =
             let existingPreset = allPresets |> Array.tryFind (fun preset -> preset.Name = candidateName)
             match existingPreset with
             | None -> NoCollision

@@ -27,7 +27,6 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable shapeVertices = Buffer<Vector2>(128)
     let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
     let mutable polygonVertexIndices = Buffer<int>(128)
-    let mutable aoiVertexIndices = Buffer<int>(128)
 
     let mutable circleVertices = Buffer<Vector2>(128)
     let mutable circleVertexData = Buffer<Vector4>(128) // center, radius, innerRadius
@@ -399,7 +398,6 @@ type BaseRenderer(platform : AbstractPlatform) =
     
     member this.BuildOuterShellAndAOIForPolygon(points : Point[]) =
         let n = points.Length
-        let baseIndex = shapeVertices.Size
         let h = this.MaxDistance
         let clockwise = (points.[1] - points.[n-1]).Cross(points.[0] - points.[1]) < 0.0f // maybe counterclockwise, but it doesn't matter
 
@@ -416,26 +414,12 @@ type BaseRenderer(platform : AbstractPlatform) =
             let OE = (OB + OC) / (2.0f * cosAOD * cosAOD) // (OB + OC).Normalized() * (h / cosAOD)
 
             let vertices = [| O; O + OA; O + OD; O + OE; O + OB |]
-            let currIndex = shapeVertices.Size
             this.BuildPolygon(vertices)
-            for _j=1 to 5 do
-                polygonSegmentsVertices.Add O
+            for _j=1 to 5 do polygonSegmentsVertices.Add O
             
-            for j=1 to vertices.Length do
-                aoiVertexIndices.Add(baseIndex + 1)
-                aoiVertexIndices.Add(currIndex + j)
-                aoiVertexIndices.Add(currIndex + j + 1)
-            
-            let currIndex = shapeVertices.Size // not a duplicate definition, more like update
             this.BuildPolygon([| O; O + OB; O2 + OB; O2 |])
-            for _j=1 to 2 do
-                polygonSegmentsVertices.Add O
-            for _j=1 to 2 do
-                polygonSegmentsVertices.Add O2
-
-            aoiVertexIndices.Add(baseIndex + 1)
-            aoiVertexIndices.Add(currIndex + 1)
-            aoiVertexIndices.Add(currIndex + 2) )
+            for _j=1 to 2 do polygonSegmentsVertices.Add O
+            for _j=1 to 2 do polygonSegmentsVertices.Add O2 )
 
     member private this.ClearBlueChannel() =
         GL.ColorMask(false, false, true, false)
@@ -573,7 +557,6 @@ type BaseRenderer(platform : AbstractPlatform) =
         shapeVertices.Reset()
         polygonVertexIndices.Reset()
         polygonSegmentsVertices.Reset()
-        aoiVertexIndices.Reset()
         circleVertices.Reset()
         circleVertexData.Reset()
         circleVertexIndices.Reset()
