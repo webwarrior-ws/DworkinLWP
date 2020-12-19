@@ -89,6 +89,7 @@ type MainActivity() =
         
         if supportsEs2 then
             view.SetEGLContextClientVersion(2)
+            view.SetEGLContextFactory(LibDworkin.Renderer.EGLContextFactory.Instance)
             view.PreserveEGLContextOnPause <- true
             // set renderer
             view.SetRenderer(renderer)

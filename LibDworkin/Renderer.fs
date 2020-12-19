@@ -14,7 +14,36 @@ open DworkinSettings
 #if __ANDROID__
 open Android.Opengl
 open Javax.Microedition.Khronos
+
+
+type EGLContextFactory private() =
+    inherit Java.Lang.Object()
+    
+    static let mutable lastContext : Egl.EGLContext = Egl.EGL10.EglNoContext
+
+    interface GLSurfaceView.IEGLContextFactory with
+        member this.CreateContext(egl, display, eglConfig) =
+            // see https://www.khronos.org/registry/EGL/sdk/docs/man/html/eglCreateContext.xhtml
+            let EGL_CONTEXT_CLIENT_VERSION = 0x3098;
+            let attribs_config = [| 
+                EGL_CONTEXT_CLIENT_VERSION; 2;
+                Egl.EGL10.EglNone
+            |]
+            let context = egl.EglCreateContext(display, eglConfig, Egl.EGL10.EglNoContext, attribs_config)
+            lastContext <- context
+            context
+
+        member this.DestroyContext(egl, display, context) = 
+            if egl.EglDestroyContext(display, context) then
+                lastContext <- Egl.EGL10.EglNoContext
+    
+    static member LastContext = lastContext
+
+    static member val Instance = new EGLContextFactory()
 #endif
+
+let maxSDFDistance = 16.0f
+
 
 
 type BaseRenderer(platform : AbstractPlatform) =
@@ -22,7 +51,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     inherit Java.Lang.Object()
 #endif
     // fields
-    let mutable onSurfaceCreatedCalled = false
+#if __ANDROID__
+    let mutable lastContext : Egl.EGLContext = null
+#endif
 
     let mutable shapeVertices = Buffer<Vector2>(128)
     let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
@@ -63,7 +94,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     let mutable scale = Point(1.0f, 1.0f)
 
     /// maximal absolute values of distances in signed distance field
-    member this.MaxDistance = 16.0f
+    member this.MaxDistance = maxSDFDistance
 
     /// frames per second
     member this.FPS = 30
@@ -318,9 +349,11 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         this.ResetStencil()
 
-        if onSurfaceCreatedCalled then
+#if __ANDROID__
+        if lastContext <> EGLContextFactory.LastContext then
             ResettableLazy<Shader>.ResetAll()
             ResettableLazy<int>.ResetAll() // textures
+#endif
         
         this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
@@ -340,12 +373,14 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
 
-        if onSurfaceCreatedCalled then // OpenGL Context was lost, restart
+#if __ANDROID__
+        if lastContext <> EGLContextFactory.LastContext then // OpenGL Context was lost, restart
             let dims = wallpaperWidth, wallpaperHeight
             wallpaperWidth <- 0
             wallpaperHeight <- 0
             this.OnSurfaceChanged(dims)
-        onSurfaceCreatedCalled <- true
+            lastContext <- EGLContextFactory.LastContext
+#endif
 
     
     abstract member OnDrawFrame : unit -> unit
