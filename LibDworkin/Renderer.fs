@@ -54,7 +54,6 @@ type BaseRenderer(platform : AbstractPlatform) =
 #if __ANDROID__
     let mutable lastContext : Egl.EGLContext = null
 #endif
-
     let mutable shapeVertices = Buffer<Vector2>(128)
     let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
     let mutable polygonVertexIndices = Buffer<int>(128)

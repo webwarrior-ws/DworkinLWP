@@ -81,6 +81,7 @@
     </AndroidResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
+    <Compile Include="PreviewRenderers.fs" />
     <Compile Include="Presets.fs" />
     <Compile Include="SettingsFragments.fs" />
     <Compile Include="Dialogs.fs" />
