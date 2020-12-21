@@ -52,7 +52,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 #endif
     // fields
 #if __ANDROID__
-    let mutable lastContext : Egl.EGLContext = null
+    let mutable currentContext : Egl.EGLContext = null
 #endif
     let mutable shapeVertices = Buffer<Vector2>(128)
     let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
@@ -99,6 +99,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
+    member internal this.CurrentContext = currentContext
 
     member this.BackgroundTexture = materialTextures.[0]
     member this.ForegroundTexture = materialTextures.[1]
@@ -291,7 +292,6 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
 
-
     member this.ResetStencil() = stencil.Reset()
 
     member this.DrawMaterial(material : Material, texture : int) =
@@ -317,11 +317,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     default this.OnSurfaceChanged(width: int, height: int) = 
         // Set the OpenGL viewport to fill the entire surface. 
         GL.Viewport(0, 0, width, height)
-        wallpaperWidth <- width
-        wallpaperHeight <- height
         // setup scale and offset
         let dimensions = this.GetDimensions(width, height)
-        this.SetScale(1.0f / dimensions.X, 1.0f / dimensions.Y)
+        this.SetScale(dimensions, width, height)
 
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         this.InitializeSDF()
@@ -334,11 +332,6 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
-        
-        this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", float32 width, float32 height)
-        this.Effect.ScreenDimensions <- dimensions
-        this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / (float32 width))
-        this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / (float32 height))
 
         this.ResetEnvironment(dimensions)
     
@@ -349,11 +342,11 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.ResetStencil()
 
 #if __ANDROID__
-        if lastContext <> EGLContextFactory.LastContext then
+        if currentContext <> EGLContextFactory.LastContext then
             ResettableLazy<Shader>.ResetAll()
             ResettableLazy<int>.ResetAll() // textures
 #endif
-        
+        // Initialize stuff that is not dependent on screen size. Everything else is (re-)initialized in OnSurfaceChanged
         this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
         
@@ -371,16 +364,11 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
-
 #if __ANDROID__
-        if lastContext <> EGLContextFactory.LastContext then // OpenGL Context was lost, restart
-            let dims = wallpaperWidth, wallpaperHeight
-            wallpaperWidth <- 0
-            wallpaperHeight <- 0
-            this.OnSurfaceChanged(dims)
-            lastContext <- EGLContextFactory.LastContext
+        if currentContext <> EGLContextFactory.LastContext then // OpenGL Context was lost, restart
+            this.OnSurfaceChanged(wallpaperWidth, wallpaperHeight)
+            currentContext <- EGLContextFactory.LastContext
 #endif
-
     
     abstract member OnDrawFrame : unit -> unit
     default this.OnDrawFrame() =
@@ -430,7 +418,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         
         GL.DisableVertexAttribArray(aTexCoords)
     
-    member this.BuildOuterShellAndAOIForPolygon(points : Point[]) =
+    member this.BuildOuterShellForPolygon(points : Point[]) =
         let n = points.Length
         let h = this.MaxDistance
         let clockwise = (points.[1] - points.[n-1]).Cross(points.[0] - points.[1]) < 0.0f // maybe counterclockwise, but it doesn't matter
@@ -506,12 +494,12 @@ type BaseRenderer(platform : AbstractPlatform) =
             // Build outer shell and area of influence for each shape.
             for struct (Polygon(points), paint) in polygons do
                 if paint.Fill then 
-                    this.BuildOuterShellAndAOIForPolygon(points)
+                    this.BuildOuterShellForPolygon(points)
                 if paint.StrokeWidth > 0.0f then 
                     // for now build  outer shell and aoi for each contour segment individually - not optimal, but works
                     let contourSegmentQuads = this.GetQuadsForPolygonContour(points, paint.StrokeWidth)
                     for quadPoints in contourSegmentQuads do
-                        this.BuildOuterShellAndAOIForPolygon(quadPoints)
+                        this.BuildOuterShellForPolygon(quadPoints)
             
             this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
 
@@ -594,18 +582,33 @@ type BaseRenderer(platform : AbstractPlatform) =
         circleVertices.Reset()
         circleVertexData.Reset()
         circleVertexIndices.Reset()
+    
+    /// Separated into separate method so that subclasses can set scale/wallpaperWidth/wallpaperHeight variables directly if needed
+    member this.SetSizeAndScaleVariables(dimensions : Point, screenWidth : int, screenHeight : int) = 
+        scale <- Point(1.0f / dimensions.X, 1.0f / dimensions.Y)
+        wallpaperWidth <- screenWidth
+        wallpaperHeight <- screenHeight
 
-    /// Set scale used in vertex shader for drawing shapes
-    member this.SetScale(xs : float32, ys : float32) =
-        scale <- Point(xs, ys)
+    /// Set scales used in shaders for drawing shapes, calculating SDF; and in material and effect shaders
+    member this.SetScale(dimensions : Point, screenWidth : int, screenHeight : int) = 
+        this.SetSizeAndScaleVariables(dimensions, screenWidth, screenHeight)
+        
+        let xs, ys = scale.X, scale.Y
+        let width, height = float32 wallpaperWidth, float32 wallpaperHeight
+
         polygonDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
         calcPositiveDistShader.Value.DeferredSetUniform("scale", xs, ys)
-        let h = this.MaxDistance * float32(wallpaperWidth) * xs // account for scale
+        let h = this.MaxDistance * width * xs // account for scale
         this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("h", h)
         this.CalcNegativeDistShaderVertical.DeferredSetUniform("h", h)
         circleDrawingShader.Value.DeferredSetUniform("scale", xs, ys)
         this.Foreground.Scale <- scale
         this.Background.Scale <- scale
+        
+        this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", width, height)
+        this.Effect.ScreenDimensions <- dimensions
+        this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / width)
+        this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / height)
     
     ///<summary>Get environment dimensions given screen width and height in pixels.</summary>
     /// Constraints:
@@ -624,6 +627,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             | None -> shortSide / shortMin
 
         Point(float32(width) / multiple, float32(height) / multiple)
+
 
 
 type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref, ?stepper : AbstractEnvironmentStepper) as this =
@@ -718,7 +722,8 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
 #endif
 
     override this.OnSurfaceChanged(width, height) =
-        if this.WallpaperSize <> (width, height) then
+        if this.WallpaperSize <> (width, height) || 
+           (this.CurrentContext <> EGLContextFactory.LastContext && width > 0 && height > 0) then
             base.OnSurfaceChanged(width, height)
         elif framesAfterStop > 0 then
             // Fixes issue of black screen after pause (e.g. waking after sleep). 
