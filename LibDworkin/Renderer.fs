@@ -99,7 +99,9 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.FPS = 30
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
+#if __ANDROID__
     member internal this.CurrentContext = currentContext
+#endif
 
     member this.BackgroundTexture = materialTextures.[0]
     member this.ForegroundTexture = materialTextures.[1]
@@ -722,8 +724,13 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
 #endif
 
     override this.OnSurfaceChanged(width, height) =
-        if this.WallpaperSize <> (width, height) || 
-           (this.CurrentContext <> EGLContextFactory.LastContext && width > 0 && height > 0) then
+        let contextLost =
+#if __ANDROID__
+            this.CurrentContext <> EGLContextFactory.LastContext
+#else
+            false
+#endif
+        if this.WallpaperSize <> (width, height) || (contextLost && width > 0 && height > 0) then
             base.OnSurfaceChanged(width, height)
         elif framesAfterStop > 0 then
             // Fixes issue of black screen after pause (e.g. waking after sleep). 
