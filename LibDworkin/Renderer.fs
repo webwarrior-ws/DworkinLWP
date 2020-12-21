@@ -34,6 +34,8 @@ type EGLContextFactory private() =
             context
 
         member this.DestroyContext(egl, display, context) = 
+            ResettableLazy<Shader>.ResetAll()
+            ResettableLazy<int>.ResetAll() // textures
             if egl.EglDestroyContext(display, context) then
                 currentContext <- Egl.EGL10.EglNoContext
     
@@ -343,11 +345,6 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         this.ResetStencil()
 
-#if __ANDROID__
-        if lastContext <> EGLContextFactory.CurrentContext then
-            ResettableLazy<Shader>.ResetAll()
-            ResettableLazy<int>.ResetAll() // textures
-#endif
         // Initialize stuff that is not dependent on screen size. Everything else is (re-)initialized in OnSurfaceChanged
         this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
