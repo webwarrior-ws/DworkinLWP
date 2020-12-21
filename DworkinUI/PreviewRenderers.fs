@@ -92,7 +92,7 @@ module OffscreenRendering =
                     EGL10.EglNone
                 |]
         // NOTE: what if preset selection activity is started before main GLSurfaceView is initialized and main GL context is not created?
-        let share_context = LibDworkin.Renderer.EGLContextFactory.LastContext
+        let share_context = LibDworkin.Renderer.EGLContextFactory.CurrentContext
         context <- initResult.egl10.EglCreateContext(initResult.display, initResult.config, share_context, _attribs_config)
         initResult.success <- CheckEglError(initResult.egl10, "EglCreateContext") && (context <> null)
 

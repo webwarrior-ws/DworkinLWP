@@ -19,7 +19,7 @@ open Javax.Microedition.Khronos
 type EGLContextFactory private() =
     inherit Java.Lang.Object()
     
-    static let mutable lastContext : Egl.EGLContext = Egl.EGL10.EglNoContext
+    static let mutable currentContext : Egl.EGLContext = Egl.EGL10.EglNoContext
 
     interface GLSurfaceView.IEGLContextFactory with
         member this.CreateContext(egl, display, eglConfig) =
@@ -30,14 +30,14 @@ type EGLContextFactory private() =
                 Egl.EGL10.EglNone
             |]
             let context = egl.EglCreateContext(display, eglConfig, Egl.EGL10.EglNoContext, attribs_config)
-            lastContext <- context
+            currentContext <- context
             context
 
         member this.DestroyContext(egl, display, context) = 
             if egl.EglDestroyContext(display, context) then
-                lastContext <- Egl.EGL10.EglNoContext
+                currentContext <- Egl.EGL10.EglNoContext
     
-    static member LastContext = lastContext
+    static member CurrentContext = currentContext
 
     static member val Instance = new EGLContextFactory()
 #endif
@@ -52,7 +52,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 #endif
     // fields
 #if __ANDROID__
-    let mutable currentContext : Egl.EGLContext = null
+    let mutable lastContext : Egl.EGLContext = null
 #endif
     let mutable shapeVertices = Buffer<Vector2>(128)
     let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
@@ -100,7 +100,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
 #if __ANDROID__
-    member internal this.CurrentContext = currentContext
+    member internal this.LastContext = lastContext
 #endif
 
     member this.BackgroundTexture = materialTextures.[0]
@@ -344,7 +344,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.ResetStencil()
 
 #if __ANDROID__
-        if currentContext <> EGLContextFactory.LastContext then
+        if lastContext <> EGLContextFactory.CurrentContext then
             ResettableLazy<Shader>.ResetAll()
             ResettableLazy<int>.ResetAll() // textures
 #endif
@@ -367,9 +367,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
 #if __ANDROID__
-        if currentContext <> EGLContextFactory.LastContext then // OpenGL Context was lost, restart
+        if lastContext <> EGLContextFactory.CurrentContext then // OpenGL Context was lost, restart
             this.OnSurfaceChanged(wallpaperWidth, wallpaperHeight)
-            currentContext <- EGLContextFactory.LastContext
+            lastContext <- EGLContextFactory.CurrentContext
 #endif
     
     abstract member OnDrawFrame : unit -> unit
@@ -726,7 +726,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
     override this.OnSurfaceChanged(width, height) =
         let contextLost =
 #if __ANDROID__
-            this.CurrentContext <> EGLContextFactory.LastContext
+            this.LastContext <> EGLContextFactory.CurrentContext
 #else
             false
 #endif
