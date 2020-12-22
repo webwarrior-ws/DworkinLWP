@@ -202,6 +202,10 @@ type AppearancePresetSelectionActivity() =
         this.CurrentPresetSelection <- Some(preset)
         this.Finish()
 
+    override this.OnStop() =
+        PreviewRenderers.AppearancePresetRenderer.ResetInstance()
+        base.OnStop()
+
 
 [<Activity(Label = "Appearance Settings")>]
 type AppearanceSettingsActivity() =

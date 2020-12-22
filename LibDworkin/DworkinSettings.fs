@@ -289,6 +289,17 @@ module Effects =
     let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<Highlight>; typeof<FuzzyTexture> |]
 
 
+/// Get colors given color settings and RNG. Return (foregroundColor, backgroundColor)
+let getColors (random : System.Random) fgColorSetting bgColorSetting : OpenTK.Graphics.Color4 * OpenTK.Graphics.Color4 =
+    //TODO: generate random colors using some kind of strategy and taking into account defined color, if any
+    let getColor(value : Randomizeable<float32*float32*float32>) = 
+        match value with
+        | Defined(x) -> x
+        | Randomized -> ColorAttribute().RandomValue(random) |> unbox<float32*float32*float32>
+        |> OpenTK.Graphics.Color4.FromRGBTriple
+    getColor fgColorSetting, getColor bgColorSetting
+
+
 type SettingsHolder =
     {
         Environment : EnvironmentSettings
@@ -299,14 +310,8 @@ type SettingsHolder =
         Background : MaterialSettings
         Seed : int
     }
-    member this.GetColors(random : System.Random) : OpenTK.Graphics.Color4 * OpenTK.Graphics.Color4 =
-        //TODO: generate random colors using some kind of strategy and taking into account defined color, if any
-        let getColor(value : Randomizeable<float32*float32*float32>) = 
-            match value with
-            | Defined(x) -> x
-            | Randomized -> ColorAttribute().RandomValue(random) |> unbox<float32*float32*float32>
-            |> OpenTK.Graphics.Color4.FromRGBTriple
-        getColor this.ForegroundColor, getColor this.BackgroundColor
+    member this.GetColors(random) =
+        getColors random this.ForegroundColor this.BackgroundColor
 
 
 type SettingsChange =

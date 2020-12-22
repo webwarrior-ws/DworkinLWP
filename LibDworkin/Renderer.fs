@@ -100,7 +100,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     /// frames per second
     member this.FPS = 30
 
-    member internal this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
+    member this.WallpaperSize = (wallpaperWidth, wallpaperHeight)
 #if __ANDROID__
     member internal this.LastContext = lastContext
 #endif
@@ -108,9 +108,10 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.BackgroundTexture = materialTextures.[0]
     member this.ForegroundTexture = materialTextures.[1]
     /// Use this to draw to sdf
-    member internal this.SDFFrameBuffer = sdfFrameBuffer
-    member internal this.SDFTexture = sdfTextures.[0]
+    abstract SDFTexture : int
+    default this.SDFTexture = sdfTextures.[0]
     member internal this.SDFTexture2 = sdfTextures.[1]
+    member internal this.SDFFrameBuffer = sdfFrameBuffer
     member internal this.QuadVBO = quadVBO
     member internal this.CalcPositiveDistShader = calcPositiveDistShader.Value
     member internal this.CalcNegativeDistShaderHorizontal = calcNegativeDistShaderHorizontal.Value
@@ -268,7 +269,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                 TextureTarget.Texture2D, this.SDFTexture, 0)
     
-    member private this.InitializeMaterialTextures() =
+    member this.InitializeMaterialTextures() =
         if materialTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(materialTextures.Length, materialTextures) 
         GL.GenTextures(materialTextures.Length, materialTextures)
         if materialFrameBuffer = 0 then 
@@ -295,6 +296,14 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Nearest)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+    
+    member this.InitializeQuadVBO() =
+        quadVBO <- gen1 GL.GenBuffers
+        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
+        GL.BufferData(BufferTarget.ArrayBuffer, 
+                      nativeint (fullScreenQuadVertices.Length * sizeof<float32>), 
+                      fullScreenQuadVertices, 
+                      BufferUsage.StaticDraw)
 
     member this.ResetStencil() = stencil.Reset()
 
@@ -349,12 +358,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         circleDrawingShader.Value.DeferredSetUniform("h", this.MaxDistance)
         
-        quadVBO <- gen1 GL.GenBuffers
-        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
-        GL.BufferData(BufferTarget.ArrayBuffer, 
-                      nativeint (fullScreenQuadVertices.Length * sizeof<float32>), 
-                      fullScreenQuadVertices, 
-                      BufferUsage.StaticDraw)
+        this.InitializeQuadVBO()
         
         shapesVBO <- gen1 GL.GenBuffers 
         polygonSegmentsVBO <- gen1 GL.GenBuffers 
@@ -674,23 +678,23 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
             let previousSettings = currentSettings
             currentSettings <- !settingsRef
             let seedChanged = previousSettings.Seed <> currentSettings.Seed
-            let random = System.Random(currentSettings.Seed)
-            let fgColor, bgColor = currentSettings.GetColors(System.Random(currentSettings.Seed)) // use independent PRNG for colors
+            let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
+            let fgColor, bgColor = currentSettings.GetColors(getRandom()) 
 
             if seedChanged || (changes &&& int(SettingsChange.EnvironmentChanged) <> 0) then
                 this.EnvironmentConfig <- currentSettings.Environment.Build(currentSettings.Seed)
             
             if changes &&& int(SettingsChange.EffectChanged) <> 0 || 
                (seedChanged && currentSettings.Effect.HasRandomizedValues) then
-                this.Effect <- currentSettings.Effect.Build(platform, random)
+                this.Effect <- currentSettings.Effect.Build(platform, getRandom())
             
             if changes &&& int(SettingsChange.BackgroundChanged) <> 0 || 
                (seedChanged && (currentSettings.Background.HasRandomizedValues || currentSettings.BackgroundColor.IsRandomized)) then
-                this.Background <- currentSettings.Background.Build(platform, random, bgColor)
+                this.Background <- currentSettings.Background.Build(platform, getRandom(), bgColor)
             
             if changes &&& int(SettingsChange.ForegroundChanged) <> 0 || 
                (seedChanged && (currentSettings.Foreground.HasRandomizedValues || currentSettings.ForegroundColor.IsRandomized)) then
-                this.Foreground <- currentSettings.Foreground.Build(platform, random, fgColor)
+                this.Foreground <- currentSettings.Foreground.Build(platform, getRandom(), fgColor)
                 
             if changes &&& int(SettingsChange.EffectChanged ||| SettingsChange.BackgroundChanged ||| SettingsChange.ForegroundChanged) <> 0 then
                 this.Effect.SetMaterialProperties(

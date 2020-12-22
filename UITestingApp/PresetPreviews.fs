@@ -13,8 +13,8 @@ open Settings.Presets
 type TestPreset(settingsObject : AllKindsOfSettings) =
     inherit Preset()
     
-    override this.GeneratePreview(h : int, w : int) =
-        let bmp = Android.Graphics.Bitmap.CreateBitmap(h, w, Android.Graphics.Bitmap.Config.Argb8888)
+    override this.GeneratePreview(context, w, h) =
+        let bmp = Android.Graphics.Bitmap.CreateBitmap(w, h, Android.Graphics.Bitmap.Config.Argb8888)
         let c = 
             match settingsObject.Color with
             | Defined(r, g, b) -> Android.Graphics.Color.Rgb(int(r * 255.0f), int(g * 255.0f), int(b * 255.0f))

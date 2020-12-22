@@ -52,6 +52,7 @@
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
   <ItemGroup>
+    <AndroidAsset Include="Assets\textures\preview_sdf.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\layout\SettingsScreen.axml" />

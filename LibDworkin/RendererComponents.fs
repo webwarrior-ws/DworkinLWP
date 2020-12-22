@@ -308,7 +308,7 @@ type ShaderBasedComponent(shader : ResettableLazy<Shader>) =
 type Material(shader : ResettableLazy<Shader>) = 
     inherit ShaderBasedComponent(shader)
     /// Scale as used in Renderer
-    member val internal Scale = Geometry.Point(1.0f) with get, set
+    member val Scale = Geometry.Point(1.0f) with get, set
 
     override this.Use() =
         base.Use()

@@ -1,6 +1,7 @@
-﻿namespace DworkinUI
+﻿module DworkinUI.PreviewRenderers
 
-open System
+open OpenTK.Graphics.ES20
+open OpenTK
 
 open Android.Graphics
 open Android.Runtime
@@ -52,7 +53,8 @@ module OffscreenRendering =
         if (not <| CheckEglError(initResult.egl10, "EglChooseConfig" ) || not initResult.choose_config) then
             initResult.success <- false
         else
-            initResult.success <- not (isNull _configs.[0])
+            initResult.config <- _configs.[0]
+            initResult.success <- not (isNull initResult.config)
 
     let InitializeEGL() : EGLInitializeResult =
         let mutable result = EGLInitializeResult(display_initialized=false, choose_config=false, config=null, success=false)
@@ -61,8 +63,8 @@ module OffscreenRendering =
         result.egl10 <- EGLContext.EGL.JavaCast<IEGL10>()
 
         // _display
-        let display = result.egl10.EglGetDisplay(EGL10.EglDefaultDisplay) // EglGetCurrentDisplay returns NULL !
-        if isNull display then
+        result.display <- result.egl10.EglGetDisplay(EGL10.EglDefaultDisplay) // EglGetCurrentDisplay returns NULL !
+        if isNull result.display then
             result
         else
             // EglInitialize
@@ -91,7 +93,6 @@ module OffscreenRendering =
                     EGL_CONTEXT_CLIENT_VERSION; 2 // IMPORTANT
                     EGL10.EglNone
                 |]
-        // NOTE: what if preset selection activity is started before main GLSurfaceView is initialized and main GL context is not created?
         let share_context = LibDworkin.Renderer.EGLContextFactory.CurrentContext
         context <- initResult.egl10.EglCreateContext(initResult.display, initResult.config, share_context, _attribs_config)
         initResult.success <- CheckEglError(initResult.egl10, "EglCreateContext") && (context <> null)
@@ -145,6 +146,10 @@ module OffscreenRendering =
     
     let EndOurGL() =
         EndAndDispose()
+        if LibDworkin.Renderer.EGLContextFactory.CurrentContext = EGL10.EglNoContext then
+            // No context is shared with our context, so reset shaders and textures (they will be lost when context is destroyed)
+            ResettableLazy<Shader>.ResetAll()
+            ResettableLazy<int>.ResetAll() // textures
         initResult.egl10 <- null
 
     let CreateGLAndSurface(width, height) : bool =
@@ -197,11 +202,60 @@ module OffscreenRendering =
 
 
 
-type AppearancePresetRenderer() =
-    member this.RenderPreview(background : Material, foreground : Material, effect : Effect, scale : OpenTK.Vector2, bitmap : Bitmap) = 
+type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height : int) =
+    inherit LibDworkin.Renderer.BaseRenderer(platform)
+
+    let sdfTexture = platform.GetTexture("preview_sdf.png")
+
+    static let mutable instance : AppearancePresetRenderer option = None
+
+    static member RequestInstance(platform, width, height) : AppearancePresetRenderer =
+        match instance with
+        | Some(renderer) when renderer.WallpaperSize = (width, height) -> renderer
+        | _ ->
+            let renderer = new AppearancePresetRenderer(platform, width , height)
+            renderer.Initialize()
+            instance <- Some(renderer)
+            renderer
+    
+    static member ResetInstance() = 
+        if instance.IsSome then
+            lock OffscreenRendering.lockObject <| fun () ->
+                OffscreenRendering.EndOurGL()
+                instance <- None
+
+    static member HasInstance = instance.IsSome
+
+    override this.SDFTexture = sdfTexture.Value
+
+    member this.Initialize() =
         lock OffscreenRendering.lockObject <| fun () ->
-            if not <| OffscreenRendering.Request(bitmap.Width, bitmap.Height) then
+            if not <| OffscreenRendering.Request(width, height) then
                 failwith "failed to get offscreen GL context"
 
-            ()
+            GL.Viewport(0, 0, width, height)
+
+            let dimensions = Vector2(float32 width, float32 height)
+            this.SetSizeAndScaleVariables(dimensions, width, height)
+            this.InitializeQuadVBO()
+            this.InitializeMaterialTextures()
+
+            GL.Disable(EnableCap.DepthTest)
+            GL.Disable(EnableCap.CullFace)
+
+    member this.RenderPreview(background : Material, foreground : Material, effect : Effect) : Bitmap = 
+        lock OffscreenRendering.lockObject <| fun () ->
+            this.Background <- background
+            this.Foreground <- foreground
+            this.Effect <- effect
+
+            this.DrawMaterial(this.Background, this.BackgroundTexture)
+            this.DrawMaterial(this.Foreground, this.ForegroundTexture)
             
+            this.DrawImage()
+
+            let bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888, false)
+            let pixels = bitmap.LockPixels()
+            GL.ReadPixels(0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, pixels)
+            bitmap.UnlockPixels()
+            bitmap

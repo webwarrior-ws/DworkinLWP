@@ -55,15 +55,17 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
     static member DirectoryName = "appearance"
     override this.DirName = AppearancePreset.DirectoryName
 
-    // temporary stub
-    override this.GeneratePreview(h : int, w : int) =
-        let bmp = Android.Graphics.Bitmap.CreateBitmap(h, w, Android.Graphics.Bitmap.Config.Argb8888)
-        let c = 
-            match this.BackgroundColor with
-            | Defined(r, g, b) -> Android.Graphics.Color.Rgb(int(r * 255.0f), int(g * 255.0f), int(b * 255.0f))
-            | Randomized -> Android.Graphics.Color.Transparent
-        bmp.EraseColor(c.ToArgb())
-        bmp
+    override this.GeneratePreview(context, w, h) =
+        let platform = LibDworkin.RendererComponents.AndroidPlatform(context)
+        let renderer = PreviewRenderers.AppearancePresetRenderer.RequestInstance(platform, w, h)
+
+        let getRandom() = System.Random(42)
+        let fgColor, bgColor = getColors (getRandom()) fgColor bgColor
+
+        renderer.RenderPreview(
+            this.Background.Build(platform, getRandom(), bgColor), 
+            this.Foreground.Build(platform, getRandom(), fgColor), 
+            this.Effect.Build(platform, getRandom()))
 
     /// Return true if provided settings have same effect, materials and colors as receiver
     member this.IsUsedInSettings(settings : SettingsHolder) : bool =
