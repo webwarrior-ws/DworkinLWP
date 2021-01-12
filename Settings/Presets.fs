@@ -161,10 +161,10 @@ type PresetPreview(context : Context, preset : Preset) =
 
     // state changes
     member this.SetInitialState() =
-        state <- PresetPreviewState.Pending
-        match this.GetCachedPreview() with
-        | Some(bitmap) -> this.SetImage(bitmap)
-        | None -> this.RequestGeneration()
+        if state = PresetPreviewState.Pending then
+            match this.GetCachedPreview() with
+            | Some(bitmap) -> this.SetImage(bitmap)
+            | None -> this.RequestGeneration()
 
     /// Pending | Generating -> Complete
     member this.SetImage(bitmap : Android.Graphics.Bitmap) =
@@ -192,11 +192,14 @@ type PresetPreview(context : Context, preset : Preset) =
                 if preset.IsSaved then
                     this.SavePreview(bitmap)
             with
-            | e -> this.Post(this.ShowError) |> ignore
+            | e -> 
+                Android.Util.Log.Debug("previews", e.Message) |> ignore
+                this.Post(this.ShowError) |> ignore
         } 
+        state <- PresetPreviewState.Generating
+        Android.Util.Log.Debug("preview-render", sprintf "Request render preset %A in %d" this.Preset.Name (this.GetHashCode())) |> ignore
         Async.Start(generationTask, cancellationSource.Token)
         this.StatusDisplay.Text <- "Generating preview..."
-        state <- PresetPreviewState.Generating
     
     /// Generating -> Pending
     abstract CancelGeneration : unit -> unit

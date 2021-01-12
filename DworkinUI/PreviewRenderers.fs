@@ -12,6 +12,9 @@ open LibDworkin.RendererComponents
 
 
 module OffscreenRendering =
+    open System.Threading
+    open System.Threading.Tasks
+    
     // from https://stackoverflow.com/questions/41493145/how-compose-multiple-thumbnails-of-gles-scenes-into-a-scrolling-list-on-android/41525113#41525113
     
     let lockObject = obj()
@@ -154,20 +157,18 @@ module OffscreenRendering =
 
     let CreateGLAndSurface(width, height) : bool =
         initResult <- InitializeEGL()
-        let mutable success = initResult.success
-        if success then
+        if initResult.success then
            EglCreateContext(&initResult)
-           success <- initResult.success
-        if success then
+        if initResult.success then
            match CreateOffscreenBuffer(&initResult, width, height) with
            | Some(s) -> surface <- s
            | None ->
                 // Failed; undo any work that was done.
                 EndOurGL()
-                success <- false
-        if success then
+                initResult.success <- false
+        if initResult.success then
             dimensions <- width, height
-        success
+        initResult.success
 
     let EnsureGLAndSurfaceInitialized(width, height) : bool =
         surface <> null || CreateGLAndSurface(width, height)
@@ -187,6 +188,66 @@ module OffscreenRendering =
         is_current <- EglMakeCurrent(initResult, surface, context)
         is_current
 
+    // from https://stackoverflow.com/questions/30719366/run-work-on-specific-thread
+    type private SingleThreadTaskScheduler(cancellationToken : CancellationToken) =
+        inherit TaskScheduler()
+        let cancellationToken = cancellationToken;
+        let taskQueue = new System.Collections.Concurrent.BlockingCollection<Task>();
+
+        [<System.ThreadStatic>]
+        [<DefaultValue>]
+        static val mutable private isExecuting : bool
+    
+        member this.Start() =
+            (new Thread(this.RunOnCurrentThread, Name="STTS Thread")).Start()
+    
+        // Just a helper for the sample code
+        member this.Schedule(action : unit -> 'TResult) =
+            Task.Factory.StartNew
+                (
+                    action, 
+                    CancellationToken.None, 
+                    TaskCreationOptions.None, 
+                    this
+                )
+    
+        // You can have this public if you want - just make sure to hide it
+        member private this.RunOnCurrentThread() =
+            SingleThreadTaskScheduler.isExecuting <- true
+            try
+                try
+                    for task in taskQueue.GetConsumingEnumerable(cancellationToken) do
+                        this.TryExecuteTask(task) |> ignore
+                finally
+                    SingleThreadTaskScheduler.isExecuting <- false
+            with
+            | :? System.OperationCanceledException -> ()
+        
+        // Signaling this allows the task scheduler to finish after all tasks complete
+        member this.Complete() = taskQueue.CompleteAdding()
+
+        override this.GetScheduledTasks() = null
+    
+        override this.QueueTask(task : Task) =
+            try
+                taskQueue.Add(task, cancellationToken)
+            with
+            | :? System.OperationCanceledException -> ()
+    
+        override this.TryExecuteTaskInline(task, taskWasPreviouslyQueued) =
+            // We'd need to remove the task from queue if it was already queued. 
+            // That would be too hard.
+            if (taskWasPreviouslyQueued) then 
+                false
+            else
+                SingleThreadTaskScheduler.isExecuting && this.TryExecuteTask(task);
+    
+    let mutable cts = new CancellationTokenSource()
+    let mutable private taskScheduler = lazy(
+        let ts = new SingleThreadTaskScheduler(cts.Token)
+        ts.Start()
+        ts)
+    
     /// Initialize offscreen rendering context and stuff if necessary. 
     /// Re-initialize if dimensions do not match.
     /// Return true on success, false on failure.
@@ -200,6 +261,25 @@ module OffscreenRendering =
         else
             BeginOurGL(width, height) && MakeCurrent()
 
+    // Stop all pending tasks and release OpenGL resources
+    let Release() =
+        EndOurGL()
+        cts <- new CancellationTokenSource()
+        taskScheduler <- lazy(
+            let ts = new SingleThreadTaskScheduler(cts.Token)
+            ts.Start()
+            ts)
+
+    /// Preform given function (request) on a dedicated thread and return its result synchronously.
+    /// Requests are queued up and run sequentially.
+    let processRequest(request : unit -> 'T) : 'T option =
+        let resultHolder : 'T option ref = ref None
+        let action () = resultHolder := Some(request())
+        try
+            taskScheduler.Value.Schedule(action).GetAwaiter().GetResult()
+        with 
+        | _ -> ()
+        !resultHolder
 
 
 type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height : int) =
@@ -210,52 +290,61 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
     static let mutable instance : AppearancePresetRenderer option = None
 
     static member RequestInstance(platform, width, height) : AppearancePresetRenderer =
-        match instance with
-        | Some(renderer) when renderer.WallpaperSize = (width, height) -> renderer
-        | _ ->
-            let renderer = new AppearancePresetRenderer(platform, width , height)
-            renderer.Initialize()
-            instance <- Some(renderer)
-            renderer
+        OffscreenRendering.processRequest(fun () ->
+            match instance with
+            | Some(renderer) when renderer.WallpaperSize = (width, height) -> renderer
+            | _ ->
+                Android.Util.Log.Debug("preview-render", "Request renderer instance") |> ignore
+                let renderer = new AppearancePresetRenderer(platform, width , height)
+                renderer.Initialize()
+                instance <- Some(renderer)
+                renderer)
+            |> Option.get
     
     static member ResetInstance() = 
         if instance.IsSome then
-            lock OffscreenRendering.lockObject <| fun () ->
-                OffscreenRendering.EndOurGL()
-                instance <- None
+            OffscreenRendering.Release()
+            instance <- None
 
     static member HasInstance = instance.IsSome
 
     override this.SDFTexture = sdfTexture.Value
 
     member this.Initialize() =
-        lock OffscreenRendering.lockObject <| fun () ->
-            if not <| OffscreenRendering.Request(width, height) then
-                failwith "failed to get offscreen GL context"
+        if not <| OffscreenRendering.Request(width, height) then
+            failwith "failed to get offscreen GL context"
 
-            GL.Viewport(0, 0, width, height)
+        Android.Util.Log.Debug("preview-render", "Initialize renderer instance") |> ignore
+        GL.Viewport(0, 0, width, height)
 
-            let dimensions = Vector2(float32 width, float32 height)
-            this.SetSizeAndScaleVariables(dimensions, width, height)
-            this.InitializeQuadVBO()
-            this.InitializeMaterialTextures()
+        let dimensions = Vector2(float32 width, float32 height)
+        this.SetSizeAndScaleVariables(dimensions, width, height)
+        this.InitializeQuadVBO()
+        this.InitializeMaterialTextures()
 
-            GL.Disable(EnableCap.DepthTest)
-            GL.Disable(EnableCap.CullFace)
+        GL.Disable(EnableCap.DepthTest)
+        GL.Disable(EnableCap.CullFace)
 
-    member this.RenderPreview(background : Material, foreground : Material, effect : Effect) : Bitmap = 
-        lock OffscreenRendering.lockObject <| fun () ->
+    member this.RenderPreview(bgColor : Graphics.Color4, fgColor : Graphics.Color4, background : Material, foreground : Material, effect : Effect) : Bitmap = 
+        let hash = bgColor.GetHashCode() ^^^ fgColor.GetHashCode() ^^^ background.GetHashCode() ^^^ foreground.GetHashCode() ^^^ effect.GetHashCode()
+        Android.Util.Log.Debug("preview-render", sprintf "Request render %d" hash) |> ignore
+        
+        let getBitmap() =
+            Android.Util.Log.Debug("preview-render", sprintf "Begin   render %d" hash) |> ignore
             this.Background <- background
             this.Foreground <- foreground
             this.Effect <- effect
+            this.Effect.SetMaterialProperties(
+                { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
+                { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
 
-            this.DrawMaterial(this.Background, this.BackgroundTexture)
-            this.DrawMaterial(this.Foreground, this.ForegroundTexture)
-            
             this.DrawImage()
 
             let bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888, false)
             let pixels = bitmap.LockPixels()
             GL.ReadPixels(0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, pixels)
             bitmap.UnlockPixels()
+            Android.Util.Log.Debug("preview-render", sprintf "End     render %d" hash) |> ignore
             bitmap
+
+        OffscreenRendering.processRequest getBitmap |> Option.get

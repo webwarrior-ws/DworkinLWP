@@ -63,6 +63,8 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
         let fgColor, bgColor = getColors (getRandom()) fgColor bgColor
 
         renderer.RenderPreview(
+            bgColor,
+            fgColor,
             this.Background.Build(platform, getRandom(), bgColor), 
             this.Foreground.Build(platform, getRandom(), fgColor), 
             this.Effect.Build(platform, getRandom()))

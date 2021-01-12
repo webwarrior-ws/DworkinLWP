@@ -150,8 +150,8 @@ type Graphics.Color4 with
 /// Platform-independent facade used by renderers to load shaders and other stuff
 [<AbstractClass>]
 type AbstractPlatform() =
-    let shaders = Collections.Generic.Dictionary<string * string, ResettableLazy<Shader>>()
-    let textures = Collections.Generic.Dictionary<string, ResettableLazy<int>>()
+    static let shaders = Collections.Generic.Dictionary<string * string, ResettableLazy<Shader>>()
+    static let textures = Collections.Generic.Dictionary<string, ResettableLazy<int>>()
 
     abstract member TextFromAsset : string -> string
     abstract member LoadTextureFromAsset : string -> int
@@ -162,7 +162,15 @@ type AbstractPlatform() =
             (vertexShaderName, fragmentShaderName)
             (fun () -> 
                 let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
-                ResettableLazy(fun () -> new Shader(readSource vertexShaderName, readSource fragmentShaderName)))        
+                ResettableLazy(fun () -> 
+#if __ANDROID__
+                    Android.Util.Log.Debug(
+                        "preview-render", 
+                        sprintf "Load shader %s on thread#%A" fragmentShaderName System.Threading.Thread.CurrentThread.ManagedThreadId) 
+                    |> ignore
+#endif    
+                    let s = new Shader(readSource vertexShaderName, readSource fragmentShaderName)          
+                    s))        
     
     member this.GetTexture(filename : string) : ResettableLazy<int> =
         getOrSetIfAbsent
@@ -225,6 +233,8 @@ type Shader(vertexShader : string, fragmentShader : string) =
 
     let compile (shaderType : ShaderType) source =
         let res = GL.CreateShader(shaderType)
+        if res = 0 then
+            failwith "GL.CreateShader() failed"
         GL.ShaderSource(res, source)
         GL.CompileShader(res)
         GL.GetShaderInfoLog(res, info)
