@@ -89,7 +89,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
         fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> 'TPreset) )
     
         this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
-            let currPreset = this.GetCurrentPreset()
+            let currPreset = this.GetCurrentPreset() |> Serialization.copy
             match this.CurrentPresetSelection with
             | Some(preset) -> currPreset.Name <- preset.Name
             | None -> currPreset.Name <- "Custom"
