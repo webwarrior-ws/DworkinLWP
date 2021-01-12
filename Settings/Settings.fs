@@ -203,6 +203,17 @@ module Serialization =
                 let valueConverter = getOrSetIfAbsent valueType (resolver valueType)
                 let makerMethod = typedefof<RandomizeableConverterMaker<_>>.MakeGenericType([| valueType |]).GetMethod("Make")
                 makerMethod.Invoke(null, [| valueConverter |]) :?> IConverter
+            elif typ.IsEnum then
+                // encode enum values as strings
+                let toJson (value : obj) =
+                    let name = typ.GetEnumName(value)
+                    if isNull name then // illegal enum value
+                        raise (System.Exception(sprintf "Illegal enum value: %A" value))
+                    JsonPrimitive(name) :> JsonValue
+                let fromJson (value : JsonValue) =
+                    let name : string = !> value
+                    System.Enum.Parse(typ, name)
+                Converter(toJson, fromJson) :> IConverter
             else
                 failwithf "Unsupported type: %s" typ.Name
 

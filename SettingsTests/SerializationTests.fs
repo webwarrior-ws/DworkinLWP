@@ -31,6 +31,11 @@ type SettingsWithExplicitlySetName() =
     member val Int = 0 with get, set
 
 
+type SampleEnum =
+    | One = 1
+    | Two = 2
+
+
 [<Tests>]
 let serializationTests =
     let roundtrip (x : 'T) = 
@@ -51,6 +56,13 @@ let serializationTests =
             roundtrip <| Defined true
             roundtrip <| Defined "lol"
             roundtrip<Randomizeable<int>> <| Randomized
+
+        testCase "Enum values roundtrip" <| fun _ ->
+            roundtrip SampleEnum.One
+            roundtrip SampleEnum.Two
+            roundtrip<Randomizeable<SampleEnum>> <| Defined(SampleEnum.One)
+            // values that are not in enum
+            Expect.throws (fun () -> Serialization.toJsonValue (enum<SampleEnum> 100) |> ignore) "invalid enum value"
         
         testCase "Settings objects" <| fun _ ->
             roundtrip <| 
