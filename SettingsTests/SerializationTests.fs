@@ -36,6 +36,13 @@ type SampleEnum =
     | Two = 2
 
 
+type SampleRecord =
+    {
+        Foo : int
+        Bar : SettingsWithDifferentTypes
+    }
+
+
 [<Tests>]
 let serializationTests =
     let roundtrip (x : 'T) = 
@@ -63,6 +70,10 @@ let serializationTests =
             roundtrip<Randomizeable<SampleEnum>> <| Defined(SampleEnum.One)
             // values that are not in enum
             Expect.throws (fun () -> Serialization.toJsonValue (enum<SampleEnum> 100) |> ignore) "invalid enum value"
+
+        testCase "Record values roundtrip" <| fun _ ->
+            roundtrip { Foo = 1; Bar=SettingsWithDifferentTypes(Int=1) }
+            roundtrip { Foo = 2; Bar=SettingsWithDifferentTypes(Float=2.0f, RandInt=Defined(2)) }
         
         testCase "Settings objects" <| fun _ ->
             roundtrip <| 

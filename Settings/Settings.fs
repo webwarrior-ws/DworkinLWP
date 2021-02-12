@@ -120,6 +120,7 @@ module Randomizeable =
 
 module Serialization =
     open System.Json
+    open Microsoft.FSharp.Reflection
 
     // implicit conversion operator
     let inline (!>) (x:^a) : ^b = 
@@ -213,6 +214,21 @@ module Serialization =
                 let fromJson (value : JsonValue) =
                     let name : string = !> value
                     System.Enum.Parse(typ, name)
+                Converter(toJson, fromJson) :> IConverter
+            elif FSharpType.IsRecord typ then
+                let fields = FSharpType.GetRecordFields typ
+                let toJson (value : obj) =
+                    let res = JsonObject()
+                    for field in fields do
+                        let fieldConverter = getOrSetIfAbsent field.PropertyType (resolver field.PropertyType)
+                        res.[field.Name] <- fieldConverter.ToJsonValue(field.GetValue(value))
+                    res :> JsonValue
+                let fromJson(value : JsonValue) =
+                    FSharpValue.MakeRecord(
+                        typ, 
+                        [| for field in fields -> 
+                            let fieldConverter = getOrSetIfAbsent field.PropertyType (resolver field.PropertyType)
+                            fieldConverter.FromJsonValue value.[field.Name] |])
                 Converter(toJson, fromJson) :> IConverter
             else
                 failwithf "Unsupported type: %s" typ.Name
