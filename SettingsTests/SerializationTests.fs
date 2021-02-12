@@ -36,6 +36,11 @@ type SampleEnum =
     | Two = 2
 
 
+type SettingsSubclass() =
+    inherit SettingsWithDifferentTypes()
+    static do Settings.RegisterClass<SettingsSubclass>()
+
+
 type SampleRecord =
     {
         Foo : int
@@ -73,7 +78,7 @@ let serializationTests =
 
         testCase "Record values roundtrip" <| fun _ ->
             roundtrip { Foo = 1; Bar=SettingsWithDifferentTypes(Int=1) }
-            roundtrip { Foo = 2; Bar=SettingsWithDifferentTypes(Float=2.0f, RandInt=Defined(2)) }
+            roundtrip { Foo = 2; Bar=SettingsSubclass(Float=2.0f, RandInt=Defined(2)) }
         
         testCase "Settings objects" <| fun _ ->
             roundtrip <| 

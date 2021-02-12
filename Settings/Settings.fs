@@ -220,8 +220,10 @@ module Serialization =
                 let toJson (value : obj) =
                     let res = JsonObject()
                     for field in fields do
-                        let fieldConverter = getOrSetIfAbsent field.PropertyType (resolver field.PropertyType)
-                        res.[field.Name] <- fieldConverter.ToJsonValue(field.GetValue(value))
+                        let fieldValue =  field.GetValue(value)
+                        let fieldValueType = fieldValue.GetType()
+                        let fieldConverter = getOrSetIfAbsent fieldValueType (resolver fieldValueType)
+                        res.[field.Name] <- fieldConverter.ToJsonValue(fieldValue)
                     res :> JsonValue
                 let fromJson(value : JsonValue) =
                     FSharpValue.MakeRecord(
