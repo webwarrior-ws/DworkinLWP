@@ -36,9 +36,9 @@ type PresetNameCollisionWarning(context : Context, attrs : Android.Util.IAttribu
         let warningBuiltin = view.FindViewById<View>(Resources.Id.warning_text_builtin)
         let warningUser = view.FindViewById<View>(Resources.Id.warning_text_user)
         warningBuiltin.Visibility <- 
-            if collision = BuiltinPreset then ViewStates.Visible else ViewStates.Invisible
+            if collision = BuiltinPreset then ViewStates.Visible else ViewStates.Gone
         warningUser.Visibility <- 
-            if collision = UserPreset then ViewStates.Visible else ViewStates.Invisible
+            if collision = UserPreset then ViewStates.Visible else ViewStates.Gone
 
     override this.OnFinishInflate() =
         view <- FrameLayout.Inflate(context, Resources.Layout.PresetNameCollisionWarning, this)
