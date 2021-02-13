@@ -65,7 +65,11 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
     abstract OnPresetSelected : 'TPreset -> unit
 
     override this.OnCreate(bundle) =
-        base.OnCreate(bundle)
+        // Passing null to base.OnCreate because when save preset dialog is shown, error occurs when recreating it for 2 reasons:
+        // - SavePresetDialog is generic type
+        // - SavePresetDialog doesn't have default constructor
+        // It's a workaround that causes save dialog to vanish when screen orientation changes.
+        base.OnCreate(null)
 
         let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this this.PresetsDirName
         use presetsDir = new Java.IO.File(presetsDirPath)
