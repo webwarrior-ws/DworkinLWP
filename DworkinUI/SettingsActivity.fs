@@ -193,17 +193,45 @@ type AppearancePresetSelectionActivity() =
                 Background=Serialization.copy preset.Background
                 Foreground=Serialization.copy preset.Foreground }
         CurrentSettings.set(newSettings)
-        if currSettings.Effect <> newSettings.Effect then
-            CurrentSettings.registerChange(SettingsChange.EffectChanged)
-        if currSettings.Background <> newSettings.Background || currSettings.BackgroundColor <> newSettings.BackgroundColor then
-            CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
-        if currSettings.Foreground <> newSettings.Foreground || currSettings.ForegroundColor <> newSettings.ForegroundColor then
-            CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
+        CurrentSettings.registerAllChanges(currSettings, newSettings)
         this.CurrentPresetSelection <- Some(preset)
         this.Finish()
 
     override this.OnStop() =
         PreviewRenderers.AppearancePresetRenderer.ResetInstance()
+        base.OnStop()
+
+
+[<Activity(Label = "Preset")>] 
+type OverallPresetSelectionActivity() =
+    inherit PresetSelectionActivity<OverallPreset>()
+
+    override this.PresetsDirName = OverallPreset.DirectoryName
+
+    override this.BuiltinPresets = BuiltinPresets.getOverallPresets(this)
+
+    override this.GetCurrentPreset() = OverallPreset(CurrentSettings.get())
+       
+    override this.CurrentPresetSelection
+        with get() = CurrentPresetSelection.overall
+        and set(value) = CurrentPresetSelection.overall <- value
+
+    override this.GetPreviewSize() = OverallPreset.GetPreviewSize(this)
+
+    override this.UpdatePresetNameDisplay() =
+        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        display.Text <- CurrentPresetSelection.getOverallPresetDisplayText()
+
+    override this.OnPresetSelected(preset) =
+        let oldSettings = CurrentSettings.get()
+        let newSettings = Serialization.copy preset.Settings
+        CurrentSettings.set(newSettings)
+        CurrentSettings.registerAllChanges(oldSettings, newSettings)
+        this.CurrentPresetSelection <- Some(preset)
+        this.Finish()
+    
+    override this.OnStop() =
+        PreviewRenderers.OverallPresetRenderer.ResetInstance()
         base.OnStop()
 
 
@@ -242,6 +270,15 @@ type AppearanceSettingsActivity() =
 [<Activity(Label = "Settings")>]
 type SettingsActivity() =
     inherit ActivityWithBackButton()
+    
+    member private this.UpdatePresetName() =
+        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        if not (isNull display) then
+            display.Text <- CurrentPresetSelection.getOverallPresetDisplayText()
+
+    override this.OnRestart() =
+        base.OnRestart()
+        this.UpdatePresetName()
 
     override this.OnCreate(bundle) =
         base.OnCreate (bundle)
@@ -261,3 +298,8 @@ type SettingsActivity() =
 
         this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
             this.StartActivity(typeof<AppearanceSettingsActivity>) )
+
+        this.UpdatePresetName()
+        // open presets manager
+        this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
+            this.StartActivity(typeof<OverallPresetSelectionActivity>))

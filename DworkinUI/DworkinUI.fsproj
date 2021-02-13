@@ -55,6 +55,7 @@
     <AndroidAsset Include="Assets\textures\preview_sdf.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
+    <AndroidResource Include="Resources\values\attrs.xml" />
     <AndroidResource Include="Resources\layout\SettingsScreen.axml" />
     <AndroidResource Include="Resources\layout\Empty.axml">
       <SubType>Designer</SubType>
@@ -80,6 +81,7 @@
     <AndroidResource Include="Resources\layout\AppearanceSettingsFragment.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\values-sw600dp\attrs.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="PreviewRenderers.fs" />

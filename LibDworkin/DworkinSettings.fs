@@ -332,4 +332,13 @@ module CurrentSettings =
     let getChanges() = changes
     let registerChange(change : SettingsChange) = changes <- changes ||| (int change)
     let internal resetChanges() = changes <- 0
+    let registerAllChanges(oldSettings : SettingsHolder, newSettings : SettingsHolder) =
+        if oldSettings.Environment <> newSettings.Environment then
+            registerChange(SettingsChange.EnvironmentChanged)
+        if oldSettings.Effect <> newSettings.Effect then
+            registerChange(SettingsChange.EffectChanged)
+        if oldSettings.Background <> newSettings.Background || oldSettings.BackgroundColor <> newSettings.BackgroundColor then
+            registerChange(SettingsChange.BackgroundChanged)
+        if oldSettings.Foreground <> newSettings.Foreground || oldSettings.ForegroundColor <> newSettings.ForegroundColor then
+            registerChange(SettingsChange.ForegroundChanged)
 

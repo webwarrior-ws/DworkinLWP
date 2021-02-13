@@ -242,7 +242,7 @@ module OffscreenRendering =
             else
                 SingleThreadTaskScheduler.isExecuting && this.TryExecuteTask(task);
     
-    let mutable cts = new CancellationTokenSource()
+    let mutable private cts = new CancellationTokenSource()
     let mutable private taskScheduler = lazy(
         let ts = new SingleThreadTaskScheduler(cts.Token)
         ts.Start()
@@ -263,6 +263,7 @@ module OffscreenRendering =
 
     // Stop all pending tasks and release OpenGL resources
     let Release() =
+        cts.Cancel()
         EndOurGL()
         cts <- new CancellationTokenSource()
         taskScheduler <- lazy(
@@ -282,39 +283,67 @@ module OffscreenRendering =
         !resultHolder
 
 
-type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height : int) =
+
+[<AbstractClass>]
+type BasePresetRenderer(platform, width : int, height : int) = 
     inherit LibDworkin.Renderer.BaseRenderer(platform)
 
-    let sdfTexture = platform.GetTexture("preview_sdf.png")
+    abstract Initialize : unit -> unit
+    default this.Initialize() =
+        if not <| OffscreenRendering.Request(width, height) then
+            failwith "failed to get offscreen GL context"
 
-    static let mutable instance : AppearancePresetRenderer option = None
+        Android.Util.Log.Debug("preview-render", "Initialize renderer instance") |> ignore
 
-    static member RequestInstance(platform, width, height) : AppearancePresetRenderer =
+    /// Return bitmap containing image from current renderbuffer
+    member this.CaptureRenderbuffer() : Bitmap =
+        let bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888, false)
+        let pixels = bitmap.LockPixels()
+        GL.ReadPixels(0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, pixels)
+        bitmap.UnlockPixels()
+        bitmap
+
+
+type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
+    let mutable instance : 'T option = None
+    
+    member this.RequestInstance(rendererFactory : unit -> 'T, width, height) : 'T =
         OffscreenRendering.processRequest(fun () ->
             match instance with
             | Some(renderer) when renderer.WallpaperSize = (width, height) -> renderer
             | _ ->
                 Android.Util.Log.Debug("preview-render", "Request renderer instance") |> ignore
-                let renderer = new AppearancePresetRenderer(platform, width , height)
+                let renderer = rendererFactory()
                 renderer.Initialize()
                 instance <- Some(renderer)
                 renderer)
             |> Option.get
     
-    static member ResetInstance() = 
+    member this.ResetInstance() = 
         if instance.IsSome then
             OffscreenRendering.Release()
             instance <- None
 
-    static member HasInstance = instance.IsSome
+
+type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height : int) =
+    inherit BasePresetRenderer(platform, width, height)
+
+    let sdfTexture = platform.GetTexture("preview_sdf.png")
+
+    static let singleton = RendererSingleton<AppearancePresetRenderer>()
+
+    static member RequestInstance(platform, width, height) : AppearancePresetRenderer =
+        let factory () = new AppearancePresetRenderer(platform, width , height)
+        singleton.RequestInstance(factory, width, height)
+    
+    static member ResetInstance() = 
+        singleton.ResetInstance()
 
     override this.SDFTexture = sdfTexture.Value
 
-    member this.Initialize() =
-        if not <| OffscreenRendering.Request(width, height) then
-            failwith "failed to get offscreen GL context"
+    override this.Initialize() =
+        base.Initialize()
 
-        Android.Util.Log.Debug("preview-render", "Initialize renderer instance") |> ignore
         GL.Viewport(0, 0, width, height)
 
         let dimensions = Vector2(float32 width, float32 height)
@@ -339,12 +368,61 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
                 { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
 
             this.DrawImage()
-
-            let bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888, false)
-            let pixels = bitmap.LockPixels()
-            GL.ReadPixels(0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, pixels)
-            bitmap.UnlockPixels()
             Android.Util.Log.Debug("preview-render", sprintf "End     render %d" hash) |> ignore
-            bitmap
+            this.CaptureRenderbuffer()
+
+        OffscreenRendering.processRequest getBitmap |> Option.get
+
+
+type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : int) =
+    inherit BasePresetRenderer(platform, width, height)
+
+    static let singleton = RendererSingleton<OverallPresetRenderer>()
+
+    static member RequestInstance(platform, width, height) : OverallPresetRenderer =
+        let factory () = new OverallPresetRenderer(platform, width , height)
+        singleton.RequestInstance(factory, width, height)
+    
+    static member ResetInstance() = 
+        singleton.ResetInstance()
+
+    override this.Initialize() =
+        base.Initialize()
+        this.OnSurfaceCreated()
+        this.OnSurfaceChanged(width, height)
+        LibDworkin.Renderer.EGLContextFactory.NeedsShaderUniformsReset <- true
+
+    member this.RenderPreview(settings : LibDworkin.DworkinSettings.SettingsHolder) : Bitmap = 
+        let hash = settings.GetHashCode()
+        Android.Util.Log.Debug("preview-render", sprintf "Request render [overall] %d" hash) |> ignore
+
+        let getBitmap() =
+            Android.Util.Log.Debug("preview-render", sprintf "Begin   render [overall] %d" hash) |> ignore
+            let random = System.Random(settings.Seed)
+            let fgColor, bgColor = settings.GetColors(System.Random(settings.Seed)) // use independent PRNG for colors
+            this.Effect <- settings.Effect.Build(platform, random)
+            this.Foreground <- settings.Foreground.Build(platform, random, fgColor)
+            this.Background <- settings.Background.Build(platform, random, bgColor)
+            this.Effect.SetMaterialProperties(
+                { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
+                { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
+
+            this.ClearSDF()
+            this.ResetStencil()
+            let envConfig = settings.Environment.Build(settings.Seed) :> LibDworkin.Agents.IDworkinEnvironmentConfig 
+            let env = envConfig.GetEnvironment(this.GetDimensions(width, height))
+            let shapes = ResizeArray()
+            while env.HasActiveAgents do
+                shapes.AddRange(env.Step())
+                if shapes.Count > 1000 then
+                    this.RenderShapes(shapes.ToArray())
+                    shapes.Clear()
+            if shapes.Count > 0 then
+                this.RenderShapes(shapes.ToArray())
+
+            this.DrawImage()
+            
+            Android.Util.Log.Debug("preview-render", sprintf "End     render [overall] %d" hash) |> ignore
+            this.CaptureRenderbuffer()
 
         OffscreenRendering.processRequest getBitmap |> Option.get

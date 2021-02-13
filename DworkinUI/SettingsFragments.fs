@@ -9,8 +9,6 @@ open Settings
 open LibDworkin.DworkinSettings
 
 
-type Resources = DworkinUI.Resource
-
 
 
 type OverallSettingsFragment() =

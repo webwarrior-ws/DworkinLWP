@@ -5,6 +5,8 @@ open LibDworkin.DworkinSettings
 open Settings
 open Settings.Presets
 
+type Resources = DworkinUI.Resource
+
 
 type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) = 
     inherit Preset()
@@ -78,6 +80,49 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
         this.Foreground = settings.Foreground
 
 
+type OverallPreset(settings : SettingsHolder) =
+    inherit Preset()
+
+    static do // register serializer/deserializer
+        let toJson (preset : OverallPreset) = Serialization.toJsonValue preset.Settings
+        let fromJson (json : System.Json.JsonValue) = OverallPreset(Serialization.fromJsonValue json)
+        Serialization.Converters.getOrSetIfAbsent
+            typeof<OverallPreset>
+            (fun () -> Serialization.Converter(toJson, fromJson) :> Serialization.IConverter)
+            |> ignore
+
+    static member DirectoryName = "overall"
+    override this.DirName = OverallPreset.DirectoryName
+
+    member this.Settings = settings
+
+    /// Return size in pixels of preview based on screen size
+    static member GetPreviewSize(context : Android.Content.Context) : (int * int) =
+        let displayMetrics = context.Resources.DisplayMetrics
+        // https://stackoverflow.com/questions/9279111/determine-if-the-device-is-a-smartphone-or-tablet
+        let isTablet = context.Resources.GetBoolean(Resources.Boolean.isTablet)
+        let smallerSide = min displayMetrics.WidthPixels displayMetrics.HeightPixels
+        let largerSide = max displayMetrics.WidthPixels displayMetrics.HeightPixels 
+        let width = if isTablet then largerSide else smallerSide
+        let height = if isTablet then smallerSide else largerSide
+
+        let spacing = (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing)) / displayMetrics.Density // in dp
+        let padding = context.Resources.GetDimension(Resources.Dimension.preset_preview_padding) // in pixels
+        let n = 2
+        
+        let numPixelsX = (width - int(spacing * displayMetrics.Density)*(n+1) - int(padding * 2.0f)) / n
+        let numPixelsX = numPixelsX - (numPixelsX%2) // make it even
+        let numPixelsY = if isTablet then numPixelsX * width / height else numPixelsX * height / width
+        let numPixelsY = numPixelsY - (numPixelsY%2) // make it even
+        
+        (numPixelsX, numPixelsY)
+
+    override this.GeneratePreview(context, w, h) =
+        let platform = LibDworkin.RendererComponents.AndroidPlatform(context)
+        let renderer = PreviewRenderers.OverallPresetRenderer.RequestInstance(platform, w, h)
+        renderer.RenderPreview(settings)
+
+
 /// This module contains references to built-in presets.
 /// Now they are hardcoded, but in future they will be lazily initialized from assets or something similar.
 module BuiltinPresets =
@@ -93,9 +138,14 @@ module BuiltinPresets =
                 Effects.Shadow(), Defined(0.7f, 0.5f, 0.4f), Defined(0.3f, 0.2f, 0.2f), Materials.Wood(Painted=Defined(true)), Materials.Wood(Painted=Defined(true)), 
                 Name="Painted wood", IsBuiltin=true, IsSaved=true);
         |]
+    
+    let private overallPresets : OverallPreset[] = [||]
 
     let getAppearancePresets(context : Android.Content.Context) : AppearancePreset[] =
         appearancePresets
+
+    let getOverallPresets(context : Android.Content.Context) : OverallPreset[] =
+        overallPresets
 
 
 module CurrentPresetSelection =
@@ -103,5 +153,12 @@ module CurrentPresetSelection =
     let getAppearancePresetDisplayText() = 
         match appearance with
         | Some(preset) when preset.IsUsedInSettings(CurrentSettings.get()) -> 
+            preset.Name
+        | _ -> "custom"
+
+    let mutable overall : OverallPreset option = None
+    let getOverallPresetDisplayText() = 
+        match overall with
+        | Some(preset) when preset.Settings = CurrentSettings.get() -> 
             preset.Name
         | _ -> "custom"

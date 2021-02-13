@@ -42,6 +42,9 @@ type EGLContextFactory private() =
     static member CurrentContext = currentContext
 
     static member val Instance = new EGLContextFactory()
+
+    /// Global variable that indicates need to reset shader uniforms after they were modified from another OpenGL context
+    static member val NeedsShaderUniformsReset = false with get, set
 #endif
 
 let maxSDFDistance = 16.0f

@@ -113,6 +113,14 @@ type MainActivity() =
         base.OnResume()
         settingsHolder := CurrentSettings.get()
         view.OnResume()
+        // reset size and scale shader uniforms that might be upset by overall preset preview renderer
+        match MainActivity.RendererContainer with
+        | Some(renderer) -> 
+            let w, h = renderer.WallpaperSize
+            if LibDworkin.Renderer.EGLContextFactory.NeedsShaderUniformsReset then
+                renderer.SetScale(renderer.GetDimensions(w, h), w, h)
+                LibDworkin.Renderer.EGLContextFactory.NeedsShaderUniformsReset <- false
+        | None -> ()
 
     override this.OnCreateOptionsMenu(menu) =
         this.MenuInflater.Inflate(Resources.Menu.menu, menu)
