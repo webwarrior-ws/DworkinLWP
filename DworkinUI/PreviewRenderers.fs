@@ -397,6 +397,7 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
         Android.Util.Log.Debug("preview-render", sprintf "Request render [overall] %d" hash) |> ignore
 
         let getBitmap() =
+            let stopwatch = System.Diagnostics.Stopwatch.StartNew()
             Android.Util.Log.Debug("preview-render", sprintf "Begin   render [overall] %d" hash) |> ignore
             let random = System.Random(settings.Seed)
             let fgColor, bgColor = settings.GetColors(System.Random(settings.Seed)) // use independent PRNG for colors
@@ -409,20 +410,25 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
 
             this.ClearSDF()
             this.ResetStencil()
+            Android.Util.Log.Debug("preview-render", sprintf "Build environment [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
             let envConfig = settings.Environment.Build(settings.Seed) :> LibDworkin.Agents.IDworkinEnvironmentConfig 
             let env = envConfig.GetEnvironment(this.GetDimensions(width, height))
+            Android.Util.Log.Debug("preview-render", sprintf "Begin simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
             let shapes = ResizeArray()
             while env.HasActiveAgents do
                 shapes.AddRange(env.Step())
-                if shapes.Count > 1000 then
+                if shapes.Count > 10000 then
+                    Android.Util.Log.Debug("preview-render", sprintf "Begin shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
                     this.RenderShapes(shapes.ToArray())
+                    Android.Util.Log.Debug("preview-render", sprintf "End   shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
                     shapes.Clear()
             if shapes.Count > 0 then
                 this.RenderShapes(shapes.ToArray())
+            Android.Util.Log.Debug("preview-render", sprintf "End   simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
 
             this.DrawImage()
             
-            Android.Util.Log.Debug("preview-render", sprintf "End     render [overall] %d" hash) |> ignore
+            Android.Util.Log.Debug("preview-render", sprintf "End     render [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
             this.CaptureRenderbuffer()
 
         OffscreenRendering.processRequest getBitmap |> Option.get
