@@ -65,6 +65,11 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
         use builder = new AlertDialog.Builder(this.Context)
         let dialogView = this.Activity.LayoutInflater.Inflate(Resources.Layout.SavePresetDialog, null)
         let nameInput = dialogView.FindViewById<EditText>(Resources.Id.preset_name_input)
+        
+        let preview = new PresetPreview(this.Context, currentPreset, ImageSize=previewSize)
+        preview.Initialize()
+        dialogView.FindViewById<ViewGroup>(Resources.Id.preview_display).AddView(preview)
+        
         let dialog = 
             builder
                 .SetView(dialogView)
@@ -74,15 +79,11 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
                         newPreset.Name <- nameInput.Text
                         newPreset.IsSaved <- false
                         PresetManagement.savePreset this.Context newPreset
+                        preview.SaveCurrentImage()
                         presetSavedEvent.Trigger(newPreset) )
                 .SetNegativeButton("Cancel", fun _ _ -> this.Dialog.Cancel())
                 .Create()
-        
-        let preview = new PresetPreview(this.Context, currentPreset, ImageSize=previewSize)
-        preview.InvalidateCache()
-        preview.Initialize()
-        dialogView.FindViewById<ViewGroup>(Resources.Id.preview_display).AddView(preview)
-        
+
         nameInput.Text <- currentPreset.Name
         nameInput.TextChanged.Add(fun args -> 
             let currText = args.Text.ToString()

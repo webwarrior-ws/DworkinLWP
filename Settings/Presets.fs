@@ -96,6 +96,7 @@ type PresetPreviewState =
 type PresetPreview(context : Context, preset : Preset) =
     inherit FrameLayout(context, null, 0)
     
+    let mutable currentBitmap : Android.Graphics.Bitmap = null
     let mutable state = PresetPreviewState.Pending
     let cancellationSource = new System.Threading.CancellationTokenSource()
 
@@ -159,6 +160,15 @@ type PresetPreview(context : Context, preset : Preset) =
         if file.Exists() then
             file.Delete() |> ignore
 
+    member this.SaveCurrentImage() =
+        if not (isNull currentBitmap) then
+            try
+                this.EnsureCacheDir()
+                use ostream = new System.IO.FileStream(this.CacheFilePath, System.IO.FileMode.Create)
+                currentBitmap.Compress(Android.Graphics.Bitmap.CompressFormat.Png, 1, ostream) |> ignore
+            with
+            | _ -> ()
+
     // state changes
     member this.SetInitialState() =
         if state = PresetPreviewState.Pending then
@@ -186,11 +196,11 @@ type PresetPreview(context : Context, preset : Preset) =
         let generationTask = async {
             try
                 let w, h = this.ImageSize
-                let bitmap = preset.GeneratePreview(context, w, h)
+                currentBitmap <- preset.GeneratePreview(context, w, h)
                 // using Post method because one must only change UI state from UI thread
-                this.Post(fun () -> this.SetImage(bitmap)) |> ignore
+                this.Post(fun () -> this.SetImage(currentBitmap)) |> ignore
                 if preset.IsSaved then
-                    this.SavePreview(bitmap)
+                    this.SavePreview(currentBitmap)
             with
             | e -> 
                 Android.Util.Log.Debug("previews", e.Message) |> ignore
