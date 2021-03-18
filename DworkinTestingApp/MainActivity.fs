@@ -71,6 +71,7 @@ type MainActivity() =
             || Build.Model.Contains("Emulator") 
             || Build.Model.Contains("Android SDK built for x86")))
         
+        CurrentSettings.load(this)
         if not <| CurrentSettings.isSet() then
             CurrentSettings.set(!settingsHolder)
         else
@@ -103,6 +104,10 @@ type MainActivity() =
         toolbar.Title <- "Dworkin"
         this.SetSupportActionBar(toolbar)
     
+    override this.OnStop() =
+        base.OnStop()
+        CurrentSettings.save(this)
+
     override this.OnPause() =
         // never forget to do this!
         base.OnPause()

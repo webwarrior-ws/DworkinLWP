@@ -321,6 +321,8 @@ type SettingsChange =
     | BackgroundChanged  = 0b1000
 
 
+/// Module that holds current application settings.
+/// GUI and renderer communicate through this module, and it's also used to save settings between launches.
 module CurrentSettings =
     let mutable private currSettings : SettingsHolder option = None
     let mutable private changes = 0
@@ -329,6 +331,7 @@ module CurrentSettings =
     let set(value : SettingsHolder) = currSettings <- Some(value)
     let isSet() = currSettings.IsSome
 
+    // changes
     let getChanges() = changes
     let registerChange(change : SettingsChange) = changes <- changes ||| (int change)
     let internal resetChanges() = changes <- 0
@@ -341,4 +344,31 @@ module CurrentSettings =
             registerChange(SettingsChange.BackgroundChanged)
         if oldSettings.Foreground <> newSettings.Foreground || oldSettings.ForegroundColor <> newSettings.ForegroundColor then
             registerChange(SettingsChange.ForegroundChanged)
+#if __ANDROID__
+    // save/load
+    let save(context : Android.Content.Context) : unit =
+        let filePath = context.FilesDir.Path + "/settings"
+        match currSettings with
+        | Some(settings) ->
+            let json = Serialization.toJsonValue(settings)
+            use ostream = new System.IO.FileStream(filePath, System.IO.FileMode.Create)
+            json.Save(ostream)
+        | None -> ()
+
+    let load(context : Android.Content.Context) : unit =
+        let filePath = context.FilesDir.Path + "/settings"
+        use file = new Java.IO.File(filePath)
+        if file.Exists() then
+            try
+                use stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open)
+                let json = System.Json.JsonValue.Load(stream)
+                let settings : SettingsHolder = Serialization.fromJsonValue(json)
+                currSettings <- Some(settings)
+            with | e ->
+#if DEBUG
+                raise e
+#else
+                ()
+#endif
+#endif
 
