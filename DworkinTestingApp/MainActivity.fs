@@ -71,6 +71,7 @@ type MainActivity() =
             || Build.Model.Contains("Emulator") 
             || Build.Model.Contains("Android SDK built for x86")))
         
+        DworkinUI.CurrentPresetSelection.installHooks()
         CurrentSettings.load(this)
         if not <| CurrentSettings.isSet() then
             CurrentSettings.set(!settingsHolder)

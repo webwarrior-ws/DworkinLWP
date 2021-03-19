@@ -324,6 +324,9 @@ type SettingsChange =
 /// Module that holds current application settings.
 /// GUI and renderer communicate through this module, and it's also used to save settings between launches.
 module CurrentSettings =
+    open System.Json
+    open Android.Content
+
     let mutable private currSettings : SettingsHolder option = None
     let mutable private changes = 0
 
@@ -346,23 +349,29 @@ module CurrentSettings =
             registerChange(SettingsChange.ForegroundChanged)
 #if __ANDROID__
     // save/load
-    let save(context : Android.Content.Context) : unit =
+    let private saveHooks = ResizeArray<Context -> JsonObject -> unit>()
+    let private loadHooks = ResizeArray<Context -> JsonObject -> unit>()
+
+    let save(context : Context) : unit =
         let filePath = context.FilesDir.Path + "/settings"
         match currSettings with
         | Some(settings) ->
-            let json = Serialization.toJsonValue(settings)
+            let json = JsonObject()
+            json.["settingsHolder"] <- Serialization.toJsonValue(settings)
+            for action in saveHooks do action context json
             use ostream = new System.IO.FileStream(filePath, System.IO.FileMode.Create)
             json.Save(ostream)
         | None -> ()
 
-    let load(context : Android.Content.Context) : unit =
+    let load(context : Context) : unit =
         let filePath = context.FilesDir.Path + "/settings"
         use file = new Java.IO.File(filePath)
         if file.Exists() then
             try
                 use stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open)
-                let json = System.Json.JsonValue.Load(stream)
-                let settings : SettingsHolder = Serialization.fromJsonValue(json)
+                let json = JsonValue.Load(stream) :?> JsonObject
+                let settings : SettingsHolder = Serialization.fromJsonValue(json.["settingsHolder"])
+                for action in loadHooks do action context json
                 currSettings <- Some(settings)
             with | e ->
 #if DEBUG
@@ -370,5 +379,11 @@ module CurrentSettings =
 #else
                 ()
 #endif
+    // Save/load hooks. Argument is a function that takes context and current JSON object and preforms some actions or adds new properties to the object.
+    let addSaveHook(action : Context -> JsonObject -> unit) : unit =
+        saveHooks.Add action
+
+    let addLoadHook(action : Context -> JsonObject -> unit) : unit =
+        loadHooks.Add action
 #endif
 

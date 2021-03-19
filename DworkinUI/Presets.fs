@@ -149,6 +149,8 @@ module BuiltinPresets =
 
 
 module CurrentPresetSelection =
+    open System.Json
+
     let mutable appearance : AppearancePreset option = None
     let getAppearancePresetDisplayText() = 
         match appearance with
@@ -162,3 +164,29 @@ module CurrentPresetSelection =
         | Some(preset) when preset.Settings = CurrentSettings.get() -> 
             preset.Name
         | _ -> "custom"
+
+    /// Install settings save/load hooks. Must be called before loading settings (CurrentSettings.load)
+    let installHooks() =
+        CurrentSettings.addSaveHook <| fun _ json ->
+            match overall with
+            | Some(preset) -> json.["overallPresetName"] <- JsonPrimitive(preset.Name)
+            | None -> ()
+            match appearance with
+            | Some(preset) -> json.["appearancePresetName"] <- JsonPrimitive(preset.Name)
+            | None -> ()
+
+        CurrentSettings.addLoadHook <| fun context json ->
+            match json.TryGetValue("overallPresetName") with
+            | true, value -> 
+                let name : string = Serialization.(!>) value
+                let file = new Java.IO.File(PresetManagement.getFilePath context OverallPreset.DirectoryName name)
+                if file.Exists() then
+                    overall <- Some(PresetManagement.loadPreset context file.AbsolutePath)
+            | false, _ -> ()
+            match json.TryGetValue("appearancePresetName") with
+            | true, value -> 
+                let name : string = Serialization.(!>) value
+                let file = new Java.IO.File(PresetManagement.getFilePath context AppearancePreset.DirectoryName name)
+                if file.Exists() then
+                    appearance <- Some(PresetManagement.loadPreset context file.AbsolutePath)
+            | false, _ -> ()
