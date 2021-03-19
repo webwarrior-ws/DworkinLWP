@@ -725,9 +725,8 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
         let dt = stopWatch.Elapsed
         Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
         this.StatsPrinted <- false
-#else
-        this.ResetStencil()
 #endif
+        this.ResetStencil()
 
     override this.OnSurfaceChanged(width, height) =
         let contextLost =
