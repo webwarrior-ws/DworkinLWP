@@ -643,7 +643,8 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
     let mutable currentSettings = !settingsRef
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
     let mutable framesAfterStop = 0
-    do
+    // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
+    let initialSetupRoutine = lazy(
         let random = System.Random(currentSettings.Seed)
         let fgColor, bgColor = currentSettings.GetColors(System.Random(currentSettings.Seed)) // use independent PRNG for colors
         this.Effect <- currentSettings.Effect.Build(platform, random)
@@ -652,6 +653,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
         this.Effect.SetMaterialProperties(
             { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
             { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
+        )
     
     member val EnvironmentStepper : AbstractEnvironmentStepper = 
         match stepper with
@@ -736,6 +738,7 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
 #endif
         if this.WallpaperSize <> (width, height) || (contextLost && width > 0 && height > 0) then
             base.OnSurfaceChanged(width, height)
+            initialSetupRoutine.Force()
         elif framesAfterStop > 0 then
             // Fixes issue of black screen after pause (e.g. waking after sleep). 
             // Value of -1 was determined experimentally
