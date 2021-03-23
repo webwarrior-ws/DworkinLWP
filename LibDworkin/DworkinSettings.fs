@@ -324,8 +324,10 @@ type SettingsChange =
 /// Module that holds current application settings.
 /// GUI and renderer communicate through this module, and it's also used to save settings between launches.
 module CurrentSettings =
+#if __ANDROID__
     open System.Json
     open Android.Content
+#endif
 
     let mutable private currSettings : SettingsHolder option = None
     let mutable private changes = 0
