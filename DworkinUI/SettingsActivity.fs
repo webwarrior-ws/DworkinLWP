@@ -271,7 +271,7 @@ type AppearanceSettingsActivity() =
             .Commit() |> ignore
 
 
-[<Activity(Label = "Settings")>]
+[<Activity(Name = "dworkinUI.SettingsActivity", Label = "Settings")>]
 type SettingsActivity() =
     inherit ActivityWithBackButton()
     

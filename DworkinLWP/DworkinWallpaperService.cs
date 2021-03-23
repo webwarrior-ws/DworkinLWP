@@ -12,13 +12,62 @@ using Android.Opengl;
 using Javax.Microedition.Khronos.Egl;
 using Javax.Microedition.Khronos.Opengles;
 
+using static LibDworkin.DworkinSettings;
+
+
 namespace DworkinLWP
 {
-    [Service(Label = "@string/app_name", Permission = "android.permission.BIND_WALLPAPER")]
+    [Service(Name = "dworkinLWP.DworkinWallpaperService", Enabled = true, Label = "@string/app_name", Permission = "android.permission.BIND_WALLPAPER")]
     [IntentFilter(new string[] { "android.service.wallpaper.WallpaperService" })]
     [MetaData("android.service.wallpaper", Resource = "@xml/wallpaper")]
     class DworkinWallpaperService : WallpaperService
     {
+        static private LibDworkin.RendererComponents.AndroidPlatform platformContainer;
+        
+        static public void EnsureCurrentSettings(Context context)
+        {
+            if (CurrentSettings.isSet()) return;
+
+            DworkinUI.CurrentPresetSelection.installHooks();
+            //CurrentSettings.load(context);
+            if (!CurrentSettings.isSet())
+            {
+                var defaultSettings = new SettingsHolder(
+                        new ConfigSettings.PCB_RandomPosChips(),
+                        new Effects.Plain(),
+                        new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(0.0f, 0.0f, 0.0f)),
+                        new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(1.0f, 1.0f, 1.0f)),
+                        new Materials.SolidColor(),
+                        new Materials.SolidColor(),
+                        42);
+                CurrentSettings.set(defaultSettings);
+            }
+        }
+        
+        internal LibDworkin.RendererComponents.AndroidPlatform Platform 
+        {
+            get
+            {
+                if (platformContainer == null)
+                {
+                    platformContainer = new LibDworkin.RendererComponents.AndroidPlatform(this.ApplicationContext);
+                }
+                return platformContainer;
+            }
+        }
+
+        public override void OnCreate()
+        {
+            base.OnCreate();
+            DworkinWallpaperService.EnsureCurrentSettings(this.ApplicationContext);
+        }
+
+        public override void OnDestroy()
+        {
+            CurrentSettings.save(this.ApplicationContext);
+            base.OnDestroy();
+        }
+
         public override WallpaperService.Engine OnCreateEngine()
         {
             return new DworkinEngine(this);
@@ -71,30 +120,17 @@ namespace DworkinLWP
                 
                 glSurfaceView = WallpaperGLSurfaceView.Create(enclosingInstance, this);
 
-                // Check if the system supports OpenGL ES 2.0. 
-                var activityManager = enclosingInstance.GetSystemService(Context.ActivityService) as ActivityManager;
-                var configurationInfo = activityManager.DeviceConfigurationInfo;
-                // Check for emulator. 
-                var supportsEs2 = configurationInfo.ReqGlEsVersion >= 0x20000 
-                    || (Build.VERSION.SdkInt >= BuildVersionCodes.IceCreamSandwichMr1 && (Build.Fingerprint.StartsWith("generic") 
-                    || Build.Fingerprint.StartsWith("unknown") 
-                    || Build.Model.Contains("google_sdk") 
-                    || Build.Model.Contains("Emulator") 
-                    || Build.Model.Contains("Android SDK built for x86")));
+                var settingsHolder = new Microsoft.FSharp.Core.FSharpRef<SettingsHolder>(CurrentSettings.get());
                 var renderer = new LibDworkin.Renderer.DworkinRenderer( 
-                    enclosingInstance, 
-                    new LibDworkin.Agents.DworkinEnvironment(new OpenTK.Box2(), 42));
-                if (supportsEs2)
-                {
-                    glSurfaceView.SetEGLContextClientVersion(2);
-                    glSurfaceView.PreserveEGLContextOnPause = true;
-                    glSurfaceView.SetRenderer(renderer);
-                    rendererSet = true;
-                }
-                else {
-                    Toast.MakeText(enclosingInstance, "This device does not support OpenGL ES 2.0.", ToastLength.Long).Show();
-                    return;
-                }
+                    enclosingInstance.Platform,
+                    settingsHolder,
+                    null);
+
+                glSurfaceView.SetEGLContextClientVersion(2);
+                glSurfaceView.PreserveEGLContextOnPause = true;
+                glSurfaceView.SetRenderer(renderer);
+                rendererSet = true;
+
             }
 
             public override void OnDestroy()
