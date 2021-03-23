@@ -11,6 +11,7 @@ using System.Text;
 
 namespace DworkinLWP
 {
+    [Activity(Name="dworkinLWP.SettingsActivity", Label = "Dworkin LWP")]
     class SettingsActivity : DworkinUI.SettingsActivity
     {
         public override void OnCreate(Bundle bundle)
