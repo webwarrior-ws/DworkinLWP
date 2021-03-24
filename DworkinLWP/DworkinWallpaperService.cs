@@ -78,8 +78,8 @@ namespace DworkinLWP
             class WallpaperGLSurfaceView : GLSurfaceView
             {
                 private static DworkinEngine tempEngine;
-                private static Object syncObject = new Object();
-                private DworkinEngine engine;
+                private static readonly Object syncObject = new Object();
+                private readonly DworkinEngine engine;
 
                 public static WallpaperGLSurfaceView Create(Context context, DworkinEngine engine)
                 {
@@ -105,7 +105,7 @@ namespace DworkinLWP
                 }
             }
 
-            private DworkinWallpaperService enclosingInstance;
+            private readonly DworkinWallpaperService enclosingInstance;
             private WallpaperGLSurfaceView glSurfaceView;
             private bool rendererSet;
 
@@ -127,10 +127,10 @@ namespace DworkinLWP
                     null);
 
                 glSurfaceView.SetEGLContextClientVersion(2);
+                glSurfaceView.SetEGLContextFactory(LibDworkin.Renderer.EGLContextFactory.Instance);
                 glSurfaceView.PreserveEGLContextOnPause = true;
                 glSurfaceView.SetRenderer(renderer);
                 rendererSet = true;
-
             }
 
             public override void OnDestroy()
