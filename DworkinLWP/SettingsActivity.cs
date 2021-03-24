@@ -30,5 +30,25 @@ namespace DworkinLWP
             base.OnStop();
             LibDworkin.DworkinSettings.CurrentSettings.save(this);
         }
+
+        public override bool OnCreateOptionsMenu(IMenu menu)
+        {
+            this.MenuInflater.Inflate(Resource.Menu.menu, menu);
+            return true;
+        }
+        
+        public override bool OnOptionsItemSelected(IMenuItem item)
+        {
+            if (item.ItemId == Resource.Id.action_set_wallpaper)
+            {
+                Intent intent = new Intent(WallpaperManager.ActionChangeLiveWallpaper);
+                var lwpServiceJavaClass = Java.Lang.Class.FromType(typeof(DworkinWallpaperService));
+                intent.PutExtra(WallpaperManager.ExtraLiveWallpaperComponent, new ComponentName(this, lwpServiceJavaClass));
+                this.StartActivity(intent);
+                return true;
+            }
+            else
+                return base.OnOptionsItemSelected(item);
+        }
     }
 }
