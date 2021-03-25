@@ -14,6 +14,8 @@ namespace DworkinLWP
     [Activity(Name="dworkinLWP.SettingsActivity", Label = "Dworkin LWP")]
     class SettingsActivity : DworkinUI.SettingsActivity
     {
+        const int REQUEST_CODE_CHANGE_WALLPAPER = 0x1;
+
         public override void OnCreate(Bundle bundle)
         {
             DworkinWallpaperService.EnsureCurrentSettings(this);
@@ -44,11 +46,20 @@ namespace DworkinLWP
                 Intent intent = new Intent(WallpaperManager.ActionChangeLiveWallpaper);
                 var lwpServiceJavaClass = Java.Lang.Class.FromType(typeof(DworkinWallpaperService));
                 intent.PutExtra(WallpaperManager.ExtraLiveWallpaperComponent, new ComponentName(this, lwpServiceJavaClass));
-                this.StartActivity(intent);
+                this.StartActivityForResult(intent, REQUEST_CODE_CHANGE_WALLPAPER);
                 return true;
             }
             else
                 return base.OnOptionsItemSelected(item);
+        }
+
+        protected override void OnActivityResult(int requestCode, [GeneratedEnum] Result resultCode, Intent data)
+        {
+            base.OnActivityResult(requestCode, resultCode, data);
+            if (requestCode == REQUEST_CODE_CHANGE_WALLPAPER && resultCode == Result.Ok)
+            {
+                this.Finish();
+            }
         }
     }
 }
