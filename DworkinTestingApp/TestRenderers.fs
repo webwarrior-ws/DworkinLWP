@@ -12,8 +12,8 @@ open LibDworkin.AgentAbstractions
 
 
 
-type BenchmarkRenderer(context, settingsRef) =
-    inherit DworkinRenderer(context, settingsRef, SimpleEnvironmentStepper())
+type BenchmarkRenderer(context) =
+    inherit DworkinRenderer(context, SimpleEnvironmentStepper())
 
     let shapesQueue = System.Collections.Generic.Queue<ShapeAndPaint[]>()
     

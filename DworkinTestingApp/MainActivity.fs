@@ -23,8 +23,8 @@ type MainActivity() =
     inherit Android.Support.V7.App.AppCompatActivity()
     
     let mutable view : GLSurfaceView = null
-    static let settingsHolder = 
-        ref { 
+    let initialSettings = 
+        { 
             Environment=ConfigSettings.PCB_RandomPosChips(); 
             Effect=Effects.Plain();
             ForegroundColor=Defined(OpenTK.Graphics.Color4.Black.AsRGBTriple);
@@ -74,17 +74,15 @@ type MainActivity() =
         DworkinUI.CurrentPresetSelection.installHooks()
         CurrentSettings.load(this)
         if not <| CurrentSettings.isSet() then
-            CurrentSettings.set(!settingsHolder)
-        else
-            settingsHolder := CurrentSettings.get()
+            CurrentSettings.set(initialSettings)
         
         let renderer = 
             match MainActivity.RendererContainer with
             | Some(r) -> r
             | None ->
                 let r = 
-                    new LibDworkin.Renderer.DworkinRenderer(this.Platform, settingsHolder (*, StepsPerFrame=2*) )
-                    //new TestRenderers.BenchmarkRenderer(this.Platform, settingsHolder) 
+                    new LibDworkin.Renderer.DworkinRenderer(this.Platform (*, StepsPerFrame=2*) )
+                    //new TestRenderers.BenchmarkRenderer(this.Platform) 
                     :> LibDworkin.Renderer.BaseRenderer
                 MainActivity.RendererContainer <- Some(r)
                 r
@@ -117,7 +115,6 @@ type MainActivity() =
     override this.OnResume() =
         // never forget to do this!
         base.OnResume()
-        settingsHolder := CurrentSettings.get()
         view.OnResume()
         // reset size and scale shader uniforms that might be upset by overall preset preview renderer
         match MainActivity.RendererContainer with
@@ -138,7 +135,6 @@ type MainActivity() =
             true
         elif item.ItemId = Resources.Id.menuitem_nextseed then
             CurrentSettings.set({ CurrentSettings.get() with Seed = System.Random().Next() })
-            settingsHolder := CurrentSettings.get()
             true
         else
             base.OnOptionsItemSelected(item)

@@ -636,11 +636,11 @@ type BaseRenderer(platform : AbstractPlatform) =
 
 
 
-type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref, ?stepper : AbstractEnvironmentStepper) as this =
+type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
     inherit BaseRenderer(platform)
 
     let mutable stepsPerFrame = 1
-    let mutable currentSettings = !settingsRef
+    let mutable currentSettings = CurrentSettings.get()
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
     let mutable framesAfterStop = 0
     // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
@@ -678,13 +678,17 @@ type DworkinRenderer(platform, settingsRef : DworkinSettings.SettingsHolder ref,
     
     member this.ApplyChangesInSettings() =
         framesAfterStop <- 0
-        let changes = CurrentSettings.getChanges()
-        if changes <> 0 || currentSettings <> !settingsRef then
-            let previousSettings = currentSettings
-            currentSettings <- !settingsRef
+        let mutable changes = CurrentSettings.getChanges()
+        let previousSettings = currentSettings
+        currentSettings <- CurrentSettings.get()
+        if changes <> 0 || previousSettings <> currentSettings then
             let seedChanged = previousSettings.Seed <> currentSettings.Seed
             let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
             let fgColor, bgColor = currentSettings.GetColors(getRandom()) 
+
+            if previousSettings.Effect <> currentSettings.Effect then changes <- changes ||| int SettingsChange.EffectChanged
+            if previousSettings.Background <> currentSettings.Background then changes <- changes ||| int SettingsChange.BackgroundChanged
+            if previousSettings.Foreground <> currentSettings.Foreground then changes <- changes ||| int SettingsChange.ForegroundChanged
 
             if seedChanged || (changes &&& int(SettingsChange.EnvironmentChanged) <> 0) then
                 this.EnvironmentConfig <- currentSettings.Environment.Build(currentSettings.Seed)

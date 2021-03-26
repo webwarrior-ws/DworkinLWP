@@ -23,7 +23,6 @@ namespace DworkinLWP
     class DworkinWallpaperService : WallpaperService
     {
         static private LibDworkin.RendererComponents.AndroidPlatform platformContainer;
-        static private Microsoft.FSharp.Core.FSharpRef<SettingsHolder> settingsHolder;
 
         static public void EnsureCurrentSettings(Context context)
         {
@@ -121,11 +120,7 @@ namespace DworkinLWP
                 
                 glSurfaceView = WallpaperGLSurfaceView.Create(enclosingInstance, this);
 
-                settingsHolder = new Microsoft.FSharp.Core.FSharpRef<SettingsHolder>(CurrentSettings.get());
-                var renderer = new LibDworkin.Renderer.DworkinRenderer( 
-                    enclosingInstance.Platform,
-                    settingsHolder,
-                    null);
+                var renderer = new LibDworkin.Renderer.DworkinRenderer(enclosingInstance.Platform, null);
 
                 glSurfaceView.SetEGLContextClientVersion(2);
                 glSurfaceView.SetEGLContextFactory(LibDworkin.Renderer.EGLContextFactory.Instance);
@@ -146,10 +141,7 @@ namespace DworkinLWP
                 if (rendererSet)
                 {
                     if (visible)
-                    {
-                        settingsHolder.Value = CurrentSettings.get();
                         glSurfaceView.OnResume();
-                    }
                     else
                         glSurfaceView.OnPause();
                 }

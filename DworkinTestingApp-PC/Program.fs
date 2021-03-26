@@ -18,6 +18,23 @@ open Maze
 open DworkinEnvironmentConfigCustom
 
 
+
+let pcbConfig = PCB_RandomPosChips()
+let settingsHolder = 
+   ref { 
+       Environment=ConfigSettings.PCB_RandomPosChips(); 
+       Effect=Effects.Plain();
+       ForegroundColor=Defined(OpenTK.Graphics.Color4.Black.AsRGBTriple);
+       BackgroundColor=Defined(OpenTK.Graphics.Color4.White.AsRGBTriple);
+       Foreground=Materials.SolidColor();
+       Background=Materials.SolidColor();
+       Seed=42;
+   }
+CurrentSettings.set(!settingsHolder)
+let platform = DotNETPlatform()
+let renderer = DworkinRenderer(platform)
+
+
 type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRenderer, ?guis : GUI.Widgets.AbstractGui list) =
     inherit GUI.Window(1280, 720, defaultArg guis [])
 
@@ -46,27 +63,13 @@ type MainWindow<'TRenderer when 'TRenderer :> BaseRenderer>(renderer : 'TRendere
     
     override this.OnUpdateFrame(e) =
         base.OnUpdateFrame(e)
+        CurrentSettings.set(!settingsHolder)
     
     override this.OnRenderFrame(e) =
         renderer.OnDrawFrame()
         base.OnRenderFrame(e)
         this.SwapBuffers()
  
-
- 
-let pcbConfig = PCB_RandomPosChips()
-let settingsHolder = 
-    ref { 
-        Environment=ConfigSettings.PCB_RandomPosChips(); 
-        Effect=Effects.Plain();
-        ForegroundColor=Defined(OpenTK.Graphics.Color4.Black.AsRGBTriple);
-        BackgroundColor=Defined(OpenTK.Graphics.Color4.White.AsRGBTriple);
-        Foreground=Materials.SolidColor();
-        Background=Materials.SolidColor();
-        Seed=42;
-    }
-let platform = DotNETPlatform()
-let renderer = DworkinRenderer(platform, settingsHolder)
 
 module Builders =
     let internal makeShaderBasedComponentEditor<'T when 'T :> ShaderBasedComponent> (setter : DworkinRenderer -> 'T -> unit) name (children : (string * obj * (string -> ConfigPropertyEditor<RendererComponentFactory<'T>>)) list) : IRendererPropertyEditor = 
