@@ -26,7 +26,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 #endif
     // fields
 #if __ANDROID__
-    let mutable lastContext : Egl.EGLContext = null
+    let mutable lastContext : Egl.EGLContext = EGLContextFactory.CurrentContext
 #endif
     let mutable shapeVertices = Buffer<Vector2>(128)
     let mutable polygonSegmentsVertices = Buffer<Vector2>(128)
@@ -712,8 +712,8 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
             false
 #endif
         if this.WallpaperSize <> (width, height) || (contextLost && width > 0 && height > 0) then
-            base.OnSurfaceChanged(width, height)
             initialSetupRoutine.Force()
+            base.OnSurfaceChanged(width, height)
         elif framesAfterStop > 0 then
             // Fixes issue of black screen after pause (e.g. waking after sleep). 
             // Value of -1 was determined experimentally

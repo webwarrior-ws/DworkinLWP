@@ -330,6 +330,8 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
 
     let sdfTexture = platform.GetTexture("preview_sdf.png")
 
+    let mutable texturesInitialized = false
+
     static let singleton = RendererSingleton<AppearancePresetRenderer>()
 
     static member RequestInstance(platform, width, height) : AppearancePresetRenderer =
@@ -349,8 +351,7 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
         let dimensions = Vector2(float32 width, float32 height)
         this.SetSizeAndScaleVariables(dimensions, width, height)
         this.InitializeQuadVBO()
-        this.InitializeMaterialTextures()
-
+        
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
 
@@ -367,6 +368,10 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
                 { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
                 { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
 
+            if not texturesInitialized then
+                this.InitializeMaterialTextures() // call it here to avoid unnecessary DrawMaterial calls
+                texturesInitialized <- true
+
             this.DrawImage()
             Android.Util.Log.Debug("preview-render", sprintf "End     render %d" hash) |> ignore
             this.CaptureRenderbuffer()
@@ -376,6 +381,8 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
 
 type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : int) =
     inherit BasePresetRenderer(platform, width, height)
+
+    let mutable onSurfaceChangedCalled = false
 
     static let singleton = RendererSingleton<OverallPresetRenderer>()
 
@@ -389,7 +396,6 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
     override this.Initialize() =
         base.Initialize()
         this.OnSurfaceCreated()
-        this.OnSurfaceChanged(width, height)
         LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset <- true
 
     member this.RenderPreview(settings : LibDworkin.DworkinSettings.SettingsHolder) : Bitmap = 
@@ -407,6 +413,10 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
             this.Effect.SetMaterialProperties(
                 { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
                 { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
+
+            if not onSurfaceChangedCalled then
+                this.OnSurfaceChanged(width, height) // call it here to avoid unnecessary DrawMaterial calls
+                onSurfaceChangedCalled <- true
 
             this.ClearSDF()
             this.ResetStencil()
