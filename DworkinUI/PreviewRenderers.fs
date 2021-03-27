@@ -425,7 +425,7 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
             let env = envConfig.GetEnvironment(this.GetDimensions(width, height))
             Android.Util.Log.Debug("preview-render", sprintf "Begin simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
             let shapes = ResizeArray()
-            while env.HasActiveAgents do
+            while env.HasAgents do
                 shapes.AddRange(env.Step())
                 if shapes.Count > 10000 then
                     Android.Util.Log.Debug("preview-render", sprintf "Begin shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
