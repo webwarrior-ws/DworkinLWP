@@ -29,7 +29,8 @@ namespace DworkinLWP
             if (CurrentSettings.isSet()) return;
 
             DworkinUI.CurrentPresetSelection.installHooks();
-            //CurrentSettings.load(context);
+            var _ = ConfigSettings.allEnvironmentSettingsTypes; // force registering environment settings types
+            CurrentSettings.load(context);
             if (!CurrentSettings.isSet())
             {
                 var defaultSettings = new SettingsHolder(
