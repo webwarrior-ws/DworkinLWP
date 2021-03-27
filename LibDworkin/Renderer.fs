@@ -610,7 +610,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
     inherit BaseRenderer(platform)
 
     let mutable stepsPerFrame = 1
-    let mutable currentSettings = CurrentSettings.get()
+    let mutable currentSettings = CurrentSettings.get() |> Settings.Serialization.copy
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
     let mutable framesAfterStop = 0
     // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
@@ -648,39 +648,41 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
     
     member this.ApplyChangesInSettings() =
         framesAfterStop <- 0
-        let mutable changes = CurrentSettings.getChanges()
         let previousSettings = currentSettings
-        currentSettings <- CurrentSettings.get()
-        if changes <> 0 || previousSettings <> currentSettings then
-            let seedChanged = previousSettings.Seed <> currentSettings.Seed
+        currentSettings <- CurrentSettings.get() |> Settings.Serialization.copy
+        if previousSettings <> currentSettings then
             let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
             let fgColor, bgColor = currentSettings.GetColors(getRandom()) 
 
-            if previousSettings.Effect <> currentSettings.Effect then changes <- changes ||| int SettingsChange.EffectChanged
-            if previousSettings.Background <> currentSettings.Background then changes <- changes ||| int SettingsChange.BackgroundChanged
-            if previousSettings.Foreground <> currentSettings.Foreground then changes <- changes ||| int SettingsChange.ForegroundChanged
+            let seedChanged = previousSettings.Seed <> currentSettings.Seed
+            let effectChanged = 
+                previousSettings.Effect <> currentSettings.Effect || 
+                (seedChanged && currentSettings.Effect.HasRandomizedValues)
+            let backgroundChanged = 
+                previousSettings.Background <> currentSettings.Background || 
+                previousSettings.BackgroundColor <> currentSettings.BackgroundColor || 
+                (seedChanged && (currentSettings.Background.HasRandomizedValues || currentSettings.BackgroundColor.IsRandomized))
+            let foregroundChanged = 
+                previousSettings.Foreground <> currentSettings.Foreground || 
+                previousSettings.ForegroundColor <> currentSettings.ForegroundColor || 
+                (seedChanged && (currentSettings.Foreground.HasRandomizedValues || currentSettings.ForegroundColor.IsRandomized))
 
-            if seedChanged || (changes &&& int(SettingsChange.EnvironmentChanged) <> 0) then
+            if seedChanged || (previousSettings.Environment <> currentSettings.Environment) then
                 this.EnvironmentConfig <- currentSettings.Environment.Build(currentSettings.Seed)
             
-            if changes &&& int(SettingsChange.EffectChanged) <> 0 || 
-               (seedChanged && currentSettings.Effect.HasRandomizedValues) then
+            if effectChanged then
                 this.Effect <- currentSettings.Effect.Build(platform, getRandom())
             
-            if changes &&& int(SettingsChange.BackgroundChanged) <> 0 || 
-               (seedChanged && (currentSettings.Background.HasRandomizedValues || currentSettings.BackgroundColor.IsRandomized)) then
+            if backgroundChanged then
                 this.Background <- currentSettings.Background.Build(platform, getRandom(), bgColor)
             
-            if changes &&& int(SettingsChange.ForegroundChanged) <> 0 || 
-               (seedChanged && (currentSettings.Foreground.HasRandomizedValues || currentSettings.ForegroundColor.IsRandomized)) then
+            if foregroundChanged then
                 this.Foreground <- currentSettings.Foreground.Build(platform, getRandom(), fgColor)
                 
-            if changes &&& int(SettingsChange.EffectChanged ||| SettingsChange.BackgroundChanged ||| SettingsChange.ForegroundChanged) <> 0 then
+            if effectChanged || backgroundChanged || foregroundChanged then
                 this.Effect.SetMaterialProperties(
                     { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
                     { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
-            
-            CurrentSettings.resetChanges()
 
             this.ResetStencil()
 

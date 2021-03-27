@@ -49,7 +49,6 @@ type PatternSettingsFragment() =
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Environment |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Environment=unbox<EnvironmentSettings>(value) } ))
-        editor.Changed.Add(fun _ -> CurrentSettings.registerChange(SettingsChange.EnvironmentChanged))
         editor
 
     override this.OnCreateView(inflater, container, bundle) = 
@@ -67,10 +66,6 @@ type AppearanceSettingsFragment() =
 
     let settingChangedEvent = Event<unit>()
 
-    let changeHandler (change : SettingsChange) () =
-        CurrentSettings.registerChange change
-        settingChangedEvent.Trigger()
-
     member this.SettingChanged = settingChangedEvent.Publish
 
     member this.UpdateEditors() = updateEditorsEvent.Trigger()
@@ -82,7 +77,7 @@ type AppearanceSettingsFragment() =
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Effect |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Effect=unbox<EffectSettings>(value) } ))
-        editor.Changed.Add(changeHandler SettingsChange.EffectChanged)
+        editor.Changed.Add(settingChangedEvent.Trigger)
         updateEditors.Add(editor.UpdateValue)
         editor
     
@@ -93,7 +88,7 @@ type AppearanceSettingsFragment() =
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Foreground |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Foreground=unbox<MaterialSettings>(value) } ))
-        editor.Changed.Add(changeHandler SettingsChange.ForegroundChanged)
+        editor.Changed.Add(settingChangedEvent.Trigger)
         updateEditors.Add(editor.UpdateValue)
         editor
     
@@ -104,7 +99,7 @@ type AppearanceSettingsFragment() =
             Views.Accessor(
                 (fun () -> CurrentSettings.get().Background |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Background=unbox<MaterialSettings>(value) } ))
-        editor.Changed.Add(changeHandler SettingsChange.BackgroundChanged)
+        editor.Changed.Add(settingChangedEvent.Trigger)
         updateEditors.Add(editor.UpdateValue)
         editor
 
@@ -118,7 +113,7 @@ type AppearanceSettingsFragment() =
                 (fun () -> CurrentSettings.get().ForegroundColor |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with ForegroundColor=unbox(value) } ))
         e.Accessor <- accessor
-        e.Changed.Add(changeHandler SettingsChange.ForegroundChanged)
+        e.Changed.Add(settingChangedEvent.Trigger)
         updateEditors.Add(fun () -> e.Accessor <- accessor)
         editor
 
@@ -132,7 +127,7 @@ type AppearanceSettingsFragment() =
                 (fun () -> CurrentSettings.get().BackgroundColor |> box), 
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with BackgroundColor=unbox(value) } ))
         e.Accessor <- accessor
-        e.Changed.Add(changeHandler SettingsChange.BackgroundChanged)
+        e.Changed.Add(settingChangedEvent.Trigger)
         updateEditors.Add(fun () -> e.Accessor <- accessor)
         editor
 

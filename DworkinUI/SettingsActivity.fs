@@ -197,7 +197,6 @@ type AppearancePresetSelectionActivity() =
                 Background=Serialization.copy preset.Background
                 Foreground=Serialization.copy preset.Foreground }
         CurrentSettings.set(newSettings)
-        CurrentSettings.registerAllChanges(currSettings, newSettings)
         this.CurrentPresetSelection <- Some(preset)
         this.Finish()
 
@@ -230,7 +229,6 @@ type OverallPresetSelectionActivity() =
         let oldSettings = CurrentSettings.get()
         let newSettings = Serialization.copy preset.Settings
         CurrentSettings.set(newSettings)
-        CurrentSettings.registerAllChanges(oldSettings, newSettings)
         this.CurrentPresetSelection <- Some(preset)
         this.Finish()
     

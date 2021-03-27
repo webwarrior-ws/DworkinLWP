@@ -314,13 +314,6 @@ type SettingsHolder =
         getColors random this.ForegroundColor this.BackgroundColor
 
 
-type SettingsChange =
-    | EnvironmentChanged = 0b0001
-    | EffectChanged      = 0b0010
-    | ForegroundChanged  = 0b0100
-    | BackgroundChanged  = 0b1000
-
-
 /// Module that holds current application settings.
 /// GUI and renderer communicate through this module, and it's also used to save settings between launches.
 module CurrentSettings =
@@ -330,25 +323,11 @@ module CurrentSettings =
 #endif
 
     let mutable private currSettings : SettingsHolder option = None
-    let mutable private changes = 0
 
     let get() : SettingsHolder = currSettings.Value
     let set(value : SettingsHolder) = currSettings <- Some(value)
     let isSet() = currSettings.IsSome
-
-    // changes
-    let getChanges() = changes
-    let registerChange(change : SettingsChange) = changes <- changes ||| (int change)
-    let internal resetChanges() = changes <- 0
-    let registerAllChanges(oldSettings : SettingsHolder, newSettings : SettingsHolder) =
-        if oldSettings.Environment <> newSettings.Environment then
-            registerChange(SettingsChange.EnvironmentChanged)
-        if oldSettings.Effect <> newSettings.Effect then
-            registerChange(SettingsChange.EffectChanged)
-        if oldSettings.Background <> newSettings.Background || oldSettings.BackgroundColor <> newSettings.BackgroundColor then
-            registerChange(SettingsChange.BackgroundChanged)
-        if oldSettings.Foreground <> newSettings.Foreground || oldSettings.ForegroundColor <> newSettings.ForegroundColor then
-            registerChange(SettingsChange.ForegroundChanged)
+    
 #if __ANDROID__
     // save/load
     let private saveHooks = ResizeArray<Context -> JsonObject -> unit>()
