@@ -96,7 +96,7 @@ module OffscreenRendering =
                     EGL_CONTEXT_CLIENT_VERSION; 2 // IMPORTANT
                     EGL10.EglNone
                 |]
-        let share_context = LibDworkin.Renderer.EGLContextFactory.CurrentContext
+        let share_context = LibDworkin.RendererComponents.EGLContextFactory.CurrentContext
         context <- initResult.egl10.EglCreateContext(initResult.display, initResult.config, share_context, _attribs_config)
         initResult.success <- CheckEglError(initResult.egl10, "EglCreateContext") && (context <> null)
 
@@ -149,7 +149,7 @@ module OffscreenRendering =
     
     let EndOurGL() =
         EndAndDispose()
-        if LibDworkin.Renderer.EGLContextFactory.CurrentContext = EGL10.EglNoContext then
+        if LibDworkin.RendererComponents.EGLContextFactory.CurrentContext = EGL10.EglNoContext then
             // No context is shared with our context, so reset shaders and textures (they will be lost when context is destroyed)
             ResettableLazy<Shader>.ResetAll()
             ResettableLazy<int>.ResetAll() // textures
@@ -390,7 +390,7 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
         base.Initialize()
         this.OnSurfaceCreated()
         this.OnSurfaceChanged(width, height)
-        LibDworkin.Renderer.EGLContextFactory.NeedsShaderUniformsReset <- true
+        LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset <- true
 
     member this.RenderPreview(settings : LibDworkin.DworkinSettings.SettingsHolder) : Bitmap = 
         let hash = settings.GetHashCode()

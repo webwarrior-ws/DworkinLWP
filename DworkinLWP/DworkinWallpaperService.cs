@@ -123,7 +123,7 @@ namespace DworkinLWP
                 var renderer = new LibDworkin.Renderer.DworkinRenderer(enclosingInstance.Platform, null);
 
                 glSurfaceView.SetEGLContextClientVersion(2);
-                glSurfaceView.SetEGLContextFactory(LibDworkin.Renderer.EGLContextFactory.Instance);
+                glSurfaceView.SetEGLContextFactory(LibDworkin.RendererComponents.EGLContextFactory.Instance);
                 glSurfaceView.PreserveEGLContextOnPause = true;
                 glSurfaceView.SetRenderer(renderer);
                 rendererSet = true;

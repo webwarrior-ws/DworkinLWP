@@ -10,31 +10,77 @@ open OpenTK
 
 open Microsoft.FSharp.NativeInterop
 
+#if __ANDROID__
+open Android.Opengl
+open Javax.Microedition.Khronos
 
 
-/// Like Lazy<'T>, but with ability to "forget" computed value.
-/// This class tracks its instances and can reset them all.
+type EGLContextFactory private() =
+    inherit Java.Lang.Object()
+    
+    static let mutable currentContext : Egl.EGLContext = Egl.EGL10.EglNoContext
+
+    interface GLSurfaceView.IEGLContextFactory with
+        member this.CreateContext(egl, display, eglConfig) =
+            // see https://www.khronos.org/registry/EGL/sdk/docs/man/html/eglCreateContext.xhtml
+            let EGL_CONTEXT_CLIENT_VERSION = 0x3098;
+            let attribs_config = [| 
+                EGL_CONTEXT_CLIENT_VERSION; 2;
+                Egl.EGL10.EglNone
+            |]
+            let context = egl.EglCreateContext(display, eglConfig, Egl.EGL10.EglNoContext, attribs_config)
+            currentContext <- context
+            context
+
+        member this.DestroyContext(egl, display, context) =
+            ResettableLazy<Shader>.ResetAll(context.JniIdentityHashCode)
+            ResettableLazy<int>.ResetAll(context.JniIdentityHashCode) // textures
+            if egl.EglDestroyContext(display, context) then
+                currentContext <- Egl.EGL10.EglNoContext
+    
+    static member CurrentContext = currentContext
+
+    static member val Instance = new EGLContextFactory()
+
+    /// Global variable that indicates need to reset shader uniforms after they were modified from another OpenGL context
+    static member val NeedsShaderUniformsReset = false with get, set
+#endif
+
+
+/// Like Lazy<'T>, but stores different values for different contexts and can "forget" computed value.
+/// This class tracks its instances and can reset them all (for specific context or all contexts).
+/// Context is defined by context marker (int).
 type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
     static let allInstances = ResizeArray<WeakReference<ResettableLazy<'T>>>()
 
-    let mutable lazyContainer = Lazy<'T>(valueFactory)
+    let dict = SpecializedCollections.SmallDictionary<int, 'T>.Create()
     do
         allInstances.Add(WeakReference<ResettableLazy<'T>>(this))
 
-    member this.Value = lazyContainer.Value
-    member this.IsValueCreated = lazyContainer.IsValueCreated
+    static member CurrentContextMarker : int = 
+#if __ANDROID__
+        EGLContextFactory.CurrentContext.JniIdentityHashCode
+#else
+        0
+#endif
+
+    member this.Value = dict.GetOrSetIfAbsent(ResettableLazy<_>.CurrentContextMarker, valueFactory)
+    member this.IsValueCreated = dict.ContainsKey(ResettableLazy<_>.CurrentContextMarker)
 
     member this.Reset() =
-        lazyContainer <- Lazy<'T>(valueFactory)
+        dict.Clear()
+
+    member this.Reset(contextMarker : int) =
+        dict.Remove(contextMarker) |> ignore
     
-    static member ResetAll() : unit =
-        allInstances.RemoveAll(fun each -> 
+    static member ResetAll(?contextMarker : int) : unit =
+        for each in allInstances do
             match each.TryGetTarget() with
             | true, inst -> 
-                inst.Reset() 
-                false
-            | false, _ -> true )
-        |> ignore
+                match contextMarker with
+                | Some(marker) -> inst.Reset(marker) 
+                | None -> inst.Reset()
+            | false, _ -> ()
 
 
 #nowarn "9"
@@ -310,6 +356,7 @@ type ShaderBasedComponent(shader : ResettableLazy<Shader>) =
 
     abstract Use: unit -> unit
     default this.Use() =
+        assert(GL.IsProgram(this.Shader.Program))
         this.Shader.Use()        
 
 
@@ -369,6 +416,9 @@ type AbstractUniversalMaterial(platform : AbstractPlatform,
             | None -> Helpers.flatNormalMap.Value
         let roughnessTexture = fst roughness |> Option.map (fun textureName -> platform.GetTexture(textureName).Value)
         // now set textures
+        assert(GL.IsTexture(reflectionTexture))
+        assert(GL.IsTexture(aoTexture))
+        assert(GL.IsTexture(normalTexture))
         this.SetTexture("reflectionMap", TextureUnit.Texture0, reflectionTexture)
         this.SetTexture("aoMap", TextureUnit.Texture1, aoTexture)
         this.SetTexture("normalMap", TextureUnit.Texture2, normalTexture)

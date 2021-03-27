@@ -14,37 +14,6 @@ open DworkinSettings
 #if __ANDROID__
 open Android.Opengl
 open Javax.Microedition.Khronos
-
-
-type EGLContextFactory private() =
-    inherit Java.Lang.Object()
-    
-    static let mutable currentContext : Egl.EGLContext = Egl.EGL10.EglNoContext
-
-    interface GLSurfaceView.IEGLContextFactory with
-        member this.CreateContext(egl, display, eglConfig) =
-            // see https://www.khronos.org/registry/EGL/sdk/docs/man/html/eglCreateContext.xhtml
-            let EGL_CONTEXT_CLIENT_VERSION = 0x3098;
-            let attribs_config = [| 
-                EGL_CONTEXT_CLIENT_VERSION; 2;
-                Egl.EGL10.EglNone
-            |]
-            let context = egl.EglCreateContext(display, eglConfig, Egl.EGL10.EglNoContext, attribs_config)
-            currentContext <- context
-            context
-
-        member this.DestroyContext(egl, display, context) = 
-            ResettableLazy<Shader>.ResetAll()
-            ResettableLazy<int>.ResetAll() // textures
-            if egl.EglDestroyContext(display, context) then
-                currentContext <- Egl.EGL10.EglNoContext
-    
-    static member CurrentContext = currentContext
-
-    static member val Instance = new EGLContextFactory()
-
-    /// Global variable that indicates need to reset shader uniforms after they were modified from another OpenGL context
-    static member val NeedsShaderUniformsReset = false with get, set
 #endif
 
 let maxSDFDistance = 16.0f
@@ -612,6 +581,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.Background.Scale <- scale
         
         this.CalcPositiveDistShader.DeferredSetUniform("screenDimensions", width, height)
+        this.CalcPositiveDistShader.DeferredSetUniform("h", this.MaxDistance)
         this.Effect.ScreenDimensions <- dimensions
         this.CalcNegativeDistShaderHorizontal.DeferredSetUniform("xScale", 1.0f / width)
         this.CalcNegativeDistShaderVertical.DeferredSetUniform("yScale", 1.0f / height)

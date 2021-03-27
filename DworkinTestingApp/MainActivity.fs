@@ -89,7 +89,7 @@ type MainActivity() =
         
         if supportsEs2 then
             view.SetEGLContextClientVersion(2)
-            view.SetEGLContextFactory(LibDworkin.Renderer.EGLContextFactory.Instance)
+            view.SetEGLContextFactory(LibDworkin.RendererComponents.EGLContextFactory.Instance)
             view.PreserveEGLContextOnPause <- true
             // set renderer
             view.SetRenderer(renderer)
@@ -120,9 +120,9 @@ type MainActivity() =
         match MainActivity.RendererContainer with
         | Some(renderer) -> 
             let w, h = renderer.WallpaperSize
-            if LibDworkin.Renderer.EGLContextFactory.NeedsShaderUniformsReset then
+            if LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset then
                 renderer.SetScale(renderer.GetDimensions(w, h), w, h)
-                LibDworkin.Renderer.EGLContextFactory.NeedsShaderUniformsReset <- false
+                LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset <- false
         | None -> ()
 
     override this.OnCreateOptionsMenu(menu) =
