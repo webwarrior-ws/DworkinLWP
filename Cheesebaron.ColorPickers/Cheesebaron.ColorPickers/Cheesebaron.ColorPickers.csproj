@@ -1,0 +1,19 @@
+﻿<Project Sdk="MSBuild.Sdk.Extras">
+  <PropertyGroup>
+    <TargetFrameworks>monoandroid90</TargetFrameworks>
+    <AssemblyName>Cheesebaron.ColorPickers</AssemblyName>
+    <RootNamespace>Cheesebaron.ColorPickers</RootNamespace>
+    <PackageId>Cheesebaron.ColorPickers</PackageId>
+    <Description>Give your Android App a way to select a color!</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AndroidResource Include="Resources\**\*.xml" />
+  </ItemGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+</Project>

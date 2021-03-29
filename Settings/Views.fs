@@ -5,7 +5,7 @@ open Android.Util
 open Android.Widget
 open Android.Views
 
-open Top.Defaults.ColorPickerLib
+open Cheesebaron.ColorPickers
 
 
 // interfaces for setting-editing viwes
@@ -318,20 +318,13 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
         randomizedEditorComponent.Initialize()
         this.Click.Add(fun args ->
             if (this :> IRandomizedEditor<RGBTriple>).IsEnabled then
-                let dialog = 
-                    ColorPickerPopup.Builder(context)
-                        .InitialColor(this.AndroidColor.ToArgb())
-                        .OkTitle("Choose")
-                        .CancelTitle("Cancel")
-                        .ShowValue(false)
-                        .Build()
-                let handler = 
-                    { new ColorPickerPopup.IColorPickerObserver with 
-                        override popup.OnColorPicked(c) = 
-                            this.AndroidColor <- Android.Graphics.Color(c)
-                            randomizedEditorComponent.FireChangedEvent()
-                        override popup.OnColor(c, fromUser) = () }
-                dialog.Show(this, handler) )
+                let dialog = new ColorPickerDialog(context, this.AndroidColor)
+                dialog.SetTitle("Choose color")
+                dialog.AlphaSliderVisible <- false
+                dialog.ColorChanged.Add(fun args -> 
+                    this.AndroidColor <- args.Color
+                    randomizedEditorComponent.FireChangedEvent() )
+                dialog.Show() )
         this.Swatch.Clickable <- false
     
     override this.OnFinishInflate() =

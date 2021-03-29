@@ -93,12 +93,6 @@
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="CheckerboardDrawable">
-      <HintPath>..\packages\Karamunting.Android.DuanHong169.CheckerboardDrawable.1.0.2.1\lib\monoandroid71\CheckerboardDrawable.dll</HintPath>
-    </Reference>
-    <Reference Include="ColorPicker">
-      <HintPath>..\packages\Karamunting.Android.DuanHong169.ColorPicker.1.1.1\lib\monoandroid71\ColorPicker.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\portable-net45+monoandroid10+monotouch10+xamarinios10\FSharp.Core.dll</HintPath>
     </Reference>
@@ -214,6 +208,13 @@
     <Reference Include="Xamarin.Android.Support.ViewPager">
       <HintPath>..\packages\Xamarin.Android.Support.ViewPager.28.0.0.3\lib\monoandroid90\Xamarin.Android.Support.ViewPager.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cheesebaron.ColorPickers\Cheesebaron.ColorPickers\Cheesebaron.ColorPickers.csproj">
+      <Name>Cheesebaron.ColorPickers</Name>
+      <Project>{466058da-23be-483a-ac62-f0ab2c968b4b}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\packages\Xamarin.Android.Support.Annotations.28.0.0.3\build\monoandroid90\Xamarin.Android.Support.Annotations.targets" Condition="Exists('..\packages\Xamarin.Android.Support.Annotations.28.0.0.3\build\monoandroid90\Xamarin.Android.Support.Annotations.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

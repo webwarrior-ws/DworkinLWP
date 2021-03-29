@@ -1,7 +1,8 @@
 ﻿namespace Settings
 
 type Resources = Settings.Resource
-type ColorPickerResources = Top.Defaults.ColorPickerLib.Resource
+
+type ColorPickerResources = Cheesebaron.ColorPickers.Resource
 
 
 type RGBTriple = float32 * float32 * float32
