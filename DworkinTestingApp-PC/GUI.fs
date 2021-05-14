@@ -186,10 +186,18 @@ module Widgets =
         let mutable dropdownList : ComboBox = null
         let mutable items : MenuItem[] = [||]
 
+        member val Labels : string[] = [||] with get, set
+
         override this.Initialize(parent) =
             let panel = new GroupBox(parent, Text=name, Height=lineHeight*2, Dock=Gwen.Pos.Top)
             dropdownList <- new ComboBox(panel, Height=lineHeight, Dock=Gwen.Pos.Top)
-            items <- [| for opt in options -> dropdownList.AddItem(sprintf "%A" opt) |]
+            items <- 
+                options 
+                |> List.mapi (
+                    fun i opt -> 
+                        let label = if this.Labels.Length = options.Length then this.Labels.[i] else sprintf "%A" opt
+                        dropdownList.AddItem(label))
+                |> List.toArray
 
         override this.Update() = 
             if dropdownList |> isNull |> not then
@@ -661,6 +669,7 @@ type Window(width : int, height : int, guis : AbstractGui list) as this =
         for each in this.Guis do each.Update()
 
 
+
 /// Helper functions to make GUI Widgets
 module Builders =
     let chooser (name : string) (renderer : DworkinRenderer) (configGuis : IRendererPropertyEditor list) =
@@ -683,6 +692,11 @@ module Builders =
     
     let dropdownListEditor (name : string) (lens : Lens<'TConfig, 'TValue>) (options: 'TValue list) =
         DropdownListPropertyEditor(name, lens, options)
+
+    let labeledDropdownListEditor (name : string) (lens : Lens<'TConfig, 'TValue>) (options: ('TValue * string) list) =
+        let res = DropdownListPropertyEditor(name, lens, options |> List.map fst)
+        res.Labels <- options |> List.map snd |> List.toArray
+        res
     
     let numberboxEditor (name : string) (lens : Lens<'TConfig, int>) =
         IntNumberboxPropertyEditor(name, lens)
