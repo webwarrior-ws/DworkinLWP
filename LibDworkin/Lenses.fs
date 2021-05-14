@@ -248,5 +248,8 @@ let inline baseSpeed_< ^U , ^V when ^U : (static member BaseSpeed_ : Lens< ^U, ^
 let inline delay_< ^U , ^V when ^U : (static member Delay_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Delay_ : Lens< ^U, ^V>) ()))
 
+let inline scale_< ^U , ^V when ^U : (static member Scale_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Scale_ : Lens< ^U, ^V>) ()))
+
 // compound lenses
 let termination_spawnConfig_ = termination_ >-> cast<TerminationStrategy, TerminationSpawn> >-> spawnConfig_

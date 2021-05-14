@@ -59,6 +59,23 @@ module BranchingCriterionCustom =
                     fun () -> NumberRange(agent.Random.NextInRange(this.MinRange), agent.Random.NextInRange(this.MaxRange)))
             ((mark.S + this.D) < agent.S) && (tInterval.Contains agent.T)
     
+
+    type Interval_MaxBranches() = 
+        inherit BranchingCriterionCustom()
+        member val D = 18.0f with get, set
+        member val N = 2 with get, set
+        
+        member this.Clone() = this.MemberwiseClone() :?> Interval_MaxBranches
+        
+        static member D_ : Lens<Interval_MaxBranches, _> = 
+            (fun x -> x.D), (fun value x -> let y = x.Clone() in y.D <- value; y)
+        static member N_ : Lens<Interval_MaxBranches, _> = 
+            (fun x -> x.N), (fun value x -> let y = x.Clone() in y.N <- value; y)
+        
+        override this.Evaluate(agent, mark, tag) =
+            ((agent.NumBranchesFor(tag)) < this.N) && ((mark.S + this.D) < agent.S)
+
+
     type RandEachStepMinInt() = 
         inherit BranchingCriterionCustom()
         member val P = 0.125f with get, set
@@ -74,6 +91,26 @@ module BranchingCriterionCustom =
         override this.Evaluate(agent, mark, tag) =
             (agent.Random.NextFloat() < (1.0f - ((1.0f - this.P) ** (agent.Speed / agent.LengthFactor)))) && ((agent.S - mark.S) >= this.MinInterval)
 
+
+
+module BranchingCriterionInterval =
+    type ConstantBoundedT() = 
+        inherit BranchingCriterionInterval()
+        member val D = 10.0f with get, set
+        member val Start = 0.2f with get, set
+        member val End = 0.8f with get, set
+    
+        member this.Clone() = this.MemberwiseClone() :?> ConstantBoundedT
+    
+        static member D_ : Lens<ConstantBoundedT, _> = 
+            (fun x -> x.D), (fun value x -> let y = x.Clone() in y.D <- value; y)
+        static member Start_ : Lens<ConstantBoundedT, _> = 
+            (fun x -> x.Start), (fun value x -> let y = x.Clone() in y.Start <- value; y)
+        static member End_ : Lens<ConstantBoundedT, _> = 
+            (fun x -> x.End), (fun value x -> let y = x.Clone() in y.End <- value; y)
+    
+        override this.Evaluate(s, t) =
+            if between this.Start this.End t then this.D else 1000000.0f
 
 
 module BranchingCriterionIntervalRandomized =

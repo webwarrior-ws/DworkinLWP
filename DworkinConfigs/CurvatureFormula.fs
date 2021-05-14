@@ -63,7 +63,6 @@ type SNoise() =
         this.A * ((s + this.D) * this.B).SNoise() + this.C
 
 
-
 type Quadratic() = 
     inherit CurvatureFormula()
     member val A = -0.64f with get, set
@@ -85,3 +84,38 @@ type Quadratic() =
     override this.Evaluate(s, t) =
         let x = s * this.K
         this.A * x*x + this.B * x + this.C
+
+
+type Linear() = 
+    inherit CurvatureFormula()
+    member val A = 0.023f with get, set
+    member val B = -0.109f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> Linear
+    
+    static member A_ : Lens<Linear, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member B_ : Lens<Linear, _> = 
+        (fun x -> x.B), (fun value x -> let y = x.Clone() in y.B <- value; y)
+    
+    override this.Evaluate(s, t) =
+        (this.A * s) + this.B
+
+
+type DoubleLogSpiralSimple() = 
+    inherit CurvatureFormula()
+    member val A = 0.0265f with get, set
+    member val D = 0.01f with get, set
+    member val B = 0.0265f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> DoubleLogSpiralSimple
+    
+    static member A_ : Lens<DoubleLogSpiralSimple, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member D_ : Lens<DoubleLogSpiralSimple, _> = 
+        (fun x -> x.D), (fun value x -> let y = x.Clone() in y.D <- value; y)
+    static member B_ : Lens<DoubleLogSpiralSimple, _> = 
+        (fun x -> x.B), (fun value x -> let y = x.Clone() in y.B <- value; y)
+    
+    override this.Evaluate(s, t) =
+        (this.A / (t + this.D)) + (this.B / ((t - this.D) - 1.0f))

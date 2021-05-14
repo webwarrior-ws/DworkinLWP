@@ -145,6 +145,15 @@ let configGui  =
                         Builders.floatSliderEditor "Brush Smoothness" (FlowingLeaves_WIP.AgentConfig_ >-> LibDworkin.Agents.DworkinAgentConfig.Brush_  >-> Lenses.cast<LibDworkin.Agents.BrushStrategy, LibDworkin.Configs.BrushStrategySolidSmoother> >-> LibDworkin.Configs.BrushStrategySolidSmoother.Smoothness_) 1.0f 5.0f 0.5f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FlowingLeaves_WIP>;
                     ];
+                Builders.environmentEditor
+                    "Vine"
+                    (Vine.Vines())
+                    [
+                        Builders.intSliderEditor "Nx" Vine.Vines.Nx_ 1 5 1;
+                        Builders.intSliderEditor "Ny" Vine.Vines.Ny_ 1 5 1;
+                        Builders.intSliderEditor "Angle" Vine.Vines.Angle_ -90 90 5;
+                        Builders.floatSliderEditor "Scale" Vine.Vines.Scale_ 1.0f 2.5f 0.1f;
+                    ]
             ]
     let speedControl = 
         Builders.radioButtonEditor 

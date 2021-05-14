@@ -79,3 +79,7 @@ type LeafPower_Base() =
 
     override this.Evaluate(s, t) =
         this.C * (pcurve t + this.Base)
+
+
+type LeafPower() = 
+    inherit LeafPower_Base(Base=0.0f)

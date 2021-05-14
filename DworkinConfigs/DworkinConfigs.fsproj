@@ -61,6 +61,7 @@
     <Compile Include="PCB.fs" />
     <Compile Include="FlowingLeaves.fs" />
     <Compile Include="Maze.fs" />
+    <Compile Include="Vine.fs" />
     <Compile Include="ConfigSettings.fs" />
     <Content Include="packages.config" />
   </ItemGroup>

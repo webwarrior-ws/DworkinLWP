@@ -63,6 +63,9 @@
     <Compile Include="../DworkinConfigs/Maze.fs">
       <Link>Maze.fs</Link>
     </Compile>
+    <Compile Include="../DworkinConfigs/Vine.fs">
+      <Link>Vine.fs</Link>
+    </Compile>
     <Compile Include="../DworkinConfigs/ConfigSettings.fs">
       <Link>ConfigSettings.fs</Link>
     </Compile>
