@@ -378,7 +378,6 @@ module Widgets =
         inherit SettingsEditor<'TSettings>(name, settings)
         override this.SetProperty() =
             settingsHolder := { !settingsHolder with Foreground=settings }
-            CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
     
 
     type BackgroundSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.MaterialSettings>(name : string, settings : 'TSettings, 
@@ -386,7 +385,6 @@ module Widgets =
         inherit SettingsEditor<'TSettings>(name, settings)
         override this.SetProperty() =
             settingsHolder := { !settingsHolder with Background=settings }
-            CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
     
 
     type EffectSettingsEditor<'TSettings when 'TSettings :> DworkinSettings.EffectSettings>(name : string, settings : 'TSettings, 
@@ -394,7 +392,6 @@ module Widgets =
             inherit SettingsEditor<'TSettings>(name, settings)
             override this.SetProperty() =
                 settingsHolder := { !settingsHolder with Effect=settings }
-                CurrentSettings.registerChange(SettingsChange.EffectChanged)
 
 
     type RendererComponentEditor<'T when 'T :> ShaderBasedComponent>(name : string, 
@@ -539,14 +536,12 @@ module Widgets =
                 let getter h = 
                     match h.ForegroundColor with | Settings.Randomizeable.Defined(c) -> OpenTK.Graphics.Color4.FromRGBTriple(c)
                 let setter (c : Graphics.Color4) h = 
-                    LibDworkin.DworkinSettings.CurrentSettings.registerChange(SettingsChange.ForegroundChanged)
                     { h with ForegroundColor=Settings.Randomizeable.Defined(c.AsRGBTriple) }
                 getter, setter
             let bgLens : Lens<SettingsHolder, OpenTK.Graphics.Color4> = 
                 let getter h = 
                     match h.BackgroundColor with | Settings.Randomizeable.Defined(c) -> OpenTK.Graphics.Color4.FromRGBTriple(c)
                 let setter (c : Graphics.Color4) h = 
-                    LibDworkin.DworkinSettings.CurrentSettings.registerChange(SettingsChange.BackgroundChanged)
                     { h with BackgroundColor=Settings.Randomizeable.Defined(c.AsRGBTriple) }
                 getter, setter
             [
@@ -576,7 +571,7 @@ module Widgets =
         override this.Update() = 
             for editor in colorEditors do
                 editor.Update()
-            if LibDworkin.DworkinSettings.CurrentSettings.getChanges() |> int <> 0 then
+            if LibDworkin.DworkinSettings.CurrentSettings.get() <> !settingsHolder then
                 this.SetProperty()
 
 
