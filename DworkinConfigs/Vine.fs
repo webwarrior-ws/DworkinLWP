@@ -141,6 +141,268 @@ module BranchingCriterionBased =
             SpawnConfig=LeavesProbesCurved1_vines.SpawnConfig()
         )
 
+    let leaves2SidesProbes1_2_vines = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionInterval.ConstantBoundedT(D=15.0f,Start=0.05f,End=0.85f),
+            Delay=30,
+            SpawnConfig = (
+                LeavesProbesCurved1_vines.SpawnConfig(ScaleRange=NumberRange(0.6f, 1.0f), Offset=2.0f)
+                |> Optic.set (config_ >-> DworkinAgentConfig.Curvature_) (CurvatureFormula.Constant(C=0.06f) :> CurvatureFormula)
+                |> Optic.set (config_ >-> DworkinAgentConfig.Thickness_ >-> cast<ThicknessFormula, ThicknessFormula.LeafPower_Base> >-> p_) 0.5f
+                |> Optic.set (config_ >-> totalDistance_) 20.0f)
+        )
+
+    let leaves2SidesProbes2_vines = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionIntervalRandomized.Uniform(IntervalRange=NumberRange(6.0f, 8.0f)),
+            SpawnConfig=SpawnConfig.Probe2BranchByScale(Angle=20,Steps=2,ScaleRange=NumberRange(1.0f, 1.4f),
+                Config={ DworkinAgentConfig.Default with 
+                            Brush=BrushStrategySolid(AlignWithParent=true);
+                            ColliderOptions=ColliderOptionsGeneral();
+                            Curvature=CurvatureFormula.Constant(C=0.15f);
+                            Speed=AgentSpeedConstant(Magnitude=0.25f);
+                            TerminationConditions={ 
+                                Collision=Some(TerminationConditionCollision(IgnoreParent=true,MinDistance=3.0f,SelfIntersection=false));
+                                Curvature=None;
+                                Distance=Some(TerminationConditionDistance.Instance)
+                             };
+                            Thickness=ThicknessFormula.LeafPower_Base(A=3.0f,P=0.785f,C=3.5f);
+                            TotalDistance=8.0f
+                        }))
+
+    let leaves2SidesProbesStraigh1_vines = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionIntervalRandomized.Uniform(IntervalRange=NumberRange(20.0f, 25.0f)),
+            SpawnConfig=BranchingCriterionBased.LeavesProbesCurved1_vines.SpawnConfig(
+                Angle=30, Steps=2, ScaleRange=NumberRange(0.6f, 1.0f), Offset=3.0f, 
+                Config={ DworkinAgentConfig.Default with 
+                            ColliderOptions=ColliderOptionsGeneral();
+                            Curvature=CurvatureFormula.Constant(C=0.0f);
+                            TerminationConditions={ 
+                                Collision=
+                                    Some(TerminationConditionCollision(IgnoreParent=true,MinDistance=0.0f,SelfIntersection=false) 
+                                         |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
+                                Curvature=None;
+                                Distance=Some(TerminationConditionDistance())
+                             };
+                            Thickness=ThicknessFormula.LeafPower(A=2.0f,P=0.5f,C=5.0f);
+                            TotalDistance=20.0f
+                        }))
+
+
+module BranchingCustom = 
+    module _2BranchIndLeafAlt_vines = 
+        type Criterion() = 
+            inherit BranchingCriterionIntervalRandomized()
+            
+            let mutable tag = None
+            override this.Tag = defaultArg tag base.Tag
+            member this.SetTag(value) = tag <- Some(value)
+
+            member val Mu = 25.0f with get, set
+            member val Sigma = 5.0f with get, set
+            member val MinInterval = 15.0f with get, set
+            member val Start = 25.0f with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> Criterion
+            
+            static member Mu_ : Lens<Criterion, _> = 
+                (fun x -> x.Mu), (fun value x -> let y = x.Clone() in y.Mu <- value; y)
+            static member Sigma_ : Lens<Criterion, _> = 
+                (fun x -> x.Sigma), (fun value x -> let y = x.Clone() in y.Sigma <- value; y)
+            static member MinInterval_ : Lens<Criterion, _> = 
+                (fun x -> x.MinInterval), (fun value x -> let y = x.Clone() in y.MinInterval <- value; y)
+            static member Start_ : Lens<Criterion, _> = 
+                (fun x -> x.Start), (fun value x -> let y = x.Clone() in y.Start <- value; y)
+            
+            override this.Evaluate(s, t, random) =
+                if s >= this.Start then max (random.NextGaussian(this.Mu, this.Sigma)) this.MinInterval else this.Start
+        
+        type Config() = 
+            inherit SpawnConfig()
+            member val Angle = 75 with get, set
+            member val Scale = 2.0f with get, set
+            member val Config = 
+                DworkinAgentConfig.leafWithStem
+                |> Optic.set curvature_ (CurvatureFormula.Constant(C=0.0f))
+                |> Optic.set speed_ (AgentSpeedConstant(Magnitude=0.5f))
+                |> Optic.set (terminationConditions_ >-> collision_ >-> minDistance_) 0.0f
+                |> Optic.set thickness_ (ThicknessFormula.LeafPower(A=2.0f,P=0.505f))
+                |> Optic.set totalDistance_ 8.0f with get, set
+            member val Offset = 2.5f with get, set
+            member val MaxCurv = 0.08f with get, set
+            member val Delay = 25 with get, set
+            member val LeafLengthRange = NumberRange(7.0f, 10.0f) with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> Config
+            
+            static member Angle_ : Lens<Config, _> = 
+                (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+            static member Scale_ : Lens<Config, _> = 
+                (fun x -> x.Scale), (fun value x -> let y = x.Clone() in y.Scale <- value; y)
+            static member Config_ : Lens<Config, _> = 
+                (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+            static member Offset_ : Lens<Config, _> = 
+                (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+            static member MaxCurv_ : Lens<Config, _> = 
+                (fun x -> x.MaxCurv), (fun value x -> let y = x.Clone() in y.MaxCurv <- value; y)
+            static member Delay_ : Lens<Config, _> = 
+                (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
+            static member LeafLengthRange_ : Lens<Config, _> = 
+                (fun x -> x.LeafLengthRange), (fun value x -> let y = x.Clone() in y.LeafLengthRange <- value; y)
+            
+            override this.Evaluate(agent, pos) =
+                if agent.Curvature <= this.MaxCurv then 
+                    let agentCopy = agent.Copy()
+                    agent.DworkinEnvironment.Delay(
+                        (fun env ->
+                            let agentConfig = this.Config |> Optic.set totalDistance_ (agent.Random.NextInRange(this.LeafLengthRange))
+                            let spawnOptions = ProbeSpawnOptions(AngleDeg=float32 this.Angle, 
+                                                                 OffsetSideways=this.Offset * agent.ThicknessFactor)
+                            let agentBlock (a : DworkinAgent) =
+                                let s = agentCopy.Config.TotalDistance / 2.0f
+                                let t = 0.5f 
+                                let thickness = agentCopy.Config.Thickness.Evaluate(s, t)
+                                a.ScaleBy(this.Scale * agentCopy.RelativeThickness / thickness)
+                                if this.Angle < 0 then a.Flip()
+                            let probeData = agentCopy.LaunchProbe(agentConfig, spawnOptions, agentBlock)
+                            if probeData.Collision.IsNone then
+                                probeData.SpawnColliders()
+                                agentCopy.Spawn(
+                                    agentConfig, 
+                                    spawnOptions, 
+                                    fun a ->
+                                        agentBlock a
+                                        a.NoCollisions <- true)
+                            None), 
+                        this.Delay)
+        
+        
+    type _2BranchIndLeafAlt_vines() = 
+        inherit BranchingCustom()
+        member val Criterion = _2BranchIndLeafAlt_vines.Criterion() with get, set
+        member val Config = _2BranchIndLeafAlt_vines.Config() with get, set
+        member val Levels = NumberRange(1.0f, 20.0f) with get, set
+    
+        member this.Clone() = this.MemberwiseClone() :?> _2BranchIndLeafAlt_vines
+    
+        static member Criterion_ : Lens<_2BranchIndLeafAlt_vines, _> = 
+            (fun x -> x.Criterion), (fun value x -> let y = x.Clone() in y.Criterion <- value; y)
+        static member Config_ : Lens<_2BranchIndLeafAlt_vines, _> = 
+            (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+        static member Levels_ : Lens<_2BranchIndLeafAlt_vines, _> = 
+            (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+    
+        override this.Evaluate(agent) =
+            if this.Levels.Contains(float32 agent.Generation) then 
+                let offset = this.Config.Offset
+                for side in [| 1;  -1 |] do
+                    let criterion = 
+                        this.Criterion
+                        |> Optic.map minInterval_ (fun x -> x / (1.0f - (agent.Curvature * (float32 side) * offset)))
+                        |> Optic.map start_ (fun x -> if side > 0 then x else x / 2.0f)
+                    criterion.SetTag(side)
+                    if criterion.Evaluate(agent) then 
+                        (this.Config |> Optic.map angle_ (fun x -> x * side)).Evaluate(agent)
+                        agent.AddBranchMarkFor(BranchMark(agent.S), side)
+                    
+
+    module _2BranchIndLeafByScale_vines =         
+        type Config() = 
+            inherit SpawnConfig()
+            member val Angle = 15 with get, set
+            member val Config = 
+                { DworkinAgentConfig.Default with 
+                    ColliderOptions=ColliderOptionsGeneral();
+                    Curvature=CurvatureFormula.DirectionPreservingTurn(A=0.024f);
+                    TerminationConditions={ 
+                        Collision=Some(TerminationConditionCollision(MinDistance=2.0f) |> Optic.set (primaryDetector_ >-> distance_) 1.5f);
+                        Curvature=None;
+                        Distance=Some(TerminationConditionDistance())
+                     };
+                    Thickness=ThicknessFormula.LeafPower(A=3.0f,P=0.635f,C=4.0f);
+                    TotalDistance=25.0f
+                 } with get, set
+            member val Offset = 2.0f with get, set
+            member val Delay = 20 with get, set
+            member val ScaleRange = Interval(0.6f, 1.0f, 0.2f) with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> Config
+            
+            static member Angle_ : Lens<Config, _> = 
+                (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+            static member Config_ : Lens<Config, _> = 
+                (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+            static member Offset_ : Lens<Config, _> = 
+                (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+            static member Delay_ : Lens<Config, _> = 
+                (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
+            static member ScaleRange_ : Lens<Config, _> = 
+                (fun x -> x.ScaleRange), (fun value x -> let y = x.Clone() in y.ScaleRange <- value; y)
+            
+            override this.Evaluate(agent, pos) =
+                let agentCopy = agent.Copy()
+                agent.DworkinEnvironment.Delay(
+                    (fun env ->
+                        for scale in this.ScaleRange |> Seq.rev do
+                            let spawnOptions = ProbeSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset * agent.ThicknessFactor)
+                            let agentBlock (a : DworkinAgent) =
+                                let s = agentCopy.Config.TotalDistance / 2.0f
+                                let t = 0.5f 
+                                let thickness = agentCopy.Config.Thickness.Evaluate(s, t)
+                                a.ScaleBy(scale * agentCopy.RelativeThickness / thickness)
+                                if this.Angle < 0 then a.Flip()
+                            let probeData = agentCopy.LaunchProbe(this.Config, spawnOptions, agentBlock)
+                            if probeData.Collision.IsNone then
+                                probeData.SpawnColliders()
+                                agentCopy.Spawn(
+                                    this.Config, 
+                                    spawnOptions, 
+                                    fun a ->
+                                        agentBlock a
+                                        a.NoCollisions <- true)
+                        None), 
+                    this.Delay)
+        
+        
+    type _2BranchIndLeafByScale_vines() = 
+        inherit BranchingCustom()
+        member val Criterion = _2BranchIndLeafAlt_vines.Criterion(Mu=10.0f, Sigma=2.0f, MinInterval=5.0f, Start=15.0f) with get, set
+        member val Config = _2BranchIndLeafByScale_vines.Config() with get, set
+        member val Levels = NumberRange(1.0f, 20.0f) with get, set
+    
+        member this.Clone() = this.MemberwiseClone() :?> _2BranchIndLeafByScale_vines
+    
+        static member Criterion_ : Lens<_2BranchIndLeafByScale_vines, _> = 
+            (fun x -> x.Criterion), (fun value x -> let y = x.Clone() in y.Criterion <- value; y)
+        static member Config_ : Lens<_2BranchIndLeafByScale_vines, _> = 
+            (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+        static member Levels_ : Lens<_2BranchIndLeafByScale_vines, _> = 
+            (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+    
+        override this.Evaluate(agent) =
+            if this.Levels.Contains(float32 agent.Generation) then 
+                let offset = this.Config.Offset
+                for side in [| 1;  -1 |] do
+                    let criterion = 
+                        this.Criterion
+                        |> Optic.map minInterval_ (fun x -> x / (1.0f - (agent.Curvature * (float32 side) * offset)))
+                    criterion.SetTag(side)
+                    if criterion.Evaluate(agent) then 
+                        (this.Config |> Optic.map angle_ (fun x -> x * side)).Evaluate(agent)
+                        agent.AddBranchMarkFor(BranchMark(agent.S), side)
+                    
+
+    let _2BranchIndLeafWithStem_vines = 
+        _2BranchIndLeafAlt_vines(
+            Criterion=_2BranchIndLeafAlt_vines.Criterion(Mu=30.0f, Sigma=10.0f),
+            Config=(_2BranchIndLeafAlt_vines.Config(Angle=30, Offset=0.0f, LeafLengthRange=NumberRange(12.0f, 20.0f))
+                    |> Optic.set (config_ >-> curvature_) (CurvatureFormula.Linear(A=0.69f, B=0.085f))
+                    |> Optic.set (config_ >-> DworkinAgentConfig.Speed_) (AgentSpeedAdaptive.Instance :> AgentSpeed)
+                    |> Optic.set (config_ >-> terminationConditions_ >-> collision_ >-> minDistance_) 2.5f
+                    |> Optic.set (config_ >-> thickness_) (ThicknessFormula.LeafPowerWithStem(A=3.0f, P=0.33f, C=5.0f, Sl=0.25f, St=0.1f))
+                    |> Optic.set (config_ >-> totalDistance_) 12.0f ))
+
 
 module DworkinAgentConfig = 
     module Vine1 = 
@@ -400,8 +662,8 @@ type InitialPositions =
 type Vines() = 
     inherit DworkinEnvironmentConfigCustom()
     member val AgentConfig = DworkinAgentConfig.vine1 with get, set
-    member val Nx = 2 with get, set
-    member val Ny = 3 with get, set
+    member val Nx = 3 with get, set
+    member val Ny = 2 with get, set
     member val Delay = 120 with get, set
     member val Angle = 55 with get, set
     member val Sides = { InitialPositions.None with Left=true } with get, set

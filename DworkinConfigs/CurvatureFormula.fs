@@ -161,3 +161,29 @@ type Cosine() =
     
     override this.Evaluate(s, t) =
         this.A * (cos ((s + 0.00485f) * this.A * 100.0f * this.B))
+
+
+type Constant() = 
+    inherit CurvatureFormula()
+    member val C = 0.012f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> Constant
+    
+    static member C_ : Lens<Constant, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    
+    override this.Evaluate(s, t) =
+        this.C
+
+
+type ArchimedeanSpiralRev() = 
+    inherit CurvatureFormula()
+    member val N = 3.0f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> ArchimedeanSpiralRev
+    
+    static member N_ : Lens<ArchimedeanSpiralRev, _> = 
+        (fun x -> x.N), (fun value x -> let y = x.Clone() in y.N <- value; y)
+    
+    override this.Evaluate(s, t) =
+        (((1.0f / (sqrt (abs (s - (s / t))))) * (sqrt (t / s))) * this.N) / 30.0f

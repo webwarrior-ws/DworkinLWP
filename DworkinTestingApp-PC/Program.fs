@@ -168,7 +168,13 @@ let configGui  =
                              Vine.DworkinEnvironmentConfigCustom.Vines.LeafStrategy.Strategies_ >-> 
                              ((fun (x : Agents.BranchingStrategy[]) -> x.[0]), (fun value x -> [| value |])))
                             [ Configs.BranchingCriterionBased() :> Agents.BranchingStrategy, "none";
-                              Vine.BranchingCriterionBased.leavesProbesCurved1_vines :> Agents.BranchingStrategy, "leavesProbesCurved1_vines"; ];
+                              Vine.BranchingCriterionBased.leavesProbesCurved1_vines :> Agents.BranchingStrategy, "leavesProbesCurved1_vines";
+                              Vine.BranchingCriterionBased.leaves2SidesProbes1_2_vines :> Agents.BranchingStrategy, "leaves2SidesProbes1_2_vines";
+                              Vine.BranchingCriterionBased.leaves2SidesProbes2_vines :> Agents.BranchingStrategy, "leaves2SidesProbes2_vines";
+                              Vine.BranchingCriterionBased.leaves2SidesProbesStraigh1_vines :> Agents.BranchingStrategy, "leaves2SidesProbesStraigh1_vines";
+                              Vine.BranchingCustom._2BranchIndLeafAlt_vines() :> Agents.BranchingStrategy, "2BranchIndLeafAlt_vines";
+                              Vine.BranchingCustom._2BranchIndLeafByScale_vines() :> Agents.BranchingStrategy, "2BranchIndLeafByScale_vines";
+                              Vine.BranchingCustom._2BranchIndLeafWithStem_vines :> Agents.BranchingStrategy, "_2BranchIndLeafWithStem_vines" ];
                         Builders.floatSliderEditor "Scale" Vine.Vines.Scale_ 1.0f 2.5f 0.1f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<Vine.Vines>;
                     ]

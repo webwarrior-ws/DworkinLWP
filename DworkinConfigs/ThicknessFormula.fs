@@ -82,7 +82,24 @@ type LeafPower_Base() =
 
 
 type LeafPower() = 
-    inherit LeafPower_Base(Base=0.0f)
+    inherit LeafPower_Base(A=8.0f, P=0.15f, C=5.0f, Base=0.0f)
+
+
+type LeafPowerWithStem() = 
+    inherit LeafPower_Base(A=3.0f, P=0.4f, C=5.0f, Base=0.0f)
+    member val Sl = 0.25f with get, set
+    member val St = 0.2f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> LeafPowerWithStem
+    
+    static member Sl_ : Lens<LeafPowerWithStem, _> = 
+        (fun x -> x.Sl), (fun value x -> let y = x.Clone() in y.Sl <- value; y)
+    static member St_ : Lens<LeafPowerWithStem, _> = 
+        (fun x -> x.St), (fun value x -> let y = x.Clone() in y.St <- value; y)
+    
+    override this.Evaluate(s, t) =
+        let t2 = (max ((t - this.Sl) / (1.0f - this.Sl)) 0.0f)
+        base.Evaluate(s, t2)
 
 
 type PointyTip() = 
