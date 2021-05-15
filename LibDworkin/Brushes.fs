@@ -65,7 +65,7 @@ type BrushSolid() =
         else
             match agent.Parent with
             | Some(parent) -> 
-                if lastBrushAngle <> Single.NaN then
+                if not (Single.IsNaN lastBrushAngle) then
                     if lastBrushAngle = 0.0f then
                         0.0f
                     else
