@@ -162,7 +162,13 @@ let configGui  =
                               Vine.DworkinAgentConfig.vine1, "vine1";
                               Vine.DworkinAgentConfig.vine2, "vine2";
                               Vine.DworkinAgentConfig.vine3, "vine3";
-                              Vine.DworkinAgentConfig.vineSplitting1, "vineSplitting1";];
+                              Vine.DworkinAgentConfig.vineSplitting1, "vineSplitting1"; ];
+                        Builders.labeledDropdownListEditor "Leaves strategy" 
+                            (Vine.Vines.LeafStrategy_ >-> 
+                             Vine.DworkinEnvironmentConfigCustom.Vines.LeafStrategy.Strategies_ >-> 
+                             ((fun (x : Agents.BranchingStrategy[]) -> x.[0]), (fun value x -> [| value |])))
+                            [ Configs.BranchingCriterionBased() :> Agents.BranchingStrategy, "none";
+                              Vine.BranchingCriterionBased.leavesProbesCurved1_vines :> Agents.BranchingStrategy, "leavesProbesCurved1_vines"; ];
                         Builders.floatSliderEditor "Scale" Vine.Vines.Scale_ 1.0f 2.5f 0.1f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<Vine.Vines>;
                     ]
