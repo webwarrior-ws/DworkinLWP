@@ -83,3 +83,19 @@ type LeafPower_Base() =
 
 type LeafPower() = 
     inherit LeafPower_Base(Base=0.0f)
+
+
+type PointyTip() = 
+    inherit ThicknessFormula()
+    member val A = 5.0f with get, set
+    member val K = 0.008f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> PointyTip
+    
+    static member A_ : Lens<PointyTip, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member K_ : Lens<PointyTip, _> = 
+        (fun x -> x.K), (fun value x -> let y = x.Clone() in y.K <- value; y)
+    
+    override this.Evaluate(s, t) =
+        min this.A (((s / t) / this.K) - (s / this.K))

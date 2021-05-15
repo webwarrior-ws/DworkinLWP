@@ -142,6 +142,22 @@ module BranchingCriterionIntervalRandomized =
         override this.Evaluate(s, t, random) =
             let x = random.NextInRange(this.IntervalRange)
             if (s + x) > ((s / t) - this.Margin) then 100000.0f else x
+
+    
+    type Gaussian() = 
+        inherit BranchingCriterionIntervalRandomized()
+        member val Mu = 20.0f with get, set
+        member val Sigma = 5.0f with get, set
+        
+        member this.Clone() = this.MemberwiseClone() :?> Gaussian
+        
+        static member Mu_ : Lens<Gaussian, _> = 
+            (fun x -> x.Mu), (fun value x -> let y = x.Clone() in y.Mu <- value; y)
+        static member Sigma_ : Lens<Gaussian, _> = 
+            (fun x -> x.Sigma), (fun value x -> let y = x.Clone() in y.Sigma <- value; y)
+        
+        override this.Evaluate(s, t, random) =
+            random.NextGaussian(this.Mu, this.Sigma)
     
  
 
@@ -440,6 +456,46 @@ module SpawnConfig =
                         n <- n + 1
                     n < this.MaxInitialAgents)
                     |> Seq.iter ignore
+
+
+    type ProbeSplitRecursive() = 
+        inherit SpawnConfig()
+        member val GenLimit = 20 with get, set
+        member val PBothSides = 0.0f with get, set
+        member val LengthRange = NumberRange(40.0f, 80.0f) with get, set
+        
+        member this.Clone() = this.MemberwiseClone() :?> ProbeSplitRecursive
+        
+        static member GenLimit_ : Lens<ProbeSplitRecursive, _> = 
+            (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
+        static member PBothSides_ : Lens<ProbeSplitRecursive, _> = 
+            (fun x -> x.PBothSides), (fun value x -> let y = x.Clone() in y.PBothSides <- value; y)
+        static member LengthRange_ : Lens<ProbeSplitRecursive, _> = 
+            (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+        
+        override this.Evaluate(agent, pos) =
+            agent.GenerationLimit <- this.GenLimit
+            let mutable flipValues = [| true |]
+            let mutable config = agent.Config
+            if (agent.Random.NextFloat()) < this.PBothSides then 
+                flipValues <- [| true; false |] 
+            elif agent.Random.NextDouble() < 0.5 then 
+                flipValues <- [| true |]
+            Seq.iter 
+                (fun flip ->
+                    let agentBlock (a : DworkinAgent) = if flip then a.Flip()
+                    config <- config |> Optic.set totalDistance_ (agent.Random.NextInRange(this.LengthRange))
+                    let probeData = agent.LaunchProbe(config, ProbeSpawnOptions(), agentBlock)
+                    if probeData.S >= (this.LengthRange.Min) then 
+                        agent.Spawn(
+                            config |> Optic.set totalDistance_ probeData.S, 
+                            AgentSpawnOptions(), 
+                            fun a ->
+                                probeData.Id <- a.Id
+                                probeData.SpawnColliders()
+                                agentBlock a
+                                a.NoCollisions <- true)) 
+                flipValues
     
 
     

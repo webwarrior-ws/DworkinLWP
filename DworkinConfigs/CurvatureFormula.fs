@@ -119,3 +119,45 @@ type DoubleLogSpiralSimple() =
     
     override this.Evaluate(s, t) =
         (this.A / (t + this.D)) + (this.B / ((t - this.D) - 1.0f))
+
+
+type DirectionPreservingTurn() = 
+    inherit CurvatureFormula()
+    member val A = 0.051f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> DirectionPreservingTurn
+    
+    static member A_ : Lens<DirectionPreservingTurn, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    
+    override this.Evaluate(s, t) =
+        ((this.A * t) / s) * (sin (t * Single.TwoPi))
+
+
+type Magnetic() = 
+    inherit CurvatureFormula()
+    member val Alpha = 0.68f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> Magnetic
+    
+    static member Alpha_ : Lens<Magnetic, _> = 
+        (fun x -> x.Alpha), (fun value x -> let y = x.Clone() in y.Alpha <- value; y)
+    
+    override this.Evaluate(s, t) =
+        (((s / t) - s) * 100.0f) ** (-this.Alpha)
+
+
+type Cosine() = 
+    inherit CurvatureFormula()
+    member val A = 0.05f with get, set
+    member val B = 1.0f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> Cosine
+    
+    static member A_ : Lens<Cosine, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member B_ : Lens<Cosine, _> = 
+        (fun x -> x.B), (fun value x -> let y = x.Clone() in y.B <- value; y)
+    
+    override this.Evaluate(s, t) =
+        this.A * (cos ((s + 0.00485f) * this.A * 100.0f * this.B))

@@ -192,7 +192,7 @@ type Interval = struct
     
     override this.GetHashCode() =
         this.Start.GetHashCode() ^^^ this.Stop.GetHashCode() ^^^ this.Step.GetHashCode()
-
+    
     interface IEnumerable<float32> with
         member this.GetEnumerator() : IEnumerator<float32> = 
             this.Sequence.GetEnumerator()

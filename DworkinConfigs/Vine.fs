@@ -96,11 +96,42 @@ module BranchingCriterionBased =
                                             probeData.Id <- a.Id
                                             probeData.SpawnColliders())
                         | Empty -> ()
-        
+    
+    
+    module Vine3 = 
+        type Criterion() = 
+            inherit BranchingCriterionCustom()
+            member val DRange = NumberRange(15.0f, 25.0f) with get, set
+            member val TInterval = NumberRange(0.2f, 0.6f) with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> Criterion
+            
+            static member DRange_ : Lens<Criterion, _> = 
+                (fun x -> x.DRange), (fun value x -> let y = x.Clone() in y.DRange <- value; y)
+            static member TInterval_ : Lens<Criterion, _> = 
+                (fun x -> x.TInterval), (fun value x -> let y = x.Clone() in y.TInterval <- value; y)
+            
+            override this.Evaluate(agent, mark, tag) =
+                let d = agent.Attributes.BranchOffset.GetOrSetIfAbsent(fun () -> agent.Random.NextInRange(this.DRange))
+                (mark.S + d) < agent.S && this.TInterval.Contains(agent.T)
+
+
     let vine1 = 
         BranchingCriterionBased(
             Criterion=BranchingCriterionCustom.Interval_MaxBranches(D=20.0f,N=3),
             SpawnConfig=DworkinAgentConfig.Vine1.Branching.SpawnConfig()
+        )
+
+    let vine2 = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionIntervalRandomized.Gaussian(Mu=15.0f, Sigma=10.0f),
+            SpawnConfig=DworkinAgentConfig.Vine1.Branching.SpawnConfig(Angle=0, AngleSpread=5, AngleSteps=3, ScaleRange=NumberRange(1.0f, 1.6f), ScaleSteps=3)
+        )
+
+    let vine3 = 
+        BranchingCriterionBased(
+            Criterion=Vine3.Criterion(),
+            SpawnConfig=DworkinAgentConfig.Vine1.Branching.SpawnConfig(Angle=0, AngleSpread=60, ScaleRange=NumberRange(0.6f, 1.4f), ScaleSteps=4)
         )
 
     let leavesProbesCurved1_vines = 
@@ -121,7 +152,7 @@ module DworkinAgentConfig =
                 member val AngleSpread = 90 with get, set
                 member val AngleSteps = 5 with get, set
                 override val ScaleRange = NumberRange(1.0f, 2.0f) with get, set
-                member this.ScaleSteps = 5.0f
+                member val ScaleSteps = 5 with get, set
 
                 override this.WithScaleRange(newRange) = (this |> Optic.set SpawnConfig.ScaleRange_ newRange) :> SpawnConfigWithScaleRange
                 
@@ -137,6 +168,8 @@ module DworkinAgentConfig =
                     (fun x -> x.AngleSteps), (fun value x -> let y = x.Clone() in y.AngleSteps <- value; y)
                 static member ScaleRange_ : Lens<SpawnConfig, _> = 
                     (fun x -> x.ScaleRange), (fun value x -> let y = x.Clone() in y.ScaleRange <- value; y)
+                static member ScaleSteps_ : Lens<SpawnConfig, _> = 
+                    (fun x -> x.ScaleSteps), (fun value x -> let y = x.Clone() in y.ScaleSteps <- value; y)
                 
                 override this.Evaluate(agent, pos) =
                     agent.GenerationLimit <- this.GenLimit
@@ -146,7 +179,10 @@ module DworkinAgentConfig =
                         angles.Add(this.Angle - delta)
                     angles.ShuffleBy(agent.Random) |> ignore
                     
-                    seq { for phi in angles do for scale in this.ScaleRange.By(this.ScaleRange.Extent / this.ScaleSteps) |> Seq.rev do yield phi, scale }
+                    seq { 
+                        for phi in angles do 
+                            for scale in this.ScaleRange.By(this.ScaleRange.Extent / (float32 this.ScaleSteps)) |> Seq.rev do 
+                                yield phi, scale }
                     |> Seq.exists 
                         (fun (phi, scale) ->
                             let agentBlock = 
@@ -170,13 +206,82 @@ module DworkinAgentConfig =
                                         probeData.SpawnColliders())
                                 true (* return *) )
                     |> ignore
-            
+    
+
+    module VineSplitting1 = 
+        module Termination = 
+            type SpawnConfig() = 
+                inherit LibDworkin.Configs.SpawnConfig()
+                member val GenLimit = 20 with get, set
+                member val PBothSides = 0.75f with get, set
+                member val LengthRange = NumberRange(50.0f, 100.0f) with get, set
+                member val CurvRange = Interval(0.01f, 0.04f, 0.01f) with get, set
+                
+                member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
+                
+                static member GenLimit_ : Lens<SpawnConfig, _> = 
+                    (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
+                static member PBothSides_ : Lens<SpawnConfig, _> = 
+                    (fun x -> x.PBothSides), (fun value x -> let y = x.Clone() in y.PBothSides <- value; y)
+                static member LengthRange_ : Lens<SpawnConfig, _> = 
+                    (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+                static member CurvRange_ : Lens<SpawnConfig, _> = 
+                    (fun x -> x.CurvRange), (fun value x -> let y = x.Clone() in y.CurvRange <- value; y)
+                
+                override this.Evaluate(agent, pos) =
+                    agent.GenerationLimit <- this.GenLimit
+                    let mutable flipValues = [| true |]
+                    let mutable config = agent.Config
+                    if (agent.Random.NextFloat()) < this.PBothSides then flipValues <- [| true; false |]
+                    for flip in flipValues do
+                        let agentBlock (a : DworkinAgent) = if flip then a.Flip()
+                        config <- config |> Optic.set totalDistance_ (agent.Random.NextInRange(this.LengthRange))
+                        (this.CurvRange |> Seq.toArray).ShuffleBy(agent.Random)
+                            |> Array.exists
+                            (fun c ->
+                                config <- config |> Optic.set (curvature_ >-> cast<CurvatureFormula, CurvatureFormula.Cosine> >-> a_) c
+                                let probeData = agent.LaunchProbe(config, ProbeSpawnOptions(), agentBlock)
+                                if probeData.S >= this.LengthRange.Min then 
+                                    agent.Spawn(
+                                        config |> Optic.set totalDistance_ probeData.S, 
+                                        AgentSpawnOptions(), 
+                                        fun a ->
+                                            probeData.Id <- a.Id
+                                            probeData.SpawnColliders()
+                                            agentBlock a
+                                            a.NoCollisions <- true)
+                                    true
+                                else 
+                                    false)
+                            |> ignore
+                        
+
+    let singleVineVarying = 
+        { DworkinAgentConfig.Default with 
+            Branching=BranchingMultivariant();
+            ColliderOptions=ColliderOptionsGeneral();
+            Curvature=CurvatureFormula.DirectionPreservingTurn(A=0.012f);
+            Speed=AgentSpeedConstant();
+            Termination=TerminationSpawn(SpawnConfig=SpawnConfig.ProbeSplitRecursive());
+            TerminationConditions={ 
+                Collision=Some(
+                    TerminationConditionCollision(
+                        Handler=Some(CollisionHandler.IgnoreSiblingUpTo(MinT=0.33f) :> CollisionHandler),
+                        IgnoreParent=true,
+                        MinDistance=1.0f,
+                        SelfIntersection=false)
+                    |> Optic.set (primaryDetector_ >-> angle_) 60.0f
+                    |> Optic.set (primaryDetector_ >-> distance_) 15.0f);
+                Curvature=None;
+                Distance=Some(TerminationConditionDistance.Instance)
+             };
+            Thickness=ThicknessFormula.Constant(C=2.0f);
+            TotalDistance=1.0f
+         }
             
     let vine1 = 
         { DworkinAgentConfig.Default with 
-            Branching=BranchingMultivariant(Strategies=[| 
-                BranchingCriterionBased.vine1 
-                |> Optic.set spawnConfig_ (DworkinAgentConfig.Vine1.Branching.SpawnConfig() :> LibDworkin.Configs.SpawnConfig) |]);
+            Branching=BranchingMultivariant(Strategies=[| BranchingCriterionBased.vine1 |]);
             Brush=BrushStrategySolid();
             ColliderOptions=ColliderOptionsGeneral();
             Curvature=CurvatureFormula.DoubleLogSpiralSimple(A=0.0174f,D=0.182f,B=0.0751f);
@@ -190,6 +295,60 @@ module DworkinAgentConfig =
              };
             Thickness=ThicknessFormula.Constant(C=3.0f);
             TotalDistance=111.0f
+         }
+
+    let vine2 = 
+        { DworkinAgentConfig.Default with 
+            Branching=BranchingMultivariant(Strategies=[| BranchingCriterionBased.vine2 |]);
+            ColliderOptions=ColliderOptionsGeneral();
+            Curvature=CurvatureFormula.Magnetic(Alpha=0.75f);
+            TerminationConditions={ 
+                Collision=Some(
+                    TerminationConditionCollision(DetectorSize=DetectorSize.Absolute,MinDistance=5.0f,SelfIntersection=false)
+                    |> Optic.set (primaryDetector_ >-> angle_) 60.0f
+                    |> Optic.set (primaryDetector_ >-> distance_) 20.0f);
+                Curvature=None;
+                Distance=Some(TerminationConditionDistance.Instance)
+             };
+            Thickness=ThicknessFormula.PointyTip(A=2.0f,K=0.05f)
+         }
+
+    let vine3 = 
+        { DworkinAgentConfig.Default with 
+            Branching=BranchingMultivariant(Strategies=[| BranchingCriterionBased.vine3 |]);
+            ColliderOptions=ColliderOptionsGeneral();
+            Curvature=CurvatureFormula.Quadratic(A= -1.189f,C=0.034f,B=0.116f,K=0.5f);
+            TerminationConditions={ 
+                Collision=Some(
+                    TerminationConditionCollision(DetectorSize=DetectorSize.Absolute,MinDistance=10.0f,SelfIntersection=false)
+                    |> Optic.set (primaryDetector_ >-> angle_) 120.0f
+                    |> Optic.set (primaryDetector_ >-> distance_) 20.0f);
+                Curvature=None;
+                Distance=Some(TerminationConditionDistance.Instance)
+             };
+            Thickness=ThicknessFormula.Constant(C=2.0f)
+         }
+
+    let vineSplitting1 = 
+        { DworkinAgentConfig.Default with 
+            Branching=BranchingMultivariant();
+            ColliderOptions=ColliderOptionsGeneral();
+            Curvature=CurvatureFormula.Cosine(A=0.01f);
+            Speed=AgentSpeedConstant();
+            Termination=TerminationSpawn(SpawnConfig=DworkinAgentConfig.VineSplitting1.Termination.SpawnConfig());
+            TerminationConditions={ 
+                Collision=Some(
+                    TerminationConditionCollision(DetectorSize=DetectorSize.Absolute,
+                                                  Handler=Some(CollisionHandler.IgnoreSiblingUpTo(MinT=0.67f) :> CollisionHandler),
+                                                  IgnoreParent=true,
+                                                  MinDistance=1.0f,
+                                                  SelfIntersection=false) 
+                        |> Optic.set (primaryDetector_ >-> distance_) 35.0f);
+                Curvature=None;
+                Distance=Some(TerminationConditionDistance.Instance)
+             };
+            Thickness=ThicknessFormula.Constant(C=2.0f);
+            TotalDistance=40.0f
          }
 
 
@@ -227,6 +386,15 @@ type InitialPositions =
         Right : bool
     }
     static member None = { Top=false; Bottom=false; Left=false; Right=false }
+
+    static member Top_ : Lens<InitialPositions, bool> =
+        (fun x -> x.Top), (fun value x -> { x with Top=value })
+    static member Bottom_ : Lens<InitialPositions, bool> =
+        (fun x -> x.Bottom), (fun value x -> { x with Bottom=value })
+    static member Left_ : Lens<InitialPositions, bool> =
+        (fun x -> x.Left), (fun value x -> { x with Left=value })
+    static member Right_ : Lens<InitialPositions, bool> =
+        (fun x -> x.Right), (fun value x -> { x with Right=value })
 
         
 type Vines() = 

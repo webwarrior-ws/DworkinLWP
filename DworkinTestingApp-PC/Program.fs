@@ -152,7 +152,19 @@ let configGui  =
                         Builders.intSliderEditor "Nx" Vine.Vines.Nx_ 1 5 1;
                         Builders.intSliderEditor "Ny" Vine.Vines.Ny_ 1 5 1;
                         Builders.intSliderEditor "Angle" Vine.Vines.Angle_ -90 90 5;
+                        Builders.checkboxEditor "Top" (Vine.Vines.Sides_ >-> Vine.InitialPositions.Top_);
+                        Builders.checkboxEditor "Bottom" (Vine.Vines.Sides_ >-> Vine.InitialPositions.Bottom_);
+                        Builders.checkboxEditor "Left" (Vine.Vines.Sides_ >-> Vine.InitialPositions.Left_);
+                        Builders.checkboxEditor "Right" (Vine.Vines.Sides_ >-> Vine.InitialPositions.Right_);
+                        Builders.checkboxEditor "Corners" Vine.Vines.Corners_;
+                        Builders.labeledDropdownListEditor "Agent config" Vine.Vines.AgentConfig_ 
+                            [ Vine.DworkinAgentConfig.singleVineVarying, "singleVineVarying"; 
+                              Vine.DworkinAgentConfig.vine1, "vine1";
+                              Vine.DworkinAgentConfig.vine2, "vine2";
+                              Vine.DworkinAgentConfig.vine3, "vine3";
+                              Vine.DworkinAgentConfig.vineSplitting1, "vineSplitting1";];
                         Builders.floatSliderEditor "Scale" Vine.Vines.Scale_ 1.0f 2.5f 0.1f;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<Vine.Vines>;
                     ]
             ]
     let speedControl = 
