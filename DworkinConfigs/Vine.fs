@@ -547,6 +547,7 @@ module DworkinAgentConfig =
             Brush=BrushStrategySolid();
             ColliderOptions=ColliderOptionsGeneral();
             Curvature=CurvatureFormula.DoubleLogSpiralSimple(A=0.0174f,D=0.182f,B=0.0751f);
+            Speed=AgentSpeedConstant();
             TerminationConditions={ 
                 Collision=Some(
                     TerminationConditionCollision(DetectorSize=DetectorSize.Absolute,MinDistance=2.5f,SelfIntersection=false)
@@ -564,6 +565,7 @@ module DworkinAgentConfig =
             Branching=BranchingMultivariant(Strategies=[| BranchingCriterionBased.vine2 |]);
             ColliderOptions=ColliderOptionsGeneral();
             Curvature=CurvatureFormula.Magnetic(Alpha=0.75f);
+            Speed=AgentSpeedConstant();
             TerminationConditions={ 
                 Collision=Some(
                     TerminationConditionCollision(DetectorSize=DetectorSize.Absolute,MinDistance=5.0f,SelfIntersection=false)
@@ -580,6 +582,7 @@ module DworkinAgentConfig =
             Branching=BranchingMultivariant(Strategies=[| BranchingCriterionBased.vine3 |]);
             ColliderOptions=ColliderOptionsGeneral();
             Curvature=CurvatureFormula.Quadratic(A= -1.189f,C=0.034f,B=0.116f,K=0.5f);
+            Speed=AgentSpeedConstant();
             TerminationConditions={ 
                 Collision=Some(
                     TerminationConditionCollision(DetectorSize=DetectorSize.Absolute,MinDistance=10.0f,SelfIntersection=false)
@@ -670,6 +673,7 @@ type Vines() =
     member val Corners = true with get, set
     member val LeafStrategy = DworkinEnvironmentConfigCustom.Vines.LeafStrategy() with get, set
     member val Scale = 2.5f with get, set
+    member val Speed = 1.0f with get, set
     
     member this.Clone() = this.MemberwiseClone() :?> Vines
     
@@ -691,6 +695,8 @@ type Vines() =
         (fun x -> x.LeafStrategy), (fun value x -> let y = x.Clone() in y.LeafStrategy <- value; y)
     static member Scale_ : Lens<Vines, _> = 
         (fun x -> x.Scale), (fun value x -> let y = x.Clone() in y.Scale <- value; y)
+    static member Speed_ : Lens<Vines, _> = 
+        (fun x -> x.Speed), (fun value x -> let y = x.Clone() in y.Speed <- value; y)
     
     override this.Evaluate(env) =
         let width = env.Bounds.Width
@@ -709,6 +715,7 @@ type Vines() =
             (env.LaunchProbe(this.AgentConfig, spawnOptions, agentBlock)).SpawnColliders()
             env.Spawn(
                 this.AgentConfig
+                |> Optic.set (speed_ >-> cast<AgentSpeed, AgentSpeedConstant> >-> magnitude_) (this.Speed / this.Scale * 2.5f)
                 |> Optic.map 
                     branching_ 
                     (fun (b : BranchingStrategy) -> 

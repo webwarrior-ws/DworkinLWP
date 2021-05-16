@@ -174,8 +174,9 @@ let configGui  =
                               Vine.BranchingCriterionBased.leaves2SidesProbesStraigh1_vines :> Agents.BranchingStrategy, "leaves2SidesProbesStraigh1_vines";
                               Vine.BranchingCustom._2BranchIndLeafAlt_vines() :> Agents.BranchingStrategy, "2BranchIndLeafAlt_vines";
                               Vine.BranchingCustom._2BranchIndLeafByScale_vines() :> Agents.BranchingStrategy, "2BranchIndLeafByScale_vines";
-                              Vine.BranchingCustom._2BranchIndLeafWithStem_vines :> Agents.BranchingStrategy, "_2BranchIndLeafWithStem_vines" ];
+                              Vine.BranchingCustom._2BranchIndLeafWithStem_vines :> Agents.BranchingStrategy, "2BranchIndLeafWithStem_vines" ];
                         Builders.floatSliderEditor "Scale" Vine.Vines.Scale_ 1.0f 2.5f 0.1f;
+                        Builders.floatSliderEditor "Speed" Vine.Vines.Speed_ 0.25f 1.0f 0.05f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<Vine.Vines>;
                     ]
             ]
