@@ -149,8 +149,7 @@ let configGui  =
                     "Vine"
                     (Vine.Vines())
                     [
-                        Builders.intSliderEditor "Nx" Vine.Vines.Nx_ 1 5 1;
-                        Builders.intSliderEditor "Ny" Vine.Vines.Ny_ 1 5 1;
+                        Builders.radioButtonEditor "Alpha" Vine.Vines.Alpha_ [ 3.8f; 3.0f ];
                         Builders.intSliderEditor "Angle" Vine.Vines.Angle_ -90 90 5;
                         Builders.checkboxEditor "Top" (Vine.Vines.Sides_ >-> Vine.InitialPositions.Top_);
                         Builders.checkboxEditor "Bottom" (Vine.Vines.Sides_ >-> Vine.InitialPositions.Bottom_);
@@ -225,7 +224,7 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
     let mutable guis = 
         [
             makeEditor "Solid color" <| Materials.SolidColor();
-            Builders.makeShaderBasedComponentEditor<MetalMaterial> setter "metal"
+            (*Builders.makeShaderBasedComponentEditor<MetalMaterial> setter "metal"
                 [ 
                     "color", box defaultColor, Builders.ShaderComponents.colorEditor;
                     "highlight", box 0.2f, Builders.ShaderComponents.floatSliderEditor 0.0f 0.4f 0.05f;
@@ -237,7 +236,7 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
                     "strokeLength", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.1f 1.0f 0.05f;
                     "strokeIntensity", box 0.35f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
                     "strokeAngle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
-                ];
+                ];*)
             makeEditor "Wood" <| Materials.Wood();
             makeEditor "Paper" <| Materials.Paper();
             makeEditor "Metal" <| Materials.Metal();

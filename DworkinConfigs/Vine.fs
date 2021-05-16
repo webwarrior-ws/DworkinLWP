@@ -665,8 +665,7 @@ type InitialPositions =
 type Vines() = 
     inherit DworkinEnvironmentConfigCustom()
     member val AgentConfig = DworkinAgentConfig.vine1 with get, set
-    member val Nx = 3 with get, set
-    member val Ny = 2 with get, set
+    member val Alpha = 3.8f with get, set
     member val Delay = 120 with get, set
     member val Angle = 55 with get, set
     member val Sides = { InitialPositions.None with Left=true } with get, set
@@ -679,10 +678,8 @@ type Vines() =
     
     static member AgentConfig_ : Lens<Vines, _> = 
         (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
-    static member Nx_ : Lens<Vines, _> = 
-        (fun x -> x.Nx), (fun value x -> let y = x.Clone() in y.Nx <- value; y)
-    static member Ny_ : Lens<Vines, _> = 
-        (fun x -> x.Ny), (fun value x -> let y = x.Clone() in y.Ny <- value; y)
+    static member Alpha_ : Lens<Vines, _> = 
+        (fun x -> x.Alpha), (fun value x -> let y = x.Clone() in y.Alpha <- value; y)
     static member Delay_ : Lens<Vines, _> = 
         (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
     static member Angle_ : Lens<Vines, _> = 
@@ -701,10 +698,19 @@ type Vines() =
     override this.Evaluate(env) =
         let width = env.Bounds.Width
         let height = env.Bounds.Height
+
+        let nx, ny =
+            let nMin = (this.Alpha / this.Scale) |> max 1.75f
+            let nMax = nMin * (max width height) / (min width height)
+            if width > height then 
+                int(round nMax), int(round nMin)
+            else 
+                int(round nMin), int(round nMax)
+
         let xAngle = -this.Angle
         let yAngle = if this.Angle > 0 then 90 - this.Angle else 270 - this.Angle
-        let xs = [| ((width * float32(1 - this.Nx)) / (float32(2 * this.Nx) + 2.0f)) .. (width / float32(this.Nx + 1)) .. ((width / 2.0f) - 1.0f) |] 
-        let ys = [| ((height * float32(1 - this.Ny)) / (float32(2 * this.Ny) + 2.0f)) .. (height / float32(this.Ny + 1)) .. ((height / 2.0f) - 1.0f) |]
+        let xs = [| ((width * float32(1 - nx)) / (float32(2 * nx) + 2.0f)) .. (width / float32(nx + 1)) .. ((width / 2.0f) - 1.0f) |] 
+        let ys = [| ((height * float32(1 - ny)) / (float32(2 * ny) + 2.0f)) .. (height / float32(ny + 1)) .. ((height / 2.0f) - 1.0f) |]
 
         let spawnAgent (pos : Point) (alpha : int) d =
             let agentBlock (a : DworkinAgent) =
