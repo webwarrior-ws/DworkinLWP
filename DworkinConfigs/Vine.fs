@@ -713,15 +713,17 @@ type Vines() =
         let ys = [| ((height * float32(1 - ny)) / (float32(2 * ny) + 2.0f)) .. (height / float32(ny + 1)) .. ((height / 2.0f) - 1.0f) |]
 
         let spawnAgent (pos : Point) (alpha : int) d =
+            let speed = this.Speed / this.Scale * 2.5f
+            let delay = int((float32 d) / speed)
             let agentBlock (a : DworkinAgent) =
                 a.ScaleBy(this.Scale)
                 a.NoCollisions <- true
             let spawnOptions = ProbeSpawnOptions(Position=pos+env.Bounds.Center, AngleDeg=float32 alpha)
-            spawnOptions.DelayBy(d)
+            spawnOptions.DelayBy(delay)
             (env.LaunchProbe(this.AgentConfig, spawnOptions, agentBlock)).SpawnColliders()
             env.Spawn(
                 this.AgentConfig
-                |> Optic.set (speed_ >-> cast<AgentSpeed, AgentSpeedConstant> >-> magnitude_) (this.Speed / this.Scale * 2.5f)
+                |> Optic.set (speed_ >-> cast<AgentSpeed, AgentSpeedConstant> >-> magnitude_) speed
                 |> Optic.map 
                     branching_ 
                     (fun (b : BranchingStrategy) -> 

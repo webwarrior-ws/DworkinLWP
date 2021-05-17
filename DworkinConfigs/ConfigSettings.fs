@@ -162,4 +162,153 @@ type FlowingLeavesExperiment() =
         :> EnvironmentConfig
 
 
-let allEnvironmentSettingsTypes = [| typeof<MagneticSpiralsBunch>; typeof<PCB_RandomPosChips>; typeof<Maze>; typeof<FlowingLeavesExperiment> |]
+// Vine
+type VineStartPos =
+    | Left = 1
+    | Right = 2
+    | Bottom = 3
+    | Top = 4
+    | BottomLeft = 5
+    | TopRight = 6
+    | LeftAndRight = 7
+    | BottomAndTop = 8
+
+type VineType =
+    | Single = 1
+    | Curly1 = 2
+    | Curly2 = 3
+    | Curly3 = 4
+    | Splitting = 5
+
+type VineLeafType =
+    | None = 1
+    | IndAlt = 2
+    | IndByScale = 3
+    | WithStem = 4
+    | SlightlyCurved = 6
+    | Rounded = 8
+    | Straight1 = 9
+    | Curved1 = 10
+
+type Vine() =
+    inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+    static do Settings.RegisterClass<Vine>()
+
+    [<Enum([| VineStartPos.Bottom; VineStartPos.Top; VineStartPos.Left; VineStartPos.Right; 
+              VineStartPos.BottomLeft; VineStartPos.TopRight; VineStartPos.LeftAndRight; VineStartPos.BottomAndTop |],
+           ItemType=typeof<VineStartPos>)>]
+    member val StartingPositions = Defined(VineStartPos.Bottom) with get, set
+
+    [<Enum([| VineType.Single; VineType.Curly1; VineType.Curly2; VineType.Curly3; VineType.Splitting |], 
+           ItemType=typeof<VineType>)>]
+    member val VineType = Defined(VineType.Single) with get, set
+
+    [<Enum([| VineLeafType.None; VineLeafType.IndAlt; VineLeafType.IndByScale; VineLeafType.WithStem; 
+              VineLeafType.SlightlyCurved; VineLeafType.Rounded; VineLeafType.Straight1; VineLeafType.Curved1 |],
+           ItemType=typeof<VineLeafType>)>]
+    member val Leaves = Defined(VineLeafType.None) with get, set
+    
+    [<FloatRange(1.5f, 2.5f, Step=0.1f)>]
+    member val Scale = Defined(1.5f) with get, set
+
+    [<FloatRange(0.25f, 1.0f, Step=0.05f)>]
+    member val Speed = Defined(1.0f) with get, set
+
+    override this.Build(seed) = 
+        let random = System.Random(seed)
+        let getValue expr = Randomizeable.getValue random expr
+
+        let startPos = getValue <@ this.StartingPositions @>
+        let vineType = getValue <@ this.VineType @>
+
+        let sides =
+            let empty = Vine.InitialPositions.None
+            match startPos with
+            | VineStartPos.Left -> { empty with Left=true }
+            | VineStartPos.Right -> { empty with Right=true }
+            | VineStartPos.Bottom -> { empty with Bottom=true }
+            | VineStartPos.Top -> { empty with Top=true }
+            | VineStartPos.BottomLeft -> { empty with Bottom=true; Left=true }
+            | VineStartPos.TopRight -> { empty with Top=true; Right=true }
+            | VineStartPos.LeftAndRight -> { empty with Left=true; Right=true }
+            | VineStartPos.BottomAndTop -> { empty with Bottom=true; Top=true }
+
+        let corner = 
+            match startPos with
+            | VineStartPos.BottomLeft | VineStartPos.TopRight -> true
+            | _ -> false
+
+        let angle : int =
+            match vineType with
+            | VineType.Single ->
+                match startPos with
+                | VineStartPos.Left | VineStartPos.Right | VineStartPos.LeftAndRight -> 90
+                | VineStartPos.BottomLeft | VineStartPos.TopRight -> 40
+                | _ -> 0
+            | VineType.Curly1 ->
+                match startPos with
+                | VineStartPos.Left | VineStartPos.Right -> 90
+                | VineStartPos.Top | VineStartPos.Bottom -> 0
+                | VineStartPos.LeftAndRight -> 75
+                | VineStartPos.BottomAndTop -> 5
+                | _ -> 35
+            | VineType.Curly2 ->
+                match startPos with
+                | VineStartPos.Left | VineStartPos.Right -> -75
+                | VineStartPos.Top | VineStartPos.Bottom -> 45
+                | VineStartPos.LeftAndRight -> -75
+                | VineStartPos.BottomAndTop -> 45
+                | _ -> 90
+            | VineType.Curly3 ->
+                match startPos with
+                | VineStartPos.Left | VineStartPos.Right -> -45
+                | VineStartPos.Top | VineStartPos.Bottom -> 45
+                | VineStartPos.LeftAndRight -> -45
+                | VineStartPos.BottomAndTop -> 45
+                | _ -> 90
+            | VineType.Splitting ->
+                match startPos with
+                | VineStartPos.Left | VineStartPos.Right -> -80
+                | VineStartPos.Top | VineStartPos.Bottom | VineStartPos.BottomAndTop -> 15
+                | VineStartPos.LeftAndRight -> 70
+                | _ -> 55
+        
+        let vineConfig = 
+            match vineType with
+            | VineType.Single -> Vine.DworkinAgentConfig.singleVineVarying
+            | VineType.Curly1 -> Vine.DworkinAgentConfig.vine1
+            | VineType.Curly2 -> Vine.DworkinAgentConfig.vine2
+            | VineType.Curly3 -> Vine.DworkinAgentConfig.vine3
+            | VineType.Splitting -> Vine.DworkinAgentConfig.vineSplitting1
+
+        let alpha =
+            match startPos with
+            | VineStartPos.BottomLeft | VineStartPos.BottomLeft -> 3.0f
+            | _ -> 3.8f
+
+        let leafStrategies : LibDworkin.Agents.BranchingStrategy[] =
+            match getValue <@ this.Leaves @> with
+            | VineLeafType.None -> [|  |]
+            | VineLeafType.IndAlt -> [| Vine.BranchingCustom._2BranchIndLeafAlt_vines() |]
+            | VineLeafType.IndByScale -> [| Vine.BranchingCustom._2BranchIndLeafByScale_vines() |]
+            | VineLeafType.WithStem -> [| Vine.BranchingCustom._2BranchIndLeafWithStem_vines |]
+            | VineLeafType.SlightlyCurved -> [| Vine.BranchingCriterionBased.leaves2SidesProbes1_2_vines |]
+            | VineLeafType.Rounded -> [| Vine.BranchingCriterionBased.leaves2SidesProbes2_vines |]
+            | VineLeafType.Straight1  -> [| Vine.BranchingCriterionBased.leaves2SidesProbesStraigh1_vines |]
+            | VineLeafType.Curved1  -> [| Vine.BranchingCriterionBased.leavesProbesCurved1_vines |]
+        
+        Vine.Vines(AgentConfig=vineConfig, Alpha=alpha, Angle=angle, Sides=sides, Corners=corner, 
+                   Scale=getValue <@ this.Scale @>, Speed=getValue <@ this.Speed @>) 
+            |> Optic.set (Vine.Vines.LeafStrategy_ >-> Vine.DworkinEnvironmentConfigCustom.Vines.LeafStrategy.Strategies_) leafStrategies
+            :> LibDworkin.Configs.DworkinEnvironmentConfig
+
+
+
+let allEnvironmentSettingsTypes = 
+    [| 
+        typeof<MagneticSpiralsBunch>; 
+        typeof<PCB_RandomPosChips>; 
+        typeof<Maze>; 
+        typeof<FlowingLeavesExperiment>; 
+        typeof<Vine>;
+    |]
