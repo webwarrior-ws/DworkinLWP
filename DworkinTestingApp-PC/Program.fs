@@ -177,6 +177,12 @@ let configGui  =
                         Builders.floatSliderEditor "Scale" Vine.Vines.Scale_ 1.0f 2.5f 0.1f;
                         Builders.floatSliderEditor "Speed" Vine.Vines.Speed_ 0.25f 1.0f 0.05f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<Vine.Vines>;
+                    ];
+                Builders.environmentEditor
+                    "Floral swirls"
+                    (FloralSwirls.CosineSwirlSingle())
+                    [
+                        
                     ]
             ]
     let speedControl = 
