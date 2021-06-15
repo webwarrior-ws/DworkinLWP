@@ -29,6 +29,10 @@ let makeGenericLens lensGetter =
 //    makeGenericLens (fun (_ : ^U) -> (^U : (static member C_ : Lens< ^U, ^V>) ()))
 
 
+let nth_<'T> (index : int) : Lens<'T[], 'T> =
+    (fun arr -> arr.[index]), (fun value a -> let a2 = Array.copy a in Array.set a2 index value; a2)
+
+
 // lenses for configs:
 
 // DworkinEnvironmentConfig:
