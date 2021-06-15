@@ -258,5 +258,12 @@ let inline scale_< ^U , ^V when ^U : (static member Scale_ : Lens< ^U, ^V>)> : L
 let inline start_< ^U , ^V when ^U : (static member Start_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Start_ : Lens< ^U, ^V>) ()))
 
+let inline agentConfig_< ^U , ^V when ^U : (static member AgentConfig_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member AgentConfig_ : Lens< ^U, ^V>) ()))
+
+let inline alphaRange_< ^U , ^V when ^U : (static member AlphaRange_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+     makeGenericLens (fun (_ : ^U) -> (^U : (static member AlphaRange_ : Lens< ^U, ^V>) ()))
+ 
+
 // compound lenses
 let termination_spawnConfig_ = termination_ >-> cast<TerminationStrategy, TerminationSpawn> >-> spawnConfig_

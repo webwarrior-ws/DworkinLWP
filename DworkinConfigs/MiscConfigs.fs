@@ -36,6 +36,19 @@ module CollisionHandler =
                 | None -> true
                 | Some(gp2) -> p1 :> IDworkinAgentState <> gp2
             | _ -> true) || (agent.T >= this.MinT)
+    
+
+    type IgnoreParentUpTo() = 
+        inherit CollisionHandler()
+        member val MinDistance = 1.0f with get, set
+        
+        member this.Clone() = this.MemberwiseClone() :?> IgnoreParentUpTo
+        
+        static member MinDistance_ : Lens<IgnoreParentUpTo, _> = 
+            (fun x -> x.MinDistance), (fun value x -> let y = x.Clone() in y.MinDistance <- value; y)
+        
+        override this.Evaluate(agent, collision) =
+            (collision.Obstacle.Parent <> (agent.Parent |> Option.map (fun x -> x :> IDworkinAgentState))) || (agent.S > this.MinDistance)
 
     
     type IgnoreIfIntersectsAtAngleGt() = 
@@ -467,5 +480,286 @@ module SpawnConfig =
                                     probeData.SpawnColliders())
     
 
+    module Probe1BranchSwirlsShifted = 
+        module AgentConfig = 
+            module Branching = 
+                type SpawnConfig() = 
+                    inherit LibDworkin.Configs.SpawnConfig()
+                    member val Angle = 0 with get, set
+                    member val LengthRange = NumberRange(100.0f, 300.0f) with get, set
+                    member val AlphaRange = NumberRange(0.6f, 1.5f) with get, set
+                    member val AlphaSteps = 8 with get, set
+                    member val Offset = 5.0f with get, set
+                    member val Levels = NumberRange(1.0f, 2.0f) with get, set
+                    
+                    member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
+                    
+                    static member Angle_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+                    static member LengthRange_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+                    static member AlphaRange_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.AlphaRange), (fun value x -> let y = x.Clone() in y.AlphaRange <- value; y)
+                    static member AlphaSteps_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.AlphaSteps), (fun value x -> let y = x.Clone() in y.AlphaSteps <- value; y)
+                    static member Offset_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+                    static member Levels_ : Lens<SpawnConfig, _> = 
+                        (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+                    
+                    override this.Evaluate(agent, pos) =
+                        if this.Levels.Contains (float32 agent.Generation) then 
+                            seq {
+                                for alpha in this.AlphaRange.By(this.AlphaRange.Extent / (float32 this.AlphaSteps)) do
+                                    let mutable config = 
+                                        agent.Config
+                                        |> Optic.set totalDistance_ (this.LengthRange.Max)
+                                        |> Optic.set (curvature_ >-> cast<_, CurvatureFormula.DiminishingSpiral> >-> alpha_) alpha
+                                    let mutable probeData = 
+                                        agent.LaunchProbe(
+                                            config, 
+                                            ProbeSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset, StepsBetweenCollisionCheck=4),
+                                            ignore)
+                                    match probeData.Collision with
+                                    | Some(value) -> 
+                                        if (probeData.S / 2.0f) > (float32 this.LengthRange.Min) then 
+                                            config <- 
+                                                config
+                                                |> Optic.set totalDistance_ (agent.Random.NextInRange([| this.LengthRange.Min; probeData.S / 2.0f |]))
+                                            probeData <- 
+                                                agent.LaunchProbe(
+                                                    config, 
+                                                    ProbeSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset, StepsBetweenCollisionCheck=100),
+                                                    ignore)
+                                            yield agent.Spawn(
+                                                config, 
+                                                AgentSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset), 
+                                                fun a ->
+                                                    a.NoCollisions <- true
+                                                    probeData.SpawnColliders())
+                                    | None -> 
+                                        yield agent.Spawn(
+                                            config, 
+                                            AgentSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset), 
+                                            fun a ->
+                                                a.NoCollisions <- true
+                                                probeData.SpawnColliders())
+                                }
+                                |> Seq.tryHead
+                                |> ignore
+            
+    [<AbstractClass>]
+    type Probe1BranchSwirlsShifted() = 
+        inherit SpawnConfig()
+        member val Angle = 0 with get, set
+        member val LengthRange = NumberRange(150.0f, 250.0f) with get, set
+        member val LengthSteps = 3 with get, set
+        member val AlphaRange = NumberRange(0.2f, 1.2f) with get, set
+        member val AlphaSteps = 6 with get, set
+        member val AgentConfig = 
+            { DworkinAgentConfig.Default with 
+                Branching=BranchingCriterionBased(
+                    Criterion=BranchingCriterionCustom.Interval_MaxBranches(D=10.0f,N=1),
+                    SpawnConfig=Probe1BranchSwirlsShifted.AgentConfig.Branching.SpawnConfig()
+                );
+                ColliderOptions=ColliderOptionsGeneral();
+                Curvature=CurvatureFormula.DiminishingSpiral(C=0.7f,Alpha=1.5f);
+                TerminationConditions={ 
+                    Collision=Some(
+                        TerminationConditionCollision(
+                            Handler=Some(CollisionHandler.IgnoreParentUpTo(MinDistance=20.0f) :> CollisionHandler),
+                            SelfIntersection=false) 
+                            |> Optic.set (primaryDetector_ >-> distance_) 4.0f
+                        );
+                    Curvature=Some(TerminationConditionCurvature());
+                    Distance=Some(TerminationConditionDistance())
+                };
+                Thickness=ThicknessFormula.LeafPower(A=3.0f,P=0.68f,C=2.0f)
+            } with get, set
+        member val Offset = 5 with get, set
+        member val Levels = NumberRange(1.0f, 2.0f) with get, set
+    
+        member this.Clone() = this.MemberwiseClone() :?> Probe1BranchSwirlsShifted
+    
+        static member Angle_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+        static member LengthRange_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+        static member LengthSteps_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.LengthSteps), (fun value x -> let y = x.Clone() in y.LengthSteps <- value; y)
+        static member AlphaRange_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.AlphaRange), (fun value x -> let y = x.Clone() in y.AlphaRange <- value; y)
+        static member AlphaSteps_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.AlphaSteps), (fun value x -> let y = x.Clone() in y.AlphaSteps <- value; y)
+        static member AgentConfig_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
+        static member Offset_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+        static member Levels_ : Lens<Probe1BranchSwirlsShifted, _> = 
+            (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+        
+        abstract GetModifiedAgentConfig : DworkinAgent -> float32 -> DworkinAgentConfig -> DworkinAgentConfig
 
+        override this.Evaluate(agent, pos) =
+            if this.Levels.Contains (float32 agent.Generation) then 
+                let combinations = 
+                    [| for x1 in this.LengthRange.By(this.LengthRange.Extent / (float32 this.LengthSteps)) do
+                       for x2 in this.AlphaRange.By(this.AlphaRange.Extent / (float32 this.AlphaSteps)) do yield x1, x2 |].ShuffleBy(agent.Random)
+                seq {
+                    for length, alpha in combinations do
+                        let agentBlock (a : DworkinAgent) = if (agent.Curvature * a.FlipFactor) < 0.0f then a.Flip()
+                        let config = 
+                            this.AgentConfig
+                            |> Optic.set totalDistance_ length
+                            |> Optic.set (curvature_ >-> cast<_, CurvatureFormula.DiminishingSpiral> >-> alpha_) alpha
+                            |> this.GetModifiedAgentConfig agent alpha
+                        let probeData = 
+                            agent.LaunchProbe(
+                                config, 
+                                ProbeSpawnOptions(
+                                    AngleDeg=float32 this.Angle, 
+                                    OffsetSideways=float32(this.Offset * (sign agent.Curvature)),
+                                    StepsBetweenCollisionCheck = int(floor (this.AgentConfig.TerminationConditions.Collision.Value.PrimaryDetector.Distance))), 
+                                agentBlock)
+                        match probeData.Collision with
+                        | Some(value) -> ()
+                        | None -> 
+                            yield agent.Spawn(
+                                config, 
+                                AgentSpawnOptions( AngleDeg=float32 this.Angle, OffsetSideways=float32(this.Offset * (sign agent.Curvature))), 
+                                fun a ->
+                                    agentBlock a
+                                    a.NoCollisions <- true
+                                    probeData.Id <- a.Id
+                                    probeData.SpawnColliders())
+                    }
+                    |> Seq.tryHead
+                    |> ignore
+
+    type Probe1BranchSwirlsShifted1() = 
+        inherit Probe1BranchSwirlsShifted(
+            LengthRange = NumberRange(100.0f, 300.0f), 
+            AlphaRange = NumberRange(0.6f, 1.5f), 
+            AlphaSteps = 8,
+            AgentConfig = { DworkinAgentConfig.Default with
+                                Curvature=CurvatureFormula.DiminishingSpiral(C=0.7f,Alpha=1.5f);
+                                Thickness=ThicknessFormula.LeafPower(A=2.0f,P=0.68f,C=10.0f);
+                                Brush=BrushStrategyCirclesPacked(Gap=1.0f);
+                                Branching=BranchingCriterionBased(
+                                    Criterion=BranchingCriterionCustom.Interval_MaxBranches(D=10.0f,N=1),
+                                    SpawnConfig=Probe1BranchSwirlsShifted.AgentConfig.Branching.SpawnConfig(Levels=NumberRange(1.0f, 2.0f))
+                                );
+                                TerminationConditions={ 
+                                    Collision=Some(
+                                        TerminationConditionCollision(
+                                            Handler=Some(CollisionHandler.IgnoreParentUpTo(MinDistance=20.0f) :> CollisionHandler),
+                                            SelfIntersection=false) 
+                                        |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
+                                    Curvature=Some(TerminationConditionCurvature());
+                                    Distance=Some(TerminationConditionDistance.Instance)
+                                 };
+                                ColliderOptions=ColliderOptionsGeneral();
+                          }) 
+
+        override this.GetModifiedAgentConfig agent alpha agentConfig =
+            let newAlphaRange = NumberRange(alpha + (this.AlphaRange.Extent * 0.05f), this.AlphaRange.Max + (this.AlphaRange.Extent * 0.1f))
+            agentConfig
+            |> Optic.set 
+                (branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_, Probe1BranchSwirlsShifted.AgentConfig.Branching.SpawnConfig> >-> alphaRange_) 
+                newAlphaRange
+    
+    type Probe1BranchSwirlsShifted1Rec() as this = 
+        inherit Probe1BranchSwirlsShifted(Offset= -7, AlphaRange = NumberRange(0.2f, 0.6f), AlphaSteps=4, Levels=NumberRange(1.0f, 1.0f))
+        do
+            this.AgentConfig <- 
+                this.AgentConfig
+                |> Optic.set 
+                    (terminationConditions_ >-> collision_ >-> handler_<CollisionHandler.IgnoreParentUpTo> >-> CollisionHandler.IgnoreParentUpTo.MinDistance_) 
+                    50.0f
+                |> Optic.set (thickness_<ThicknessFormula.LeafPower_Base> >-> a_) 1.0f
+                |> Optic.set (thickness_<ThicknessFormula.LeafPower_Base> >-> c_) 5.0f
+
+        override this.GetModifiedAgentConfig agent alpha agentConfig = agentConfig
+
+
+    type Probe1BranchSwirlsShifted3() = 
+        inherit Probe1BranchSwirlsShifted()
+
+        override this.GetModifiedAgentConfig agent alpha agentConfig =
+            agentConfig |> Optic.set branching_ agent.Config.Branching
+
+    
+    type Probe1BranchSpiralByLen_AlphaRandRec() = 
+        inherit SpawnConfig()
+        member val Angle = 0 with get, set
+        member val LengthRange = NumberRange(75.0f, 275.0f) with get, set
+        member val LengthSteps = 4 with get, set
+        member val AlphaRange = NumberRange(0.65f, 1.0f) with get, set
+        member val AlphaSteps = 3 with get, set
+        member val AgentConfig = 
+            { DworkinAgentConfig.Default with 
+                ColliderOptions=ColliderOptionsGeneral();
+                Curvature=CurvatureFormula.Magnetic(Alpha=0.65f);
+                TerminationConditions={ 
+                    Collision=Some(TerminationConditionCollision(MinDistance=10.0f,SelfIntersection=false) 
+                                   |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
+                    Curvature=None;
+                    Distance=Some(TerminationConditionDistance())
+                 };
+                Thickness=ThicknessFormula.DecLinear(A=2.0f,P=0.495f)
+             } with get, set
+        member val Levels = NumberRange(1.0f, 5.0f) with get, set
+        
+        member this.Clone() = this.MemberwiseClone() :?> Probe1BranchSpiralByLen_AlphaRandRec
+        
+        static member Angle_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+        static member LengthRange_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+        static member LengthSteps_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.LengthSteps), (fun value x -> let y = x.Clone() in y.LengthSteps <- value; y)
+        static member AlphaRange_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.AlphaRange), (fun value x -> let y = x.Clone() in y.AlphaRange <- value; y)
+        static member AlphaSteps_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.AlphaSteps), (fun value x -> let y = x.Clone() in y.AlphaSteps <- value; y)
+        static member AgentConfig_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
+        static member Levels_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+        
+        override this.Evaluate(agent, pos) =
+            if this.Levels.Contains (float32 agent.Generation) then 
+                let combinations = 
+                    [| for x1 in this.LengthRange.By(this.LengthRange.Extent / (float32 this.LengthSteps)) do
+                        for x2 in this.AlphaRange.By(this.AlphaRange.Extent / (float32 this.AlphaSteps)) do
+                            for x3 in [| float32 this.Angle; -(float32 this.Angle) |] do yield x1, x2, x3 |].ShuffleBy(agent.Random)
+                seq {
+                    for length, alpha, phi in combinations do
+                        let agentBlock (a : DworkinAgent) = if (sign phi) < 0 then a.Flip()
+                        let config = 
+                            this.AgentConfig
+                            |> Optic.set totalDistance_ length
+                            |> Optic.set (curvature_<CurvatureFormula.DiminishingSpiral> >-> alpha_) alpha
+                            |> Optic.set branching_ agent.Config.Branching
+                        let probeData = 
+                            agent.LaunchProbe(
+                                config, 
+                                ProbeSpawnOptions(
+                                    AngleDeg=phi, 
+                                    StepsBetweenCollisionCheck=int(floor(this.AgentConfig.TerminationConditions.Collision.Value.PrimaryDetector.Distance))), 
+                                agentBlock)
+                        match probeData.Collision with
+                        | Some(value) -> ()
+                        | None -> 
+                            yield agent.Spawn(
+                                    config, 
+                                    AgentSpawnOptions(AngleDeg=phi), 
+                                    fun a ->
+                                        agentBlock a
+                                        a.NoCollisions <- true
+                                        probeData.Id <- a.Id
+                                        probeData.SpawnColliders()) 
+                    }
+                    |> Seq.tryHead 
+                    |> ignore
 

@@ -116,3 +116,19 @@ type PointyTip() =
     
     override this.Evaluate(s, t) =
         min this.A (((s / t) / this.K) - (s / this.K))
+
+
+type DecLinear() = 
+    inherit ThicknessFormula()
+    member val A = 1.0f with get, set
+    member val P = 0.98f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> DecLinear
+    
+    static member A_ : Lens<DecLinear, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member P_ : Lens<DecLinear, _> = 
+        (fun x -> x.P), (fun value x -> let y = x.Clone() in y.P <- value; y)
+    
+    override this.Evaluate(s, t) =
+        this.A * (max 1.0e-6f (1.0f - (t * this.P)))

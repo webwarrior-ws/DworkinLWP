@@ -187,3 +187,19 @@ type ArchimedeanSpiralRev() =
     
     override this.Evaluate(s, t) =
         (((1.0f / (sqrt (abs (s - (s / t))))) * (sqrt (t / s))) * this.N) / 30.0f
+
+
+type DiminishingSpiral() = 
+    inherit CurvatureFormula()
+    member val C = 0.8f with get, set
+    member val Alpha = 1.0f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> DiminishingSpiral
+    
+    static member C_ : Lens<DiminishingSpiral, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    static member Alpha_ : Lens<DiminishingSpiral, _> = 
+        (fun x -> x.Alpha), (fun value x -> let y = x.Clone() in y.Alpha <- value; y)
+    
+    override this.Evaluate(s, t) =
+        (this.Alpha / 100.0f) / (max (1.0f - ((1.0f - this.C) * s)) 0.005f)

@@ -151,7 +151,7 @@ type NumberRange = struct
     
     new(arr : float32[]) =
         match arr with
-        | [| a; b |] -> NumberRange(a, b)
+        | [| a; b |] when a <= b -> NumberRange(a, b)
         | _ -> NumberRange(Array.min arr, Array.max arr)
 
     member this.Average =

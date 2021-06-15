@@ -182,7 +182,15 @@ let configGui  =
                     "Floral swirls"
                     (FloralSwirls.CosineSwirlSingle())
                     [
-                        
+                        Builders.floatSliderEditor "Thickness" FloralSwirls.CosineSwirlSingle.Thickness_ 1.0f 2.0f 0.1f;
+                        Builders.labeledDropdownListEditor "Large swirls"
+                            FloralSwirls.CosineSwirlSingle.LargeSwirls_
+                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
+                              FloralSwirls.LargeSwirlsStrategies.plantLike4Cosine, "plantLike"; ];
+                        Builders.labeledDropdownListEditor "Leaves"
+                            FloralSwirls.CosineSwirlSingle.LeafStrategy_
+                         [ FloralSwirls.BranchingCustom.NoBranching() :> LibDworkin.Agents.BranchingStrategy, "none" ];
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.CosineSwirlSingle>;
                     ]
             ]
     let speedControl = 

@@ -127,8 +127,7 @@ module BranchingMultivariant =
                                             probeData.Id <- a.Id
                                             probeData.SpawnColliders()) 
                             } 
-                            |> Seq.tryHead |> ignore
-                        
+                            |> Seq.tryHead |> ignore        
 
 
 
@@ -149,6 +148,37 @@ module LargeSwirlsStrategies =
                 Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(60.0f, 150.0f),TInterval=NumberRange(0.1f, 0.9f)),
                 SpawnConfig=BranchingMultivariant.SwirlsMagneticMany.SpawnConfig()
             ) :> BranchingStrategy
+        |]
+
+    let plantLike4Cosine : BranchingStrategy[]  = 
+        [|
+            BranchingCriterionBased(
+                Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(60.0f, 150.0f),TInterval=NumberRange(0.1f, 0.8f)),
+                Delay=30,
+                SpawnConfig=SpawnConfig.Probe1BranchSwirlsShifted3()
+            );
+            
+            BranchingCriterionBased(
+                Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(80.0f, 150.0f),TInterval=NumberRange(0.1f, 0.8f)),
+                Delay=50,
+                SpawnConfig=(SpawnConfig.Probe1BranchSwirlsShifted1Rec())
+            );
+            
+            BranchingCriterionBased(
+                Criterion=(BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(120.0f, 160.0f),TInterval=NumberRange(0.2f, 0.8f))),
+                Delay=100,
+                SpawnConfig=(SpawnConfig.Probe1BranchSpiralByLen_AlphaRandRec(Angle=5,LengthRange=NumberRange(100.0f, 250.0f),LengthSteps=5,AlphaRange=NumberRange(0.5f, 1.5f),AlphaSteps=5,Levels=NumberRange(1.0f, 1.0f))
+                             |> Optic.set (agentConfig_ >-> curvature_) (CurvatureFormula.DiminishingSpiral(C=0.68f))
+                             |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> handler_) (CollisionHandler.IgnoreParentUpTo(MinDistance=50.0f))
+                             |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> minDistance_) 0.0f
+                             |> Optic.set (agentConfig_ >-> thickness_) (ThicknessFormula.LeafPower(A=2.0f,P=0.77f,C=10.0f)))
+            );
+            
+            BranchingCriterionBased(
+                Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(60.0f, 160.0f),TInterval=NumberRange(0.0f, 0.8f)),
+                Delay=20,
+                SpawnConfig=SpawnConfig.Probe1BranchSwirlsShifted1()
+            );
         |]
 
 
