@@ -24,6 +24,11 @@ type BranchMark(s : float32) =
     member this.IncrementCumulativeDensityBy(number : float32) =
         cumulativeDensity <- cumulativeDensity + number
 
+    member this.GetNextIntervalOrPut(emptyBlock : unit -> float32) : float32 =
+        if not this.NextInterval.HasValue then
+            this.NextInterval <- emptyBlock()
+        this.NextInterval.Value
+
 
 type BranchMarkList() =
     inherit ResizeArray<BranchMark>()
