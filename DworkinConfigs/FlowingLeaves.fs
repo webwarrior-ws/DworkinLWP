@@ -13,6 +13,7 @@ open LibDworkin.Probes
 open LibDworkin.SimplexNoise
 
 open MiscConfigs
+open BranchingCriteria
 
 
 module SpawnConfig =

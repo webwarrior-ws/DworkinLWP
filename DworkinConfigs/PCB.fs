@@ -14,7 +14,7 @@ open LibDworkin.Colliders
 open LibDworkin.SpatialIndex
 
 open MiscConfigs
-
+open BranchingCriteria
 
 
 module DworkinAgentConfig =

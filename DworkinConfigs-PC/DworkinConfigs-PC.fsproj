@@ -51,6 +51,9 @@
     <Compile Include="../DworkinConfigs/ThicknessFormula.fs">
       <Link>ThicknessFormula.fs</Link>
     </Compile>
+    <Compile Include="../DworkinConfigs/BranchingCriteria.fs">
+      <Link>BranchingCriteria.fs</Link>
+    </Compile>
     <Compile Include="../DworkinConfigs/MiscConfigs.fs">
       <Link>MiscConfigs.fs</Link>
     </Compile>
@@ -68,6 +71,9 @@
     </Compile>
     <Compile Include="../DworkinConfigs/Vine.fs">
       <Link>Vine.fs</Link>
+    </Compile>
+    <Compile Include="../DworkinConfigs/FloralSwirls.fs">
+      <Link>FloralSwirls.fs</Link>
     </Compile>
     <Compile Include="../DworkinConfigs/ConfigSettings.fs">
       <Link>ConfigSettings.fs</Link>
