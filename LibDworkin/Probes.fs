@@ -60,7 +60,7 @@ type ProbeData() =
         if this.Footprints.IsEmpty then
             false
         else 
-            (this.DistanceCovered + (1.0e-8f)) >= this.Footprints.Last.Config.TotalDistance 
+            (this.DistanceCovered + (1.0e-3f)) >= this.Footprints.Last.Config.TotalDistance 
 
     member inline this.S =
         this.DistanceCovered
