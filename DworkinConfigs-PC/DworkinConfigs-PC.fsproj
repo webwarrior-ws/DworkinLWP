@@ -42,6 +42,9 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="../DworkinConfigs/Util.fs">
+      <Link>Util.fs</Link>
+    </Compile>
     <Compile Include="../DworkinConfigs/CurvatureFormula.fs">
       <Link>CurvatureFormula.fs</Link>
     </Compile>

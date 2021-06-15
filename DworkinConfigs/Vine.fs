@@ -746,13 +746,7 @@ type Vines() =
                 agentBlock)
                 |> ignore
 
-        Seq.iter 
-            (fun p ->
-                let c = env.Bounds.Center
-                let d = p - c
-                env.AddCollider(SegmentCollider(None, p, Point(c.X + (float32(sign d.X) * 0.001f), p.Y)))
-                env.AddCollider(SegmentCollider(None, p, Point(p.X, c.Y + (float32(sign d.Y) * 0.001f))))) 
-            env.Bounds.Corners
+        Util.buildWalls env
         
         let spawns = [|
             for x in xs do
