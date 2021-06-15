@@ -22,7 +22,7 @@ type BrushStrategyCircles() =
     override this.GetBrushFor(anAgent) =
         BrushCircles() :> Brush
     
-(*    
+    
 type BrushStrategyCirclesPacked() = 
     inherit BrushStrategy()
     member val Gap = 0.0f with get, set
@@ -33,8 +33,8 @@ type BrushStrategyCirclesPacked() =
         (fun x -> (x :?> BrushStrategyCirclesPacked).Gap), (fun value x -> let y = (x :?> BrushStrategyCirclesPacked).Clone() in y.Gap <- value; y :> BrushStrategy)
 
     override this.GetBrushFor(anAgent) =
-        BrushCirclesPacked(anAgent, Gap=this.Gap)
-*)
+        BrushCirclesPacked(Gap=this.Gap) :> Brush
+
 
 type BrushStrategyDefault() = 
     inherit BrushStrategy()

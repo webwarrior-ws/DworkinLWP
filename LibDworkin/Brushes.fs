@@ -28,6 +28,39 @@ type BrushCircles() =
     inherit Brush()
     override this.Evaluate(agent) =
         agent.DworkinEnvironment.AddShape(Shape.Circle(agent.Position, agent.Thickness * 0.5f), ShapePaint.Default)
+
+
+type BrushCirclesPacked() =
+    inherit Brush()
+
+    let mutable lastGeometry : Shape option = None
+
+    member val Gap = 0.0f with get, set
+
+    member private this.AddCircle(agent : DworkinAgent, pos, radius) =
+        let circle = Shape.Circle(pos, radius)
+        agent.DworkinEnvironment.AddShape(circle, ShapePaint.Default)
+        circle
+
+    override this.Evaluate(agent) =
+        let mutable pos = agent.Position
+        let r = agent.Thickness / 2.0f
+        match lastGeometry with
+        | Some(Circle(_)) -> 
+            let minR = agent.ThicknessFactor / 100.0f
+            let radius() = match lastGeometry with | Some(Circle(_, r)) -> r
+            let center() = match lastGeometry with | Some(Circle(c, _)) -> c
+            let mutable delta = 0.0f
+            let mutable distSquared = 0.0f
+            let cond () = 
+                delta <- (r + radius()) * (1.0f + this.Gap)
+                distSquared <- agent.Position.SquaredDistanceTo(center())
+                (r > minR) && ((distSquared - (squared delta)) > 0.0f)
+            while cond() do
+                pos <- lerp (center()) agent.Position (delta / (sqrt distSquared))
+                lastGeometry <- Some(this.AddCircle(agent, pos, r))
+        | None -> 
+            lastGeometry <- Some(this.AddCircle(agent, pos, r))
  
 
 [<AbstractClass>]
