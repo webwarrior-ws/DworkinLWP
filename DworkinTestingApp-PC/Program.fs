@@ -97,7 +97,9 @@ let configGui  =
           FloralSwirls.LeafStrategies.leaves2SidesProbesStraight1_fs :> LibDworkin.Agents.BranchingStrategy, "leaves2SidesProbesStraight1";
           FloralSwirls.LeafStrategies.leaves2SidesProbes1_2_fs  :> LibDworkin.Agents.BranchingStrategy, "leaves2SidesProbes1_2_fs";
           FloralSwirls.LeafStrategies.leavesProbesCurved1_fs  :> LibDworkin.Agents.BranchingStrategy, "leavesProbesCurved1_fs";
-          FloralSwirls.LeafStrategies.leavesProbesFollowCurv_fs  :> LibDworkin.Agents.BranchingStrategy, "leavesProbesFollowCurv_fs"; ]
+          FloralSwirls.LeafStrategies.leavesProbesFollowCurv_fs  :> LibDworkin.Agents.BranchingStrategy, "leavesProbesFollowCurv_fs";
+          FloralSwirls.LeafStrategies._2BranchIndependentLeafWithStem_fs()  :> LibDworkin.Agents.BranchingStrategy, "2BranchIndependentLeafWithStem_fs"; 
+          FloralSwirls.LeafStrategies._2BranchIndLeafByScale_fs()  :> LibDworkin.Agents.BranchingStrategy, "2BranchIndLeafByScale_fs"; ]
     let configChooser =
         Builders.chooser
             "Environment"

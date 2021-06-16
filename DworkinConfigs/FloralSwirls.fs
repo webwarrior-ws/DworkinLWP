@@ -501,6 +501,152 @@ module BranchingMultivariant =
 
 
 
+module BranchingCustom = 
+    module _2BranchIndependentLeafWithStem_fs = 
+        type Criterion() = 
+            inherit BranchingCriterionIntervalRandomized()
+            let mutable tag = 0
+
+            member val Mu = 30.0f with get, set
+            member val Sigma = 10.0f with get, set
+            member val MinInterval = 15.0f with get, set
+            member val Start = 25.0f with get, set
+            
+            override this.Tag = tag
+            member this.SetTag(newTag : int) = tag <- newTag
+
+            member this.Clone() = this.MemberwiseClone() :?> Criterion
+            
+            static member Mu_ : Lens<Criterion, _> = 
+                (fun x -> x.Mu), (fun value x -> let y = x.Clone() in y.Mu <- value; y)
+            static member Sigma_ : Lens<Criterion, _> = 
+                (fun x -> x.Sigma), (fun value x -> let y = x.Clone() in y.Sigma <- value; y)
+            static member MinInterval_ : Lens<Criterion, _> = 
+                (fun x -> x.MinInterval), (fun value x -> let y = x.Clone() in y.MinInterval <- value; y)
+            static member Start_ : Lens<Criterion, _> = 
+                (fun x -> x.Start), (fun value x -> let y = x.Clone() in y.Start <- value; y)
+            static member Tag_ : Lens<Criterion, _> = 
+                (fun x -> x.Tag), (fun value x -> let y = x.Clone() in y.SetTag(value); y)
+            
+            override this.Evaluate(s, t, random) =
+                if s >= this.Start then max (random.NextGaussian(this.Mu, this.Sigma)) this.MinInterval else this.Start
+        
+        type Config() = 
+            inherit SpawnConfig()
+            member val Angle = 30 with get, set
+            member val Scale = 2.0f with get, set
+            member val Config = DworkinAgentConfig.leafWithStem with get, set
+            member val Offset = 0.0f with get, set
+            member val MaxCurv = 0.08f with get, set
+            member val Delay = 50 with get, set
+            member val LeafLengthRange = NumberRange(12.0f, 24.0f) with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> Config
+            
+            static member Angle_ : Lens<Config, _> = 
+                (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+            static member Scale_ : Lens<Config, _> = 
+                (fun x -> x.Scale), (fun value x -> let y = x.Clone() in y.Scale <- value; y)
+            static member Config_ : Lens<Config, _> = 
+                (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+            static member Offset_ : Lens<Config, _> = 
+                (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+            static member MaxCurv_ : Lens<Config, _> = 
+                (fun x -> x.MaxCurv), (fun value x -> let y = x.Clone() in y.MaxCurv <- value; y)
+            static member Delay_ : Lens<Config, _> = 
+                (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
+            static member LeafLengthRange_ : Lens<Config, _> = 
+                (fun x -> x.LeafLengthRange), (fun value x -> let y = x.Clone() in y.LeafLengthRange <- value; y)
+            
+            override this.Evaluate(agent, pos) =
+                if agent.Curvature <= this.MaxCurv then 
+                    let agentCopy = agent.Copy()
+                    agent.DworkinEnvironment.Delay(
+                        (fun env ->
+                            let agentConfig = this.Config |> Optic.set totalDistance_ (agent.Random.NextInRange(this.LeafLengthRange))
+                            let spawnBlock = 
+                                ProbeSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset * agent.ThicknessFactor)
+                            let agentBlock (a : DworkinAgent) = 
+                                let t = 0.5f
+                                let s = agentCopy.Config.TotalDistance * t
+                                a.ScaleBy(this.Scale * (max (agentCopy.RelativeThickness / (agentCopy.Config.Thickness.Evaluate(s, t))) 0.5f))
+                                if this.Angle < 0 then a.Flip()
+                            let probeData = agentCopy.LaunchProbe(agentConfig, spawnBlock, agentBlock)
+                            match probeData.Collision with
+                            | Some(value) -> None
+                            | None -> 
+                                probeData.SpawnColliders()
+                                agentCopy.Spawn(
+                                    agentConfig, 
+                                    spawnBlock, 
+                                    fun a ->
+                                        agentBlock a
+                                        a.NoCollisions <- true)
+                                None), 
+                        this.Delay)
+
+    module _2BranchIndLeafByScale_fs = 
+        type Config() = 
+            inherit SpawnConfig()
+            member val Angle = 15 with get, set
+            member val Config = 
+                { DworkinAgentConfig.Default with 
+                    TotalDistance=20.0f;
+                    Curvature=CurvatureFormula.DirectionPreservingTurn(A=0.024f);
+                    ColliderOptions=ColliderOptionsGeneral();
+                    TerminationConditions={ 
+                        Collision=Some(TerminationConditionCollision(MinDistance=2.0f) |> Optic.set (primaryDetector_ >-> distance_) 1.5f);
+                        Curvature=None;
+                        Distance=Some(TerminationConditionDistance())
+                     };
+                    Thickness=ThicknessFormula.LeafPower(A=3.0f,P=0.635f,C=4.0f) } with get, set
+            member val Offset = 2.0f with get, set
+            member val Delay = 60 with get, set
+            member val ScaleRange = Interval(0.6f, 1.0f, 0.2f) with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> Config
+            
+            static member Angle_ : Lens<Config, _> = 
+                (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+            static member Config_ : Lens<Config, _> = 
+                (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+            static member Offset_ : Lens<Config, _> = 
+                (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+            static member Delay_ : Lens<Config, _> = 
+                (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
+            static member ScaleRange_ : Lens<Config, _> = 
+                (fun x -> x.ScaleRange), (fun value x -> let y = x.Clone() in y.ScaleRange <- value; y)
+            
+            override this.Evaluate(agent, pos) =
+                let agentCopy = agent.Copy()
+                agent.DworkinEnvironment.Delay(
+                    (fun env ->
+                        for scale in this.ScaleRange |> Seq.rev do
+                            let spawnBlock = 
+                                ProbeSpawnOptions(
+                                    AngleDeg=float32 this.Angle, 
+                                    OffsetSideways=this.Offset * agentCopy.Thickness * 0.5f)
+                            let agentBlock (a : DworkinAgent) = 
+                                let t = 0.5f
+                                let s = agentCopy.Config.TotalDistance * t
+                                a.ScaleBy(scale * (max (agentCopy.RelativeThickness / (agentCopy.Config.Thickness.Evaluate(s, t))) 0.5f))
+                                if this.Angle < 0 then a.Flip()
+                            let probeData = agentCopy.LaunchProbe(this.Config, spawnBlock, agentBlock)
+                            match probeData.Collision with
+                            | Some(_) -> ()
+                            | None -> 
+                                probeData.SpawnColliders()
+                                agentCopy.Spawn(
+                                    this.Config, 
+                                    spawnBlock, 
+                                    fun a ->
+                                        agentBlock a
+                                        a.NoCollisions <- true)
+                        None), 
+                    this.Delay)
+
+
+
 module DworkinAgentConfig =
     let plantWithSpiralBranches2 = 
         { DworkinAgentConfig.Default with 
@@ -684,6 +830,68 @@ module LargeSwirlsStrategies =
 
 
 module LeafStrategies =
+    type _2BranchIndependentLeafWithStem_fs() = 
+        inherit BranchingCustom()
+        member val Criterion = BranchingCustom._2BranchIndependentLeafWithStem_fs.Criterion() with get, set
+        member val Config = BranchingCustom._2BranchIndependentLeafWithStem_fs.Config() with get, set
+        member val Levels = NumberRange(2.0f, 20.0f) with get, set
+        
+        member this.Clone() = this.MemberwiseClone() :?> _2BranchIndependentLeafWithStem_fs
+        
+        static member Criterion_ : Lens<_2BranchIndependentLeafWithStem_fs, _> = 
+            (fun x -> x.Criterion), (fun value x -> let y = x.Clone() in y.Criterion <- value; y)
+        static member Config_ : Lens<_2BranchIndependentLeafWithStem_fs, _> = 
+            (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+        static member Levels_ : Lens<_2BranchIndependentLeafWithStem_fs, _> = 
+            (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+        
+        override this.Evaluate(agent) =
+            if this.Levels.Contains (float32 agent.Generation) then 
+                let offset = this.Config.Offset
+                for side in [| 1;  -1 |] do
+                    let criterion =
+                        this.Criterion
+                        |> Optic.map minInterval_ (fun x -> x / (1.0f - ((agent.Curvature * (float32 side)) * offset)))
+                        |> Optic.map start_ (fun x -> if side > 0 then x else x / 2.0f)
+                        |> Optic.set BranchingCustom._2BranchIndependentLeafWithStem_fs.Criterion.Tag_ side
+                    if criterion.Evaluate(agent) then 
+                        (this.Config |> Optic.map angle_ (fun x -> x * side)).Evaluate(agent)
+                        agent.AddBranchMarkFor(BranchMark(s=agent.S), side)
+    
+    
+    type _2BranchIndLeafByScale_fs() = 
+        inherit BranchingCustom()
+        member val Criterion = 
+            BranchingCustom._2BranchIndependentLeafWithStem_fs.Criterion()
+            |> Optic.set BranchingCustom._2BranchIndependentLeafWithStem_fs.Criterion.Mu_ 10.0f
+            |> Optic.set BranchingCustom._2BranchIndependentLeafWithStem_fs.Criterion.Sigma_ 2.0f
+            |> Optic.set minInterval_ 5.0f
+            |> Optic.set start_ 15.0f with get, set
+        member val Config = BranchingCustom._2BranchIndLeafByScale_fs.Config() with get, set
+        member val Levels = NumberRange(2.0f, 20.0f) with get, set
+        
+        member this.Clone() = this.MemberwiseClone() :?> _2BranchIndLeafByScale_fs
+        
+        static member Criterion_ : Lens<_2BranchIndLeafByScale_fs, _> = 
+            (fun x -> x.Criterion), (fun value x -> let y = x.Clone() in y.Criterion <- value; y)
+        static member Config_ : Lens<_2BranchIndLeafByScale_fs, _> = 
+            (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+        static member Levels_ : Lens<_2BranchIndLeafByScale_fs, _> = 
+            (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+        
+        override this.Evaluate(agent) =
+            if this.Levels.Contains (float32 agent.Generation) then 
+                let offset = this.Config.Offset
+                for side in [| 1;  -1 |] do
+                    let criterion = 
+                        this.Criterion 
+                        |> Optic.map minInterval_ (fun x -> x / (1.0f - ((agent.Curvature * (float32 side)) * offset)))
+                        |> Optic.set BranchingCustom._2BranchIndependentLeafWithStem_fs.Criterion.Tag_ side
+                    if criterion.Evaluate(agent) then 
+                        (this.Config |> Optic.map angle_ (fun x -> x * side)).Evaluate(agent)
+                        agent.AddBranchMarkFor(BranchMark(s=agent.S), side)
+
+
     let leaves2SidesProbesStraight1_fs = 
         BranchingCriterionBased(
             Criterion=BranchingCriterionIntervalRandomized.Uniform(IntervalRange=NumberRange(20.0f, 25.0f)),
