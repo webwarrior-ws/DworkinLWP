@@ -122,7 +122,6 @@ module DworkinAgentConfig =
 
 module SpawnConfig =
     open LibDworkin.SpatialIndex
-    open LibDworkin.Agents
 
     type CircleAdvanced() = 
         inherit SpawnConfig()
@@ -662,7 +661,7 @@ module SpawnConfig =
                           }) 
 
         override this.GetModifiedAgentConfig agent alpha agentConfig =
-            let newAlphaRange = NumberRange(alpha + (this.AlphaRange.Extent * 0.05f), this.AlphaRange.Max + (this.AlphaRange.Extent * 0.1f))
+            let newAlphaRange = NumberRange([| alpha + (this.AlphaRange.Extent * 0.05f); this.AlphaRange.Max + (this.AlphaRange.Extent * 0.1f) |])
             agentConfig
             |> Optic.set 
                 (branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_, Probe1BranchSwirlsShifted.AgentConfig.Branching.SpawnConfig> >-> alphaRange_) 
@@ -680,7 +679,6 @@ module SpawnConfig =
                 |> Optic.set (thickness_<ThicknessFormula.LeafPower_Base> >-> c_) 5.0f
 
         override this.GetModifiedAgentConfig agent alpha agentConfig = agentConfig
-
 
     type Probe1BranchSwirlsShifted3() = 
         inherit Probe1BranchSwirlsShifted()
