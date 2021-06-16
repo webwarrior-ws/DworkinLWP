@@ -186,7 +186,8 @@ let configGui  =
                         Builders.labeledDropdownListEditor "Large swirls"
                             FloralSwirls.CosineSwirlSingle.LargeSwirls_
                             [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              FloralSwirls.LargeSwirlsStrategies.plantLike4Cosine, "plantLike"; ];
+                              FloralSwirls.LargeSwirlsStrategies.plantLike4Cosine, "plantLike";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Cosine, "swirlsRecursive"; ];
                         Builders.labeledDropdownListEditor "Leaves"
                             FloralSwirls.CosineSwirlSingle.LeafStrategy_
                          [ FloralSwirls.BranchingCustom.NoBranching() :> LibDworkin.Agents.BranchingStrategy, "none" ];

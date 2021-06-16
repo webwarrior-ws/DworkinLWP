@@ -118,6 +118,11 @@ module DworkinAgentConfig =
             TotalDistance=12.0f
          }
 
+    let fernLeaf = 
+        { DworkinAgentConfig.Default with 
+            Curvature=CurvatureFormula.FixedPower(A=8.0f, P=10.0f, B=0.407f, C=0.002f);
+            Thickness=ThicknessFormula.DecLinear(A=10.0f, P=0.98f);
+            TotalDistance=200.0f }
 
 
 module SpawnConfig =

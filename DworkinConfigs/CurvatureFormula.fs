@@ -203,3 +203,25 @@ type DiminishingSpiral() =
     
     override this.Evaluate(s, t) =
         (this.Alpha / 100.0f) / (max (1.0f - ((1.0f - this.C) * s)) 0.005f)
+
+
+type FixedPower() = 
+    inherit CurvatureFormula()
+    member val A = 0.58f with get, set
+    member val P = 2.0f with get, set
+    member val B = 0.5f with get, set
+    member val C = 1.0408341e-17f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> FixedPower
+    
+    static member A_ : Lens<FixedPower, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member P_ : Lens<FixedPower, _> = 
+        (fun x -> x.P), (fun value x -> let y = x.Clone() in y.P <- value; y)
+    static member B_ : Lens<FixedPower, _> = 
+        (fun x -> x.B), (fun value x -> let y = x.Clone() in y.B <- value; y)
+    static member C_ : Lens<FixedPower, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    
+    override this.Evaluate(s, t) =
+        (this.A * ((s * this.B) ** this.P)) + this.C
