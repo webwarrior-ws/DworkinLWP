@@ -273,6 +273,9 @@ let inline levels_< ^U , ^V when ^U : (static member Levels_ : Lens< ^U, ^V>)> :
 let inline tInterval_< ^U , ^V when ^U : (static member TInterval_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
    makeGenericLens (fun (_ : ^U) -> (^U : (static member TInterval_ : Lens< ^U, ^V>) ()))
 
+let inline steps_< ^U , ^V when ^U : (static member Steps_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+   makeGenericLens (fun (_ : ^U) -> (^U : (static member Steps_ : Lens< ^U, ^V>) ()))
+   
 
 // compound lenses
 let termination_spawnConfig_ = termination_ >-> cast<TerminationStrategy, TerminationSpawn> >-> spawnConfig_

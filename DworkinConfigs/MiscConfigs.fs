@@ -124,6 +124,12 @@ module DworkinAgentConfig =
             Thickness=ThicknessFormula.DecLinear(A=10.0f, P=0.98f);
             TotalDistance=200.0f }
 
+    let leafSimple = 
+        { DworkinAgentConfig.Default with 
+            Curvature=CurvatureFormula.Constant(C=0.0f);
+            Thickness=ThicknessFormula.LeafPower(A=2.0f,P=0.5f);
+            TotalDistance=20.0f }
+
 
 module SpawnConfig =
     open LibDworkin.SpatialIndex

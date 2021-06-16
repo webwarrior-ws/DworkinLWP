@@ -92,6 +92,12 @@ module Builders =
 
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
+    let swirlsLeafStrategies = 
+        [ LibDworkin.Configs.BranchingNone() :> LibDworkin.Agents.BranchingStrategy, "none";
+          FloralSwirls.LeafStrategies.leaves2SidesProbesStraight1_fs :> LibDworkin.Agents.BranchingStrategy, "leaves2SidesProbesStraight1";
+          FloralSwirls.LeafStrategies.leaves2SidesProbes1_2_fs  :> LibDworkin.Agents.BranchingStrategy, "leaves2SidesProbes1_2_fs";
+          FloralSwirls.LeafStrategies.leavesProbesCurved1_fs  :> LibDworkin.Agents.BranchingStrategy, "leavesProbesCurved1_fs";
+          FloralSwirls.LeafStrategies.leavesProbesFollowCurv_fs  :> LibDworkin.Agents.BranchingStrategy, "leavesProbesFollowCurv_fs"; ]
     let configChooser =
         Builders.chooser
             "Environment"
@@ -191,7 +197,7 @@ let configGui  =
                               FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Cosine, "swirlsShifted"; ];
                         Builders.labeledDropdownListEditor "Leaves"
                             FloralSwirls.CosineSwirlSingle.LeafStrategy_
-                         [ LibDworkin.Configs.BranchingNone() :> LibDworkin.Agents.BranchingStrategy, "none" ];
+                            swirlsLeafStrategies;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.CosineSwirlSingle>;
                     ]
             ]

@@ -18,6 +18,155 @@ open BranchingCriteria
 
 
 
+module BranchingCriterionBased = 
+    module Leaves2SidesProbesStraight1_fs = 
+        type SpawnConfig() = 
+            inherit LibDworkin.Configs.SpawnConfig()
+            member val Angle = 30 with get, set
+            member val Steps = 2 with get, set
+            member val ScaleRange = NumberRange(0.6f, 1.0f) with get, set
+            member val Config = 
+                DworkinAgentConfig.leafSimple
+                |> Optic.set colliderOptions_ (ColliderOptionsGeneral())
+                |> Optic.set terminationConditions_ { 
+                    Collision=Some(TerminationConditionCollision(IgnoreParent=true,SelfIntersection=false) |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
+                    Curvature=None;
+                    Distance=Some(TerminationConditionDistance.Instance)
+                 } with get, set
+            member val Offset = 3 with get, set
+            member val Levels = NumberRange(1.0f, 10.0f) with get, set
+            member val MaxCurvature = 0.03f with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
+            
+            static member Angle_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+            static member Steps_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Steps), (fun value x -> let y = x.Clone() in y.Steps <- value; y)
+            static member ScaleRange_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.ScaleRange), (fun value x -> let y = x.Clone() in y.ScaleRange <- value; y)
+            static member Config_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+            static member Offset_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+            static member Levels_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+            static member MaxCurvature_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.MaxCurvature), (fun value x -> let y = x.Clone() in y.MaxCurvature <- value; y)
+            
+            override this.Evaluate(agent, pos) =
+                if this.Levels.Contains (float32 agent.Generation) && (abs agent.Curvature) <= this.MaxCurvature then 
+                    let scaleValues = this.ScaleRange.By(this.ScaleRange.Extent / (float32 this.Steps))
+                    let angles = ResizeArray([| float32 this.Angle; -(float32 this.Angle) |])
+                    seq {
+                        for scale in Seq.rev scaleValues do
+                            match angles with
+                            | NotEmpty(value) -> 
+                                for phi in angles.ToArray() do
+                                    let agentBlock (a :DworkinAgent) = 
+                                        if (sign phi) < 0 then a.Flip()
+                                    let spawnBlock = 
+                                        ProbeSpawnOptions(
+                                            AngleDeg=phi,
+                                            OffsetSideways=(float32 this.Offset) * agent.ThicknessFactor,
+                                            StepsBetweenCollisionCheck=2)
+                                    let probeData = 
+                                        agent.LaunchProbe(
+                                            this.Config
+                                            |> Optic.map (terminationConditions_ >-> collision_ >-> minDistance_) (fun x -> x / scale), 
+                                            spawnBlock, 
+                                            fun a ->
+                                                agentBlock a
+                                                a.ScaleBy(Point(1.0f, scale)))
+                                    match probeData.Collision with
+                                    | Some(_) -> ()
+                                    | None -> 
+                                        angles.Remove(phi) |> ignore
+                                        agent.Spawn(
+                                            this.Config, 
+                                            spawnBlock, 
+                                            fun a ->
+                                                agentBlock a
+                                                a.ScaleBy(Point(1.0f, scale))
+                                                a.NoCollisions <- true
+                                                probeData.Id <- a.Id
+                                                probeData.SpawnColliders())
+                                        ()
+                            | Empty -> yield ()
+                        }
+                        |> Seq.tryHead
+                        |> ignore
+    
+    module LeavesProbesFollowCurv_fs = 
+        type SpawnConfig() = 
+            inherit LibDworkin.Configs.SpawnConfig()
+            member val Angle = 15 with get, set
+            member val Steps = 3 with get, set
+            member val ScaleRange = NumberRange(1.5f, 2.5f) with get, set
+            member val Config = 
+                { DworkinAgentConfig.Default with 
+                    ColliderOptions=ColliderOptionsGeneral();
+                    Curvature=CurvatureFormula.Constant(C=0.042f);
+                    TerminationConditions={ 
+                        Collision=Some(TerminationConditionCollision(MinDistance=2.0f,SelfIntersection=false) 
+                                       |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
+                        Curvature=None;
+                        Distance=Some(TerminationConditionDistance())
+                     };
+                    Thickness=ThicknessFormula.LeafPower(A=2.5f,P=0.79f);
+                    TotalDistance=15.0f
+                 } with get, set
+            member val Offset = 5 with get, set
+            member val Levels = NumberRange(1.0f, 10.0f) with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
+            
+            static member Angle_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+            static member Steps_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Steps), (fun value x -> let y = x.Clone() in y.Steps <- value; y)
+            static member ScaleRange_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.ScaleRange), (fun value x -> let y = x.Clone() in y.ScaleRange <- value; y)
+            static member Config_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+            static member Offset_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+            static member Levels_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+            
+            override this.Evaluate(agent, pos) =
+                if this.Levels.Contains (float32 agent.Generation) then 
+                    let phi = if (agent.Curvature * agent.FlipFactor) < 0.0f then -this.Angle else this.Angle
+                    for scale in this.ScaleRange.By(this.ScaleRange.Extent / (float32 this.Steps)) |> Seq.rev do
+                        let agentBlock (a : DworkinAgent) = if (sign phi) < 0 then a.Flip()
+                        let spawnBlock = 
+                            ProbeSpawnOptions(
+                                AngleDeg=float32 phi, 
+                                OffsetSideways=(float32 this.Offset) * agent.ThicknessFactor,
+                                StepsBetweenCollisionCheck=2)
+                        let probeData = 
+                            agent.LaunchProbe(
+                                this.Config
+                                |> Optic.map (terminationConditions_ >-> collision_ >-> minDistance_) (fun x -> x / scale), 
+                                spawnBlock, 
+                                fun a ->
+                                    agentBlock a
+                                    a.ScaleBy(scale))
+                        match probeData.Collision with
+                        | Some(_) -> ()
+                        | None -> 
+                            agent.Spawn(
+                                this.Config, 
+                                spawnBlock, 
+                                fun a ->
+                                    agentBlock a
+                                    a.ScaleBy(scale)
+                                    a.NoCollisions <- true
+                                    probeData.Id <- a.Id
+                                    probeData.SpawnColliders())
+                            ()
+        
+
 
 module BranchingMultivariant = 
     module SwirlsMagneticMany = 
@@ -484,7 +633,7 @@ module LargeSwirlsStrategies =
             |> Optic.map spawnConfig_ 
                 (fun x ->
                     let spawnConfig_ =
-                        agentConfig_ >-> branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_, SpawnConfig.Probe1BranchSwirlsShifted.AgentConfig.Branching.SpawnConfig>
+                        agentConfig_ >-> branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_, BranchingMultivariant.SwirlsShifted4Cosine.SpawnConfig.AgentConfig>
                     (x :?> SpawnConfig.Probe1BranchSwirlsShifted) 
                     |> Optic.set lengthRange_ (NumberRange(75.0f, 150.0f))
                     |> Optic.set lengthSteps_ 5
@@ -535,8 +684,50 @@ module LargeSwirlsStrategies =
 
 
 module LeafStrategies =
-    ()
+    let leaves2SidesProbesStraight1_fs = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionIntervalRandomized.Uniform(IntervalRange=NumberRange(20.0f, 25.0f)),
+            Delay=50,
+            SpawnConfig=BranchingCriterionBased.Leaves2SidesProbesStraight1_fs.SpawnConfig()
+        )
 
+    let leaves2SidesProbes1_2_fs = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionInterval.ConstantBoundedT(D=15.0f,Start=0.05f,End=0.85f),
+            Delay=50,
+            SpawnConfig=((leaves2SidesProbesStraight1_fs.SpawnConfig :?> BranchingCriterionBased.Leaves2SidesProbesStraight1_fs.SpawnConfig)
+                         |> Optic.set angle_ 20
+                         |> Optic.set steps_ 1
+                         |> Optic.set (config_ >-> curvature_<CurvatureFormula.Constant> >-> c_) 0.06f
+                         |> Optic.set (config_ >-> terminationConditions_ >-> collision_ >-> minDistance_) 4.0f
+                         |> Optic.set offset_ 2
+                         |> Optic.set BranchingCriterionBased.Leaves2SidesProbesStraight1_fs.SpawnConfig.MaxCurvature_ Single.Pi
+                         :> SpawnConfig)
+        )
+    
+    let leavesProbesCurved1_fs = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionInterval.ConstantBoundedT(D=25.0F,Start=0.05f,End=0.95f),
+            Delay=50,
+            SpawnConfig=((leaves2SidesProbesStraight1_fs.SpawnConfig :?> BranchingCriterionBased.Leaves2SidesProbesStraight1_fs.SpawnConfig)
+                         |> Optic.set angle_ 20
+                         |> Optic.set steps_ 1
+                         |> Optic.set scaleRange_ (NumberRange(0.8f, 1.6f))
+                         |> Optic.set (config_ >-> curvature_) (CurvatureFormula.Linear(A=1.045f,B= -0.018f))
+                         |> Optic.set (config_ >-> terminationConditions_ >-> collision_ >-> minDistance_) 4.0f
+                         |> Optic.set (config_ >-> thickness_<ThicknessFormula.LeafPower_Base> >-> p_) 0.78f
+                         |> Optic.set (config_ >-> totalDistance_) 33.0f
+                         |> Optic.set offset_ 1
+                         |> Optic.set levels_ (NumberRange(1.0f, 20.0f))
+                        )
+        )
+
+    let leavesProbesFollowCurv_fs = 
+        BranchingCriterionBased(
+            Criterion=BranchingCriterionInterval.ConstantBoundedT(D=8.0f,Start=0.05f,End=0.45f),
+            Delay=50,
+            SpawnConfig=BranchingCriterionBased.LeavesProbesFollowCurv_fs.SpawnConfig()
+        )
 
 
 type CosineSwirlSingle() = 
