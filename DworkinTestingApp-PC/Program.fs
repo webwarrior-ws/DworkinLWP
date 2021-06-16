@@ -187,10 +187,11 @@ let configGui  =
                             FloralSwirls.CosineSwirlSingle.LargeSwirls_
                             [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
                               FloralSwirls.LargeSwirlsStrategies.plantLike4Cosine, "plantLike";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Cosine, "swirlsRecursive"; ];
+                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Cosine, "swirlsRecursive";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Cosine, "swirlsShifted"; ];
                         Builders.labeledDropdownListEditor "Leaves"
                             FloralSwirls.CosineSwirlSingle.LeafStrategy_
-                         [ FloralSwirls.BranchingCustom.NoBranching() :> LibDworkin.Agents.BranchingStrategy, "none" ];
+                         [ LibDworkin.Configs.BranchingNone() :> LibDworkin.Agents.BranchingStrategy, "none" ];
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.CosineSwirlSingle>;
                     ]
             ]

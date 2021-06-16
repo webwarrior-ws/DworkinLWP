@@ -18,11 +18,6 @@ open BranchingCriteria
 
 
 
-module BranchingCustom =
-    type NoBranching() =
-        inherit BranchingCustom()
-        override this.Evaluate(_) = ()
-
 
 module BranchingMultivariant = 
     module SwirlsMagneticMany = 
@@ -211,6 +206,150 @@ module BranchingMultivariant =
                         |> Seq.tryHead
                         |> ignore
 
+    module SwirlsShifted4Cosine = 
+        module SpawnConfig = 
+            type AgentConfig() = 
+                inherit SpawnConfig()
+                member val Angle = 0 with get, set
+                member val GenLimit = 6 with get, set
+                member val LengthRange = NumberRange(100.0f, 300.0f) with get, set
+                member val AlphaRange = NumberRange(0.6f, 1.5f) with get, set
+                member val AlphaSteps = 8 with get, set
+                member val Offset = 4.0f with get, set
+                
+                member this.Clone() = this.MemberwiseClone() :?> AgentConfig
+                
+                static member Angle_ : Lens<AgentConfig, _> = 
+                    (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+                static member GenLimit_ : Lens<AgentConfig, _> = 
+                    (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
+                static member LengthRange_ : Lens<AgentConfig, _> = 
+                    (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+                static member AlphaRange_ : Lens<AgentConfig, _> = 
+                    (fun x -> x.AlphaRange), (fun value x -> let y = x.Clone() in y.AlphaRange <- value; y)
+                static member AlphaSteps_ : Lens<AgentConfig, _> = 
+                    (fun x -> x.AlphaSteps), (fun value x -> let y = x.Clone() in y.AlphaSteps <- value; y)
+                static member Offset_ : Lens<AgentConfig, _> = 
+                    (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
+                
+                override this.Evaluate(agent, pos) =
+                    let spawnBlock = ProbeSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset, StepsBetweenCollisionCheck=4)
+                    agent.GenerationLimit <- this.GenLimit
+                    seq {
+                        for alpha in this.AlphaRange.By(this.AlphaRange.Extent / float32 this.AlphaSteps) do
+                            let mutable config = 
+                                agent.Config
+                                |> Optic.set totalDistance_ this.LengthRange.Max
+                                |> Optic.set (curvature_<CurvatureFormula.DiminishingSpiral> >-> alpha_) alpha
+                            let mutable probeData = agent.LaunchProbe(config, spawnBlock, ignore)
+                            match probeData.Collision with
+                            | Some(value) -> 
+                                if (probeData.S / 2.0f) > this.LengthRange.Min then 
+                                    config <- 
+                                        config
+                                        |> Optic.set totalDistance_ (agent.Random.NextInRange([| this.LengthRange.Min; probeData.S / 2.0f |]))
+                                    probeData <- 
+                                        agent.LaunchProbe(
+                                            config, 
+                                            ProbeSpawnOptions(AngleDeg=float32 this.Angle, OffsetSideways=this.Offset, StepsBetweenCollisionCheck=100), 
+                                            ignore)
+                                    yield agent.Spawn(
+                                        config, 
+                                        spawnBlock, 
+                                        fun a ->
+                                            a.NoCollisions <- true
+                                            probeData.SpawnColliders())
+                            | None -> 
+                                yield agent.Spawn(
+                                    config, 
+                                    spawnBlock, 
+                                    fun a ->
+                                        a.NoCollisions <- true
+                                        probeData.SpawnColliders())
+                        }
+                        |> Seq.tryHead
+                        |> ignore
+
+
+    module SwirlsShifted4S = 
+        type SpawnConfig() = 
+            inherit LibDworkin.Configs.SpawnConfig()
+            member val Angle = 5 with get, set
+            member val LengthRange = NumberRange(300.0f, 400.0f) with get, set
+            member val LengthSteps = 3 with get, set
+            member val AlphaRange = NumberRange(0.75f, 0.85f) with get, set
+            member val AlphaSteps = 2 with get, set
+            member val AgentConfig = 
+                { DworkinAgentConfig.Default with 
+                    ColliderOptions=ColliderOptionsGeneral();
+                    Curvature=CurvatureFormula.Magnetic(Alpha=0.65f);
+                    TerminationConditions={ 
+                        Collision=Some(
+                            TerminationConditionCollision(
+                                DetectorSize=DetectorSize.Absolute,
+                                Handler=Some(CollisionHandler.IgnoreIfIntersectsAtAngleGt() :> CollisionHandler),
+                                MinDistance=30.0f,
+                                SelfIntersection=false) 
+                                |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
+                        Curvature=None;
+                        Distance=Some(TerminationConditionDistance())
+                     };
+                    Thickness=ThicknessFormula.LeafPower_Base(P=0.3f,C=2.0f)
+                 } with get, set
+            member val Levels = NumberRange(1.0f, 1.0f) with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
+            
+            static member Angle_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+            static member LengthRange_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.LengthRange), (fun value x -> let y = x.Clone() in y.LengthRange <- value; y)
+            static member LengthSteps_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.LengthSteps), (fun value x -> let y = x.Clone() in y.LengthSteps <- value; y)
+            static member AlphaRange_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.AlphaRange), (fun value x -> let y = x.Clone() in y.AlphaRange <- value; y)
+            static member AlphaSteps_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.AlphaSteps), (fun value x -> let y = x.Clone() in y.AlphaSteps <- value; y)
+            static member AgentConfig_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
+            static member Levels_ : Lens<SpawnConfig, _> = 
+                (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+            
+            override this.Evaluate(agent, pos) =
+                if this.Levels.Contains (float32 agent.Generation) && this.LengthRange.Min < agent.TotalDistance then 
+                    let combinations =
+                        [| for x1 in seq { this.LengthRange.Min .. (this.LengthRange.Extent / (float32 this.LengthSteps)) .. (min this.LengthRange.Max agent.TotalDistance) } do
+                            for x2 in this.AlphaRange.By(this.AlphaRange.Extent / (float32 this.AlphaSteps)) do yield x1, x2 |].ShuffleBy(agent.Random)
+                    
+                    seq {
+                        for length, alpha in combinations do
+                            let phi = this.Angle * (sign agent.Curvature)
+                            let spawnBlock = 
+                                ProbeSpawnOptions(
+                                    AngleDeg=float32 phi, 
+                                    StepsBetweenCollisionCheck=int(floor (this.AgentConfig.TerminationConditions.Collision.Value.PrimaryDetector.Distance)))
+                            let agentBlock (a : DworkinAgent) = if (sign phi) < 0 then a.Flip()
+                            let config = 
+                                this.AgentConfig
+                                |> Optic.set totalDistance_ length
+                                |> Optic.set (curvature_<CurvatureFormula.Magnetic> >-> alpha_) alpha
+                                |> Optic.set branching_ agent.Config.Branching
+                            let probeData = agent.LaunchProbe(config, spawnBlock, agentBlock)
+                            match probeData.Collision with
+                            | Some(value) -> ()
+                            | None -> 
+                                yield agent.Spawn(
+                                    config, 
+                                    spawnBlock, 
+                                    fun a ->
+                                        agentBlock a
+                                        a.NoCollisions <- true
+                                        probeData.Id <- a.Id
+                                        probeData.SpawnColliders()) 
+                        }
+                        |> Seq.tryHead
+                        |> ignore
+
 
 
 module DworkinAgentConfig =
@@ -221,6 +360,18 @@ module DworkinAgentConfig =
             Thickness=ThicknessFormula.LeafPower(A=1.0f,P=0.4f,C=4.0f);
             TotalDistance=500.0f
          }
+
+
+module SpawnConfig =
+    type Probe1BranchSwirlsShifted1x() = 
+        inherit SpawnConfig.Probe1BranchSwirlsShifted1()
+
+        override this.GetModifiedAgentConfig agent alpha agentConfig =
+            let newAlphaRange = NumberRange([| alpha + (this.AlphaRange.Extent * 0.05f); this.AlphaRange.Max + (this.AlphaRange.Extent * 0.1f) |])
+            agentConfig
+            |> Optic.set 
+                (branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_, BranchingMultivariant.SwirlsShifted4Cosine.SpawnConfig.AgentConfig> >-> alphaRange_) 
+                newAlphaRange
 
 
 module LargeSwirlsStrategies =
@@ -262,7 +413,7 @@ module LargeSwirlsStrategies =
             )
         |]
 
-    let plantLike4Cosine : BranchingStrategy[]  = 
+    let plantLike4Cosine : BranchingStrategy[] = 
         [|
             BranchingCriterionBased(
                 Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(60.0f, 150.0f),TInterval=NumberRange(0.1f, 0.8f)),
@@ -293,6 +444,100 @@ module LargeSwirlsStrategies =
             );
         |]
 
+    let swirlsShifted4Cosine : BranchingStrategy[] = 
+        let spawnConfigForFirstStrat =
+            (SpawnConfig.Probe1BranchSwirlsShifted1x(LengthRange=NumberRange(200.0f, 350.0f),Offset=5,Levels=NumberRange(1.0f, 5.0f)) :> SpawnConfig.Probe1BranchSwirlsShifted)
+            |> Optic.set 
+                (agentConfig_ >-> branching_<BranchingCriterionBased> >-> spawnConfig_) 
+                (BranchingMultivariant.SwirlsShifted4Cosine.SpawnConfig.AgentConfig() :> SpawnConfig)
+            |> Optic.set (agentConfig_ >-> brush_) (BrushStrategyDefault())
+            |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> handler_ >-> CollisionHandler.IgnoreParentUpTo.MinDistance_) 10.0f
+            |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 4.0f
+            |> Optic.set (agentConfig_ >-> thickness_<ThicknessFormula.LeafPower_Base> >-> a_) 3.0f
+            |> Optic.set (agentConfig_ >-> thickness_<ThicknessFormula.LeafPower_Base> >-> c_) 3.0f
+        [|
+            BranchingCriterionBased(
+                Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(30.0f, 60.0f),TInterval=NumberRange(0.1f, 0.8f)),
+                SpawnConfig=spawnConfigForFirstStrat
+            );
+
+            BranchingCriterionBased(
+                Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(60.0f, 120.0f),TInterval=NumberRange(0.1f, 0.9f)),
+                SpawnConfig=((SpawnConfig.Probe1BranchSwirlsShifted3(
+                                Angle= -5,
+                                LengthRange=NumberRange(100.0f, 200.0f),
+                                LengthSteps=4,
+                                AlphaRange=NumberRange(-2.4f, -1.0f),
+                                AlphaSteps=4,
+                                Levels=NumberRange(1.0f, 1.0f)) :> SpawnConfig.Probe1BranchSwirlsShifted)
+                                |> Optic.set (agentConfig_ >-> branching_) (BranchingNone()))
+            );
+        |]
+
+    let swirlsShifted4S : BranchingStrategy[] = 
+        [|
+            (swirlsShifted4Cosine.[0] :?> BranchingCriterionBased)
+            |> Optic.set 
+                criterion_ 
+                (BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(80.0f, 160.0f),TInterval=NumberRange(0.25f, 0.75f)))
+            |> Optic.set delay_ 50
+            |> Optic.map spawnConfig_ 
+                (fun x ->
+                    let spawnConfig_ =
+                        agentConfig_ >-> branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_, SpawnConfig.Probe1BranchSwirlsShifted.AgentConfig.Branching.SpawnConfig>
+                    (x :?> SpawnConfig.Probe1BranchSwirlsShifted) 
+                    |> Optic.set lengthRange_ (NumberRange(75.0f, 150.0f))
+                    |> Optic.set lengthSteps_ 5
+                    |> Optic.set alphaRange_ (NumberRange(1.0f, 2.0f))
+                    |> Optic.set (spawnConfig_ >-> lengthRange_) (NumberRange(50.0f, 200.0f))
+                    |> Optic.set (spawnConfig_ >-> alphaRange_) (NumberRange(0.5f, 2.0f))
+                    |> Optic.set (spawnConfig_ >-> alphaSteps_) 10
+                    |> Optic.set (spawnConfig_ >-> offset_) 3.0f
+                    |> Optic.set (agentConfig_ >-> curvature_<CurvatureFormula.DiminishingSpiral> >-> c_) 0.5f
+                    |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> detectorSize_) DetectorSize.Absolute
+                    |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> handler_ >-> CollisionHandler.IgnoreParentUpTo.MinDistance_) 25.0f
+                    |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> angle_) 60.0f
+                    |> Optic.set (agentConfig_ >-> thickness_<ThicknessFormula.LeafPower_Base> >-> p_) 0.635f
+                    |> Optic.set (agentConfig_ >-> thickness_<ThicknessFormula.LeafPower_Base> >-> c_) 1.5f
+                    |> Optic.set offset_ 4
+                    |> Optic.set levels_ (NumberRange(1.0f, 6.0f))
+                    :> SpawnConfig);
+
+            BranchingCriterionBased(
+                Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(150.0f, 200.0f),TInterval=NumberRange(0.15f, 0.55f)),
+                SpawnConfig=BranchingMultivariant.SwirlsShifted4S.SpawnConfig()
+            );
+        |]
+
+    let swirlsShifted4Magnetic : BranchingStrategy[] = 
+        [|
+            (swirlsShifted4Cosine.[0] :?> BranchingCriterionBased)
+            |> Optic.set (criterion_<BranchingCriterionCustom.IntervalRandBoundedT> >-> tInterval_) (NumberRange(0.1f, 0.4f))
+            |> Optic.map
+                (spawnConfig_ >-> cast<_, SpawnConfig.Probe1BranchSwirlsShifted> >-> agentConfig_ >-> terminationConditions_ >-> collision_)
+                (fun x -> 
+                    x
+                    |> Optic.set (detectorSize_) DetectorSize.Absolute
+                    |> Optic.set (handler_ >-> CollisionHandler.IgnoreParentUpTo.MinDistance_) 30.0f
+                    |> Optic.set (primaryDetector_ >-> angle_) 90.0f
+                    |> Optic.set (primaryDetector_ >-> distance_) 5.0f)
+            :> BranchingStrategy;
+
+            (swirlsShifted4Cosine.[1] :?> BranchingCriterionBased)
+            |> Optic.set (criterion_<BranchingCriterionCustom.IntervalRandBoundedT> >-> tInterval_) (NumberRange(0.1f, 0.5f))
+            |> Optic.set 
+                (spawnConfig_ >-> cast<_, SpawnConfig.Probe1BranchSwirlsShifted> >-> agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> angle_) 
+                90.0f
+            |> Optic.set (spawnConfig_ >-> cast<_, SpawnConfig.Probe1BranchSwirlsShifted> >-> levels_) (NumberRange(1.0f, 5.0f))
+            :> BranchingStrategy;
+        |]
+
+
+
+module LeafStrategies =
+    ()
+
+
 
 type CosineSwirlSingle() = 
     inherit DworkinEnvironmentConfigCustom()
@@ -302,7 +547,7 @@ type CosineSwirlSingle() =
     member val LargeSwirls : BranchingStrategy[] = [| |] with get, set
     member val Offset = 0.06f with get, set
     member val Thickness = 1.0f with get, set
-    member val LeafStrategy : BranchingStrategy = BranchingCustom.NoBranching() :> BranchingStrategy with get, set
+    member val LeafStrategy : BranchingStrategy = BranchingNone() :> BranchingStrategy with get, set
     
     member this.Clone() = this.MemberwiseClone() :?> CosineSwirlSingle
     
