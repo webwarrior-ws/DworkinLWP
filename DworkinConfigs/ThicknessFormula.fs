@@ -132,3 +132,31 @@ type DecLinear() =
     
     override this.Evaluate(s, t) =
         this.A * (max 1.0e-6f (1.0f - (t * this.P)))
+
+
+type DoublePower() = 
+    inherit ThicknessFormula()
+    member val A = 3.6f with get, set
+    member val P = 0.91f with get, set
+    member val C = 6.4f with get, set
+    member val A2 = 4.1f with get, set
+    member val C2 = 3.1f with get, set
+    member val P2 = 0.86f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> DoublePower
+    
+    static member A_ : Lens<DoublePower, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member P_ : Lens<DoublePower, _> = 
+        (fun x -> x.P), (fun value x -> let y = x.Clone() in y.P <- value; y)
+    static member C_ : Lens<DoublePower, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    static member A2_ : Lens<DoublePower, _> = 
+        (fun x -> x.A2), (fun value x -> let y = x.Clone() in y.A2 <- value; y)
+    static member C2_ : Lens<DoublePower, _> = 
+        (fun x -> x.C2), (fun value x -> let y = x.Clone() in y.C2 <- value; y)
+    static member P2_ : Lens<DoublePower, _> = 
+        (fun x -> x.P2), (fun value x -> let y = x.Clone() in y.P2 <- value; y)
+    
+    override this.Evaluate(s, t) =
+        this.C * (pcurve t (this.A * this.P) (this.A * (1.0f - this.P))) + this.C2 * (pcurve t (this.A2 * (1.0f - this.P2)) (this.A2 * this.P2))

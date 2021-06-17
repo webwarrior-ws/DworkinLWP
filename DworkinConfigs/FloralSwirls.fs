@@ -1001,6 +1001,140 @@ type CosineSwirl() =
             spawnAgent(pos, 0.0f)
 
 
+type S_ShapedSwirlSingle() = 
+    inherit DworkinEnvironmentConfigCustom()
+    member val Config = 
+        DworkinAgentConfig.plantWithSpiralBranches2
+        |> Optic.set curvature_ (CurvatureFormula.DoubleLogSpiral(A=0.0042f,D=0.01f,H= -0.6f,B=0.0042f))
+        |> Optic.set thickness_ (ThicknessFormula.DoublePower(A=8.0f,P=0.85f,C=5.0f,A2=5.0f,C2=5.0f,P2=0.75f))
+        |> Optic.set totalDistance_ 938.0f with get, set
+    member val Ty = 0.78f with get, set
+    member val Tx = 0.46f with get, set
+    member val LargeSwirls : BranchingStrategy[] = [| |] with get, set
+    member val Thickness = 1.0f with get, set
+    member val LeafStrategy : BranchingStrategy = BranchingNone() :> BranchingStrategy with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> S_ShapedSwirlSingle
+    
+    static member Config_ : Lens<S_ShapedSwirlSingle, _> = 
+        (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
+    static member Ty_ : Lens<S_ShapedSwirlSingle, _> = 
+        (fun x -> x.Ty), (fun value x -> let y = x.Clone() in y.Ty <- value; y)
+    static member Tx_ : Lens<S_ShapedSwirlSingle, _> = 
+        (fun x -> x.Tx), (fun value x -> let y = x.Clone() in y.Tx <- value; y)
+    static member LargeSwirls_ : Lens<S_ShapedSwirlSingle, _> = 
+        (fun x -> x.LargeSwirls), (fun value x -> let y = x.Clone() in y.LargeSwirls <- value; y)
+    static member Thickness_ : Lens<S_ShapedSwirlSingle, _> = 
+        (fun x -> x.Thickness), (fun value x -> let y = x.Clone() in y.Thickness <- value; y)
+    static member LeafStrategy_ : Lens<S_ShapedSwirlSingle, _> = 
+        (fun x -> x.LeafStrategy), (fun value x -> let y = x.Clone() in y.LeafStrategy <- value; y)
+    
+    override this.Evaluate(env) =
+        let c = env.Bounds.Center
+        for p in env.Bounds.Corners do
+            let d = p - c
+            env.AddCollider(SegmentCollider(None, p, Point(c.X + (float32(sign d.X) * 0.001f), p.Y)))
+            env.AddCollider(SegmentCollider(None, p, Point(p.X, c.Y + (float32(sign d.Y) * 0.001f))))
+        let horizontal = env.Bounds.Extent.X > env.Bounds.Extent.Y
+        let scale = (max env.Bounds.Extent.X env.Bounds.Extent.Y) / 640.0f
+        let pos = 
+            let x = lerp env.Bounds.Left env.Bounds.Right (if horizontal then 1.0f - this.Ty else this.Tx)
+            let y = lerp env.Bounds.Top env.Bounds.Bottom (if horizontal then this.Tx else this.Ty)
+            Point(x, y)
+        let angle = if horizontal then -Single.HalfPi else 0.0f
+        let spawnOptions = ProbeSpawnOptions(Position=pos, Angle=angle)
+        let agentBlock (a : DworkinAgent) = a.ScaleBy(Point(scale * this.Thickness, scale))
+        let probeData = env.LaunchProbe(this.Config, spawnOptions, agentBlock)
+        env.Spawn(
+            this.Config |> Optic.set branching_ (BranchingMultivariant(Strategies=Array.append this.LargeSwirls [| this.LeafStrategy |])), 
+            spawnOptions, 
+            fun a ->
+                agentBlock a
+                probeData.Id <- a.Id
+                probeData.SpawnColliders()
+                a.NoCollisions <- true)
+            |> ignore
+
+
+type S_ShapedSwirlSpacefill() = 
+    inherit DworkinEnvironmentConfigCustom()
+    member val AgentConfig = 
+        DworkinAgentConfig.swirlMagnetic
+        |> Optic.set curvature_ (CurvatureFormula.DoubleLogSpiral(A=0.0038f,D=0.008f,H= -0.3f,B=0.0038f))
+        |> Optic.set terminationConditions_ { 
+            Collision=Some(TerminationConditionCollision() |> Optic.set (primaryDetector_ >-> distance_) 10.0f);
+            Curvature=None;
+            Distance=Some(TerminationConditionDistance())
+         }
+        |> Optic.set thickness_ (ThicknessFormula.DoublePower(A=8.0f,P=0.85f,C=5.0f,A2=5.0f,C2=5.0f,P2=0.75f))
+        |> Optic.set totalDistance_ 938.0f with get, set
+    member val N = 5 with get, set
+    member val Margin = 10.0f with get, set
+    member val MaxIterations = 1000 with get, set
+    member val Delay = 500 with get, set
+    member val C = 0.4f with get, set
+    member val Sbcc = 5 with get, set
+    member val LargeSwirls : BranchingStrategy[] = [| |] with get, set
+    member val Thickness = 1.0f with get, set
+    member val LeafStrategy : BranchingStrategy = BranchingNone() :> BranchingStrategy with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> S_ShapedSwirlSpacefill
+    
+    static member AgentConfig_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
+    static member N_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.N), (fun value x -> let y = x.Clone() in y.N <- value; y)
+    static member Margin_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.Margin), (fun value x -> let y = x.Clone() in y.Margin <- value; y)
+    static member MaxIterations_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.MaxIterations), (fun value x -> let y = x.Clone() in y.MaxIterations <- value; y)
+    static member Delay_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.Delay), (fun value x -> let y = x.Clone() in y.Delay <- value; y)
+    static member C_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.C), (fun value x -> let y = x.Clone() in y.C <- value; y)
+    static member Sbcc_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.Sbcc), (fun value x -> let y = x.Clone() in y.Sbcc <- value; y)
+    static member LargeSwirls_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.LargeSwirls), (fun value x -> let y = x.Clone() in y.LargeSwirls <- value; y)
+    static member Thickness_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.Thickness), (fun value x -> let y = x.Clone() in y.Thickness <- value; y)
+    static member LeafStrategy_ : Lens<S_ShapedSwirlSpacefill, _> = 
+        (fun x -> x.LeafStrategy), (fun value x -> let y = x.Clone() in y.LeafStrategy <- value; y)
+    
+    override this.Evaluate(env) =
+        Util.buildWalls env
+
+        let initialScale = (0.75f * (max env.Bounds.Extent.X env.Bounds.Extent.Y)) / 640.0f
+        let mutable currN = 0
+        let mutable i = 0
+
+        while currN < this.N && i < this.MaxIterations do
+            let p = env.Random.NextInRectangle(env.Bounds.InsetBy(this.Margin))
+            let phi = (env.Random.NextFloat()) * Single.TwoPi
+            let scale = initialScale * ((float32(currN) + 1.0f) ** (-this.C))
+            let agentBlock (a : DworkinAgent) = a.ScaleBy(Point(scale * this.Thickness, scale))
+            let probeData = 
+                env.LaunchProbe(
+                    this.AgentConfig, 
+                    ProbeSpawnOptions(Position=p, Angle=phi, StepsBetweenCollisionCheck=this.Sbcc), 
+                    agentBlock)
+            let spawnOptions = AgentSpawnOptions(Position=p, Angle=phi)
+            if this.Delay > 0 then spawnOptions.DelayBy(int((env.Random.NextFloat()) * (float32 this.Delay)))
+            if Option.isNone probeData.Collision then 
+                probeData.SpawnColliders()
+                env.Spawn(
+                    this.AgentConfig
+                    |> Optic.set branching_ (BranchingMultivariant(Strategies=Array.append this.LargeSwirls [| this.LeafStrategy |])), 
+                    spawnOptions, 
+                    fun a ->
+                        agentBlock a
+                        a.NoCollisions <- true
+                        for each in probeData.Footprints do
+                            each.Id <- a.Id)
+                    |> ignore
+                currN <- currN + 1
+            i <- i + 1
+
 
 type MagneticSpiralsBunchFromEdge() = 
     inherit DworkinEnvironmentConfigCustom()

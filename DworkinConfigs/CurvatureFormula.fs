@@ -225,3 +225,28 @@ type FixedPower() =
     
     override this.Evaluate(s, t) =
         (this.A * ((s * this.B) ** this.P)) + this.C
+
+
+type DoubleLogSpiral() = 
+    inherit CurvatureFormula()
+    member val A = 0.0337f with get, set
+    member val D = 0.01f with get, set
+    member val H = 0.0f with get, set
+    member val B = 0.0245f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> DoubleLogSpiral
+    
+    static member A_ : Lens<DoubleLogSpiral, _> = 
+        (fun x -> x.A), (fun value x -> let y = x.Clone() in y.A <- value; y)
+    static member D_ : Lens<DoubleLogSpiral, _> = 
+        (fun x -> x.D), (fun value x -> let y = x.Clone() in y.D <- value; y)
+    static member H_ : Lens<DoubleLogSpiral, _> = 
+        (fun x -> x.H), (fun value x -> let y = x.Clone() in y.H <- value; y)
+    static member B_ : Lens<DoubleLogSpiral, _> = 
+        (fun x -> x.B), (fun value x -> let y = x.Clone() in y.B <- value; y)
+    
+    override this.Evaluate(s, t) =
+        if t <= 0.5f then 
+            (this.A / (t + this.D)) + ((this.H * this.A) / (0.5f + this.D)) 
+        else 
+            (this.B / ((t - this.D) - 1.0f)) - ((this.H * this.B) / (0.5f + this.D))

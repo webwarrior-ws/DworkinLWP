@@ -219,7 +219,41 @@ let configGui  =
                             FloralSwirls.MagneticSpiralsBunchFromEdge.LeafStrategy_
                             swirlsLeafStrategies;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.MagneticSpiralsBunchFromEdge>;
-                    ]
+                    ];
+                Builders.environmentEditor
+                    "S-shaped Swirl single"
+                    (FloralSwirls.S_ShapedSwirlSingle())
+                    [
+                        Builders.floatSliderEditor "Thickness" FloralSwirls.S_ShapedSwirlSingle.Thickness_ 1.0f 2.0f 0.1f;
+                        Builders.labeledDropdownListEditor "Large swirls"
+                            FloralSwirls.S_ShapedSwirlSingle.LargeSwirls_
+                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
+                              //FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
+                              //FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4S, "swirlsShifted"; 
+                            ];
+                        Builders.labeledDropdownListEditor "Leaves"
+                            FloralSwirls.S_ShapedSwirlSingle.LeafStrategy_
+                            swirlsLeafStrategies;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.S_ShapedSwirlSingle>;
+                    ];
+                Builders.environmentEditor
+                    "S-shaped Swirl space-fill"
+                    (FloralSwirls.S_ShapedSwirlSpacefill())
+                    [
+                        Builders.floatSliderEditor "Thickness" FloralSwirls.S_ShapedSwirlSpacefill.Thickness_ 1.0f 2.0f 0.1f;
+                        Builders.labeledDropdownListEditor "Large swirls"
+                            FloralSwirls.S_ShapedSwirlSpacefill.LargeSwirls_
+                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
+                              //FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
+                              //FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4S, "swirlsShifted"; 
+                            ];
+                        Builders.labeledDropdownListEditor "Leaves"
+                            FloralSwirls.S_ShapedSwirlSpacefill.LeafStrategy_
+                            swirlsLeafStrategies;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.S_ShapedSwirlSpacefill>;
+                    ];
             ]
     let speedControl = 
         Builders.radioButtonEditor 
