@@ -739,6 +739,43 @@ module LargeSwirlsStrategies =
             );
         |]
 
+    let plantLike4S : BranchingStrategy[] =
+        let criterion_ = criterion_<BranchingCriterionCustom.IntervalRandBoundedT>
+        [|
+            (plantLike4Cosine.[0] :?> BranchingCriterionBased) 
+            |> Optic.set (criterion_ >-> tInterval_) (NumberRange(0.3f, 0.7f));
+
+            (plantLike4Cosine.[2] :?> BranchingCriterionBased) 
+            |> Optic.set (criterion_ >-> dRange_) (NumberRange(80.0f, 160.0f))
+            |> Optic.set (criterion_ >-> tInterval_) (NumberRange(0.4f, 0.6f))
+            |> Optic.set (spawnConfig_ >-> cast<_,_> >-> SpawnConfig.Probe1BranchSpiralByLen_AlphaRandRec.IsRecursive_) false;
+
+            (plantLike4Cosine.[3] :?> BranchingCriterionBased) 
+            |> Optic.set (criterion_ >-> tInterval_) (NumberRange(0.3f, 0.7f));
+        |]
+
+    let plantLike4Magnetic : BranchingStrategy[] =
+        let criterion_ = criterion_<BranchingCriterionCustom.IntervalRandBoundedT>
+        [|
+            (plantLike4S.[0] :?> BranchingCriterionBased)
+            |> Optic.set (criterion_ >-> tInterval_) (NumberRange(0.1f, 0.5f));
+
+            (plantLike4S.[1] :?> BranchingCriterionBased)
+            |> Optic.set (criterion_ >-> dRange_) (NumberRange(80.0f, 150.0f))
+            |> Optic.set (criterion_ >-> tInterval_) (NumberRange(0.1f, 0.4f))
+            |> Optic.set (delay_) 50
+            |> Optic.set 
+                (spawnConfig_) 
+                (SpawnConfig.Probe1BranchSwirlsShifted1Rec(
+                    LengthRange=NumberRange(120.0f, 200.0f),
+                    AlphaRange=NumberRange(0.4f, 0.7f),
+                    AlphaSteps=3,
+                    Offset= -8) :> SpawnConfig);
+
+            (plantLike4S.[2] :?> BranchingCriterionBased)
+            |> Optic.set (criterion_ >-> tInterval_) (NumberRange(0.0f, 0.5f));
+        |]
+
     let swirlsShifted4Cosine : BranchingStrategy[] = 
         let spawnConfigForFirstStrat =
             (SpawnConfig.Probe1BranchSwirlsShifted1x(LengthRange=NumberRange(200.0f, 350.0f),Offset=5,Levels=NumberRange(1.0f, 5.0f)) :> SpawnConfig.Probe1BranchSwirlsShifted)

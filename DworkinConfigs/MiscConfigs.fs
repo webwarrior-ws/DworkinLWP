@@ -751,6 +751,7 @@ module SpawnConfig =
                 Thickness=ThicknessFormula.DecLinear(A=2.0f,P=0.495f)
              } with get, set
         member val Levels = NumberRange(1.0f, 5.0f) with get, set
+        member val IsRecursive = true with get, set
         
         member this.Clone() = this.MemberwiseClone() :?> Probe1BranchSpiralByLen_AlphaRandRec
         
@@ -768,6 +769,8 @@ module SpawnConfig =
             (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
         static member Levels_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
             (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+        static member IsRecursive_ : Lens<Probe1BranchSpiralByLen_AlphaRandRec, _> = 
+            (fun x -> x.IsRecursive), (fun value x -> let y = x.Clone() in y.IsRecursive <- value; y)
         
         override this.Evaluate(agent, pos) =
             if this.Levels.Contains (float32 agent.Generation) then 
@@ -778,11 +781,12 @@ module SpawnConfig =
                 seq {
                     for length, alpha, phi in combinations do
                         let agentBlock (a : DworkinAgent) = if (sign phi) < 0 then a.Flip()
-                        let config = 
+                        let mutable config = 
                             this.AgentConfig
                             |> Optic.set totalDistance_ length
                             |> Optic.set (curvature_<CurvatureFormula.DiminishingSpiral> >-> alpha_) alpha
-                            |> Optic.set branching_ agent.Config.Branching
+                        if this.IsRecursive then
+                            config <- config |> Optic.set branching_ agent.Config.Branching
                         let probeData = 
                             agent.LaunchProbe(
                                 config, 

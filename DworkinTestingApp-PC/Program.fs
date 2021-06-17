@@ -211,8 +211,8 @@ let configGui  =
                         Builders.labeledDropdownListEditor "Large swirls"
                             FloralSwirls.MagneticSpiralsBunchFromEdge.LargeSwirls_
                             [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              //FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
-                              //FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
+                              FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
                               FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Magnetic, "swirlsShifted"; 
                             ];
                         Builders.labeledDropdownListEditor "Leaves"
@@ -228,8 +228,8 @@ let configGui  =
                         Builders.labeledDropdownListEditor "Large swirls"
                             FloralSwirls.S_ShapedSwirlSingle.LargeSwirls_
                             [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              //FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
-                              //FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
+                              FloralSwirls.LargeSwirlsStrategies.plantLike4S, "plantLike";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4S, "swirlsRecursive";
                               FloralSwirls.LargeSwirlsStrategies.swirlsShifted4S, "swirlsShifted"; 
                             ];
                         Builders.labeledDropdownListEditor "Leaves"
@@ -245,8 +245,8 @@ let configGui  =
                         Builders.labeledDropdownListEditor "Large swirls"
                             FloralSwirls.S_ShapedSwirlSpacefill.LargeSwirls_
                             [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              //FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
-                              //FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
+                              FloralSwirls.LargeSwirlsStrategies.plantLike4S, "plantLike";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4S, "swirlsRecursive";
                               FloralSwirls.LargeSwirlsStrategies.swirlsShifted4S, "swirlsShifted"; 
                             ];
                         Builders.labeledDropdownListEditor "Leaves"
