@@ -1094,3 +1094,11 @@ type MagneticSpiralsBunchFromEdge() =
 
 let magneticSpiralsBunch = MagneticSpiralsBunchFromEdge()
 
+let magneticSpiralSingle = 
+    MagneticSpiralsBunchFromEdge(
+        MidpointInterval=Interval(0.2f, 0.4f, 0.05f), 
+        AlphaInterval=Interval(0.75f, 0.8f, 0.05f),
+        LengthInterval=Interval(900.0f, 1200.0f, 100.0f),
+        N=1)
+        |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> angle_) 180.0f
+        |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 60.0f
