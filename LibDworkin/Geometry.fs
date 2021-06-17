@@ -157,6 +157,9 @@ type OpenTK.Box2 with
             result.Right <- max result.Right p.X
         result
     
+    member this.Extent =
+        Point(this.Right - this.Left, this.Bottom - this.Top)
+    
     member this.Corners =
         [| this.Origin; Point(this.Left, this.Bottom); Point(this.Right, this.Bottom); Point(this.Right, this.Top) |]
     

@@ -70,6 +70,19 @@ module CollisionHandler =
  
 
 module DworkinAgentConfig =
+    module SwirlMagnetic = 
+        type TerminationConditions() = 
+            inherit CollisionHandler()
+            member val MinT = 0.5f with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> TerminationConditions
+            
+            static member MinT_ : Lens<TerminationConditions, _> = 
+                (fun x -> x.MinT), (fun value x -> let y = x.Clone() in y.MinT <- value; y)
+            
+            override this.Evaluate(agent, collision) =
+                agent.T >= this.MinT
+
     let swirls2_7_fast_ = 
         { DworkinAgentConfig.Default with 
             Branching=
@@ -129,6 +142,26 @@ module DworkinAgentConfig =
             Curvature=CurvatureFormula.Constant(C=0.0f);
             Thickness=ThicknessFormula.LeafPower(A=2.0f,P=0.5f);
             TotalDistance=20.0f }
+
+    let swirlMagnetic = 
+        { DworkinAgentConfig.Default with 
+            Branching=BranchingMultivariant();
+            ColliderOptions=ColliderOptionsGeneral(Strategy=ColliderStrategySegments());
+            Curvature=CurvatureFormula.MagneticWithFlip();
+            TerminationConditions={ 
+                Collision=Some(
+                    TerminationConditionCollision(
+                        DetectorSize=DetectorSize.Absolute,
+                        Handler=Some(DworkinAgentConfig.SwirlMagnetic.TerminationConditions() :> CollisionHandler),
+                        MinDistance=300.0f,
+                        SelfIntersection=false)
+                    |> Optic.set (primaryDetector_ >-> angle_) 120.0f
+                    |> Optic.set (primaryDetector_ >-> distance_) 15.0f);
+                Curvature=Some(TerminationConditionCurvature(MaxCurvature=0.5f));
+                Distance=Some(TerminationConditionDistance())
+             };
+            Thickness=ThicknessFormula.DecLinear(A=5.0f,P=0.5f)
+         }
 
 
 module SpawnConfig =

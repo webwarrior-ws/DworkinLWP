@@ -1000,3 +1000,97 @@ type CosineSwirl() =
                 else env.Bounds.BottomCenter + Point(width * offset, -1.0f)
             spawnAgent(pos, 0.0f)
 
+
+
+type MagneticSpiralsBunchFromEdge() = 
+    inherit DworkinEnvironmentConfigCustom()
+    member val MidpointInterval = Interval(0.1f, 0.5f, 0.05f) with get, set
+    member val AlphaInterval = Interval(0.75f, 0.8f, 0.025f) with get, set
+    member val LengthInterval = Interval(600.0f, 1200.0f, 100.0f) with get, set
+    member val Angle = 30 with get, set
+    member val AgentConfig = DworkinAgentConfig.swirlMagnetic with get, set
+    member val FlipFactors = [| 1 |] with get, set
+    member val LargeSwirls : BranchingStrategy[] = [| |] with get, set
+    member val N = 3 with get, set
+    member val LeafStrategy : BranchingStrategy = BranchingNone() :> BranchingStrategy with get, set
+    member val Thickness = 1.0f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> MagneticSpiralsBunchFromEdge
+    
+    static member MidpointInterval_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.MidpointInterval), (fun value x -> let y = x.Clone() in y.MidpointInterval <- value; y)
+    static member AlphaInterval_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.AlphaInterval), (fun value x -> let y = x.Clone() in y.AlphaInterval <- value; y)
+    static member LengthInterval_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.LengthInterval), (fun value x -> let y = x.Clone() in y.LengthInterval <- value; y)
+    static member Angle_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.Angle), (fun value x -> let y = x.Clone() in y.Angle <- value; y)
+    static member AgentConfig_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
+    static member FlipFactors_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.FlipFactors), (fun value x -> let y = x.Clone() in y.FlipFactors <- value; y)
+    static member LargeSwirls_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.LargeSwirls), (fun value x -> let y = x.Clone() in y.LargeSwirls <- value; y)
+    static member N_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.N), (fun value x -> let y = x.Clone() in y.N <- value; y)
+    static member LeafStrategy_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.LeafStrategy), (fun value x -> let y = x.Clone() in y.LeafStrategy <- value; y)
+    static member Thickness_ : Lens<MagneticSpiralsBunchFromEdge, _> = 
+        (fun x -> x.Thickness), (fun value x -> let y = x.Clone() in y.Thickness <- value; y)
+    
+    override this.Evaluate(env) =
+        let c = env.Bounds.Center
+        
+        Util.buildWalls env
+
+        let pos = 
+            if env.Bounds.Width > env.Bounds.Height then 
+                env.Bounds.LeftCenter + Point(1.0f, 0.0f)
+            else 
+                env.Bounds.BottomCenter - Point(0.0f, 1.0f)
+        let angleShift = if env.Bounds.Width > env.Bounds.Height then -90 else 0
+        let scale = (max env.Bounds.Extent.X env.Bounds.Extent.Y) / 640.0f
+        
+        let combinations = 
+            [| for x1 in this.MidpointInterval do
+                for x2 in this.AlphaInterval do
+                    for x3 in this.LengthInterval do
+                        for x4 in this.FlipFactors do yield x1, x2, x3, x4 |].ShuffleBy(env.Random)
+        let mutable i = 0
+        seq {
+            for midpoint, alpha, length, flipFactor in combinations do
+                if i >= this.N then 
+                    yield ()
+                let spawnOptions = 
+                    ProbeSpawnOptions(
+                        AngleDeg=float32((this.Angle * flipFactor) + angleShift),
+                        Position=pos,
+                        StepsBetweenCollisionCheck=int(floor (this.AgentConfig.TerminationConditions.Collision.Value.PrimaryDetector.Distance))
+                    )
+                let agentBlock (a : DworkinAgent) =
+                    a.ScaleBy(Point(scale * this.Thickness, scale))
+                    if flipFactor < 0 then a.Flip()
+                let conf = 
+                    this.AgentConfig
+                    |> Optic.set (curvature_<CurvatureFormula.MagneticWithFlip> >-> midpoint_) midpoint
+                    |> Optic.set (curvature_<CurvatureFormula.MagneticWithFlip> >-> alpha_) alpha
+                    |> Optic.set totalDistance_ length
+                    |> Optic.set branching_ (BranchingMultivariant(Strategies=Array.append this.LargeSwirls [| this.LeafStrategy |]))
+                let probeData = env.LaunchProbe(conf, spawnOptions, agentBlock)
+                if (Option.isNone probeData.Collision) && (probeData.S > (length * 0.9f)) then 
+                    probeData.SpawnColliders()
+                    env.Spawn(
+                        conf, 
+                        spawnOptions, 
+                        fun a ->
+                            agentBlock a
+                            a.NoCollisions <- true)
+                        |> ignore
+                    i <- i + 1
+            }
+            |> Seq.tryHead
+            |> ignore
+
+
+let magneticSpiralsBunch = MagneticSpiralsBunchFromEdge()
+

@@ -202,6 +202,23 @@ let configGui  =
                             FloralSwirls.CosineSwirl.LeafStrategy_
                             swirlsLeafStrategies;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.CosineSwirl>;
+                    ];
+                Builders.environmentEditor
+                    "Magnetic Spirals Bunch"
+                    (FloralSwirls.magneticSpiralsBunch)
+                    [
+                        Builders.floatSliderEditor "Thickness" FloralSwirls.MagneticSpiralsBunchFromEdge.Thickness_ 1.0f 2.0f 0.1f;
+                        Builders.labeledDropdownListEditor "Large swirls"
+                            FloralSwirls.MagneticSpiralsBunchFromEdge.LargeSwirls_
+                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
+                              //FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
+                              //FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
+                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Magnetic, "swirlsShifted"; 
+                            ];
+                        Builders.labeledDropdownListEditor "Leaves"
+                            FloralSwirls.MagneticSpiralsBunchFromEdge.LeafStrategy_
+                            swirlsLeafStrategies;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.MagneticSpiralsBunchFromEdge>;
                     ]
             ]
     let speedControl = 
