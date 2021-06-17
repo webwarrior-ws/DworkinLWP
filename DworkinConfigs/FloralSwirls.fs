@@ -938,47 +938,42 @@ module LeafStrategies =
         )
 
 
-type CosineSwirlSingle() = 
+type CosineSwirl() = 
     inherit DworkinEnvironmentConfigCustom()
     member val AgentConfig = 
         DworkinAgentConfig.plantWithSpiralBranches2 
         |> Optic.set totalDistance_ 650.0f with get, set
     member val LargeSwirls : BranchingStrategy[] = [| |] with get, set
-    member val Offset = 0.06f with get, set
+    member val Shift = 0.29f with get, set
     member val Thickness = 1.0f with get, set
     member val LeafStrategy : BranchingStrategy = BranchingNone() :> BranchingStrategy with get, set
+    member val IsDouble = false with get, set
     
-    member this.Clone() = this.MemberwiseClone() :?> CosineSwirlSingle
+    member this.Clone() = this.MemberwiseClone() :?> CosineSwirl
     
-    static member AgentConfig_ : Lens<CosineSwirlSingle, _> = 
-        (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
-    static member LargeSwirls_ : Lens<CosineSwirlSingle, _> = 
+    static member LargeSwirls_ : Lens<CosineSwirl, _> = 
         (fun x -> x.LargeSwirls), (fun value x -> let y = x.Clone() in y.LargeSwirls <- value; y)
-    static member Offset_ : Lens<CosineSwirlSingle, _> = 
-        (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
-    static member Thickness_ : Lens<CosineSwirlSingle, _> = 
+    static member Thickness_ : Lens<CosineSwirl, _> = 
         (fun x -> x.Thickness), (fun value x -> let y = x.Clone() in y.Thickness <- value; y)
-    static member LeafStrategy_ : Lens<CosineSwirlSingle, _> = 
+    static member LeafStrategy_ : Lens<CosineSwirl, _> = 
         (fun x -> x.LeafStrategy), (fun value x -> let y = x.Clone() in y.LeafStrategy <- value; y)
-    
+    static member IsDouble_ : Lens<CosineSwirl, _> = 
+        (fun x -> x.IsDouble), (fun value x -> let y = x.Clone() in y.IsDouble <- value; y)
+
     override this.Evaluate(env) =
         let width = env.Bounds.Width
         let height = env.Bounds.Height
 
         Util.buildWalls env
-        
-        let pos = 
-            if width > height then 
-                env.Bounds.LeftCenter + Point(1.0f, height * this.Offset) 
-            else 
-                env.Bounds.BottomCenter + Point(width * this.Offset, -1.0f)
+
         let angle = if width > height then -Single.HalfPi else 0.0f
         let scale = (max width height) / 640.0f
+        let offset = if this.IsDouble then 0.0f else 0.06f
 
-        let spawnOptions = ProbeSpawnOptions(Position=pos, Angle=angle)
-        let agentBlock = fun (a : DworkinAgent) -> a.ScaleBy(Point(scale * this.Thickness, scale))
-        let probeData = env.LaunchProbe(this.AgentConfig, spawnOptions, agentBlock)
-        if probeData.ReachedEnd then 
+        let spawnAgent(pos : Point, angleShift) =
+            let spawnOptions = ProbeSpawnOptions(Position=pos, Angle=angle + angleShift)
+            let agentBlock (a : DworkinAgent) = a.ScaleBy(Point(scale * this.Thickness, scale))
+            let probeData = env.LaunchProbe(this.AgentConfig, spawnOptions, agentBlock)
             env.Spawn(
                 this.AgentConfig
                 |> Optic.set branching_ (BranchingMultivariant(Strategies=Array.append this.LargeSwirls [| this.LeafStrategy |])), 
@@ -988,4 +983,20 @@ type CosineSwirlSingle() =
                     probeData.Id <- a.Id
                     probeData.SpawnColliders()
                     a.NoCollisions <- true)
-            |> ignore
+                |> ignore
+
+        if this.IsDouble then
+            spawnAgent(
+                (if width > height then env.Bounds.LeftCenter + Point(1.0f, height * (this.Shift + offset)) 
+                 else env.Bounds.BottomCenter + Point(width * (this.Shift + offset), -1.0f)), 
+                0.0f)
+            spawnAgent(
+                (if width > height then env.Bounds.RightCenter + Point(-1.0f, height * (offset - this.Shift)) 
+                 else env.Bounds.TopCenter + Point(width * (offset - this.Shift), 1.0f)), 
+                Single.Pi)
+        else
+            let pos = 
+                if width > height then env.Bounds.LeftCenter + Point(1.0f, height * offset) 
+                else env.Bounds.BottomCenter + Point(width * offset, -1.0f)
+            spawnAgent(pos, 0.0f)
+

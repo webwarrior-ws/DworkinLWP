@@ -166,6 +166,12 @@ type OpenTK.Box2 with
     member this.LeftCenter =
         Point(this.Left, (this.Top + this.Bottom) * 0.5f)
 
+    member this.RightCenter =
+        Point(this.Right, (this.Top + this.Bottom) * 0.5f)
+
+    member this.TopCenter =
+        Point((this.Left + this.Right) * 0.5f, this.Top)
+
     static member FromExtentCenteredAtOrigin(extent : Point) =
         Rectangle.FromTLRB(-extent.Y*0.5f, -extent.X*0.5f, extent.X*0.5f, extent.Y*0.5f)
     

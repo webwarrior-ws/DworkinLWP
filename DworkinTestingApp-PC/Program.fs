@@ -188,19 +188,20 @@ let configGui  =
                     ];
                 Builders.environmentEditor
                     "Floral swirls"
-                    (FloralSwirls.CosineSwirlSingle())
+                    (FloralSwirls.CosineSwirl())
                     [
-                        Builders.floatSliderEditor "Thickness" FloralSwirls.CosineSwirlSingle.Thickness_ 1.0f 2.0f 0.1f;
+                        Builders.checkboxEditor "Double" FloralSwirls.CosineSwirl.IsDouble_
+                        Builders.floatSliderEditor "Thickness" FloralSwirls.CosineSwirl.Thickness_ 1.0f 2.0f 0.1f;
                         Builders.labeledDropdownListEditor "Large swirls"
-                            FloralSwirls.CosineSwirlSingle.LargeSwirls_
+                            FloralSwirls.CosineSwirl.LargeSwirls_
                             [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
                               FloralSwirls.LargeSwirlsStrategies.plantLike4Cosine, "plantLike";
                               FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Cosine, "swirlsRecursive";
                               FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Cosine, "swirlsShifted"; ];
                         Builders.labeledDropdownListEditor "Leaves"
-                            FloralSwirls.CosineSwirlSingle.LeafStrategy_
+                            FloralSwirls.CosineSwirl.LeafStrategy_
                             swirlsLeafStrategies;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.CosineSwirlSingle>;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.CosineSwirl>;
                     ]
             ]
     let speedControl = 
