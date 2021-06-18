@@ -19,9 +19,18 @@ open BranchingCriteria
 
 
 module BranchingCriterionBased = 
+    [<AbstractClass>]
+    type SpawnConfigWithLevels() =
+        inherit LibDworkin.Configs.SpawnConfig()
+        abstract Levels : NumberRange with get, set
+
+        member this.Clone() = this.MemberwiseClone() :?> SpawnConfigWithLevels
+        static member Levels_ : Lens<#SpawnConfigWithLevels, _> = 
+            (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
+
     module Leaves2SidesProbesStraight1_fs = 
         type SpawnConfig() = 
-            inherit LibDworkin.Configs.SpawnConfig()
+            inherit SpawnConfigWithLevels()
             member val Angle = 30 with get, set
             member val Steps = 2 with get, set
             member val ScaleRange = NumberRange(0.6f, 1.0f) with get, set
@@ -34,7 +43,7 @@ module BranchingCriterionBased =
                     Distance=Some(TerminationConditionDistance.Instance)
                  } with get, set
             member val Offset = 3 with get, set
-            member val Levels = NumberRange(1.0f, 10.0f) with get, set
+            override val Levels = NumberRange(1.0f, 10.0f) with get, set
             member val MaxCurvature = 0.03f with get, set
             
             member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
@@ -49,8 +58,6 @@ module BranchingCriterionBased =
                 (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
             static member Offset_ : Lens<SpawnConfig, _> = 
                 (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
-            static member Levels_ : Lens<SpawnConfig, _> = 
-                (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
             static member MaxCurvature_ : Lens<SpawnConfig, _> = 
                 (fun x -> x.MaxCurvature), (fun value x -> let y = x.Clone() in y.MaxCurvature <- value; y)
             
@@ -99,7 +106,7 @@ module BranchingCriterionBased =
     
     module LeavesProbesFollowCurv_fs = 
         type SpawnConfig() = 
-            inherit LibDworkin.Configs.SpawnConfig()
+            inherit SpawnConfigWithLevels()
             member val Angle = 15 with get, set
             member val Steps = 3 with get, set
             member val ScaleRange = NumberRange(1.5f, 2.5f) with get, set
@@ -117,7 +124,7 @@ module BranchingCriterionBased =
                     TotalDistance=15.0f
                  } with get, set
             member val Offset = 5 with get, set
-            member val Levels = NumberRange(1.0f, 10.0f) with get, set
+            override val Levels = NumberRange(1.0f, 10.0f) with get, set
             
             member this.Clone() = this.MemberwiseClone() :?> SpawnConfig
             
@@ -131,8 +138,6 @@ module BranchingCriterionBased =
                 (fun x -> x.Config), (fun value x -> let y = x.Clone() in y.Config <- value; y)
             static member Offset_ : Lens<SpawnConfig, _> = 
                 (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
-            static member Levels_ : Lens<SpawnConfig, _> = 
-                (fun x -> x.Levels), (fun value x -> let y = x.Clone() in y.Levels <- value; y)
             
             override this.Evaluate(agent, pos) =
                 if this.Levels.Contains (float32 agent.Generation) then 
@@ -947,7 +952,7 @@ module LeafStrategies =
                          |> Optic.set (config_ >-> terminationConditions_ >-> collision_ >-> minDistance_) 4.0f
                          |> Optic.set offset_ 2
                          |> Optic.set BranchingCriterionBased.Leaves2SidesProbesStraight1_fs.SpawnConfig.MaxCurvature_ Single.Pi
-                         :> SpawnConfig)
+                        )
         )
     
     let leavesProbesCurved1_fs = 
@@ -963,7 +968,6 @@ module LeafStrategies =
                          |> Optic.set (config_ >-> thickness_<ThicknessFormula.LeafPower_Base> >-> p_) 0.78f
                          |> Optic.set (config_ >-> totalDistance_) 33.0f
                          |> Optic.set offset_ 1
-                         |> Optic.set levels_ (NumberRange(1.0f, 20.0f))
                         )
         )
 

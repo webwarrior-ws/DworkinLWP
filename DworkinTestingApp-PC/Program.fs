@@ -92,14 +92,6 @@ module Builders =
 
 let configGui  = 
     let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
-    let swirlsLeafStrategies = 
-        [ LibDworkin.Configs.BranchingNone() :> LibDworkin.Agents.BranchingStrategy, "none";
-          FloralSwirls.LeafStrategies.leaves2SidesProbesStraight1_fs :> LibDworkin.Agents.BranchingStrategy, "leaves2SidesProbesStraight1";
-          FloralSwirls.LeafStrategies.leaves2SidesProbes1_2_fs  :> LibDworkin.Agents.BranchingStrategy, "leaves2SidesProbes1_2_fs";
-          FloralSwirls.LeafStrategies.leavesProbesCurved1_fs  :> LibDworkin.Agents.BranchingStrategy, "leavesProbesCurved1_fs";
-          FloralSwirls.LeafStrategies.leavesProbesFollowCurv_fs  :> LibDworkin.Agents.BranchingStrategy, "leavesProbesFollowCurv_fs";
-          FloralSwirls.LeafStrategies._2BranchIndependentLeafWithStem_fs()  :> LibDworkin.Agents.BranchingStrategy, "2BranchIndependentLeafWithStem_fs"; 
-          FloralSwirls.LeafStrategies._2BranchIndLeafByScale_fs()  :> LibDworkin.Agents.BranchingStrategy, "2BranchIndLeafByScale_fs"; ]
     let configChooser =
         Builders.chooser
             "Environment"
@@ -186,74 +178,7 @@ let configGui  =
                         Builders.floatSliderEditor "Speed" Vine.Vines.Speed_ 0.25f 1.0f 0.05f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<Vine.Vines>;
                     ];
-                Builders.environmentEditor
-                    "Floral swirls"
-                    (FloralSwirls.CosineSwirl())
-                    [
-                        Builders.checkboxEditor "Double" FloralSwirls.CosineSwirl.IsDouble_
-                        Builders.floatSliderEditor "Thickness" FloralSwirls.CosineSwirl.Thickness_ 1.0f 2.0f 0.1f;
-                        Builders.labeledDropdownListEditor "Large swirls"
-                            FloralSwirls.CosineSwirl.LargeSwirls_
-                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              FloralSwirls.LargeSwirlsStrategies.plantLike4Cosine, "plantLike";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Cosine, "swirlsRecursive";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Cosine, "swirlsShifted"; ];
-                        Builders.labeledDropdownListEditor "Leaves"
-                            FloralSwirls.CosineSwirl.LeafStrategy_
-                            swirlsLeafStrategies;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.CosineSwirl>;
-                    ];
-                Builders.environmentEditor
-                    "Magnetic Spirals Bunch"
-                    (FloralSwirls.magneticSpiralsBunch)
-                    [
-                        Builders.floatSliderEditor "Thickness" FloralSwirls.MagneticSpiralsBunchFromEdge.Thickness_ 1.0f 2.0f 0.1f;
-                        Builders.labeledDropdownListEditor "Large swirls"
-                            FloralSwirls.MagneticSpiralsBunchFromEdge.LargeSwirls_
-                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic, "plantLike";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic, "swirlsRecursive";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Magnetic, "swirlsShifted"; 
-                            ];
-                        Builders.labeledDropdownListEditor "Leaves"
-                            FloralSwirls.MagneticSpiralsBunchFromEdge.LeafStrategy_
-                            swirlsLeafStrategies;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.MagneticSpiralsBunchFromEdge>;
-                    ];
-                Builders.environmentEditor
-                    "S-shaped Swirl single"
-                    (FloralSwirls.S_ShapedSwirlSingle())
-                    [
-                        Builders.floatSliderEditor "Thickness" FloralSwirls.S_ShapedSwirlSingle.Thickness_ 1.0f 2.0f 0.1f;
-                        Builders.labeledDropdownListEditor "Large swirls"
-                            FloralSwirls.S_ShapedSwirlSingle.LargeSwirls_
-                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              FloralSwirls.LargeSwirlsStrategies.plantLike4S, "plantLike";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4S, "swirlsRecursive";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4S, "swirlsShifted"; 
-                            ];
-                        Builders.labeledDropdownListEditor "Leaves"
-                            FloralSwirls.S_ShapedSwirlSingle.LeafStrategy_
-                            swirlsLeafStrategies;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.S_ShapedSwirlSingle>;
-                    ];
-                Builders.environmentEditor
-                    "S-shaped Swirl space-fill"
-                    (FloralSwirls.S_ShapedSwirlSpacefill())
-                    [
-                        Builders.floatSliderEditor "Thickness" FloralSwirls.S_ShapedSwirlSpacefill.Thickness_ 1.0f 2.0f 0.1f;
-                        Builders.labeledDropdownListEditor "Large swirls"
-                            FloralSwirls.S_ShapedSwirlSpacefill.LargeSwirls_
-                            [ FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany, "swirlsMagneticMany";
-                              FloralSwirls.LargeSwirlsStrategies.plantLike4S, "plantLike";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4S, "swirlsRecursive";
-                              FloralSwirls.LargeSwirlsStrategies.swirlsShifted4S, "swirlsShifted"; 
-                            ];
-                        Builders.labeledDropdownListEditor "Leaves"
-                            FloralSwirls.S_ShapedSwirlSpacefill.LeafStrategy_
-                            swirlsLeafStrategies;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FloralSwirls.S_ShapedSwirlSpacefill>;
-                    ];
+                EnvironmentSettingsEditor("Floral Swirls", ConfigSettings.FloralSwirls());
             ]
     let speedControl = 
         Builders.radioButtonEditor 

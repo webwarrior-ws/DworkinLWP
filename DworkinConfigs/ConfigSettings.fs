@@ -391,7 +391,9 @@ type FloralSwirls() =
             let levels = LibDworkin.SpecializedCollections.NumberRange((if leavesOnStem then 1.0f else 2.0f), 10.0f)
             let inline prepareCBStrat strat = 
                 strat 
-                //|> Optic.set (spawnConfig_ >-> cast >-> levels_) (* ? *) levels
+                |> Optic.set 
+                    (spawnConfig_ >-> cast<_, FloralSwirls.BranchingCriterionBased.SpawnConfigWithLevels> >-> levels_) 
+                    levels
                 :> LibDworkin.Agents.BranchingStrategy
             let inline prepareCustomStrat strat =
                 strat 
@@ -411,8 +413,15 @@ type FloralSwirls() =
             |> Optic.set largeSwirls_ largeSwirlsStrats
             |> Optic.set leafStrategy_ leavesStrat
             |> Optic.set thickness_ (getValue <@ this.Thickness @>)
+            :> LibDworkin.Configs.DworkinEnvironmentConfig
 
-        failwith "notimplemented"
+        match primarySwirlsType with
+        | FloralSwirlsPrimary.WavySingle -> FloralSwirls.CosineSwirl(IsDouble=false) |> prepare
+        | FloralSwirlsPrimary.WavyDouble -> FloralSwirls.CosineSwirl(IsDouble=true) |> prepare
+        | FloralSwirlsPrimary.SShapedSingle -> FloralSwirls.S_ShapedSwirlSingle() |> prepare
+        | FloralSwirlsPrimary.SShapedSpacefill -> FloralSwirls.S_ShapedSwirlSpacefill() |> prepare
+        | FloralSwirlsPrimary.MagneticSingle -> FloralSwirls.magneticSpiralSingle |> prepare
+        | FloralSwirlsPrimary.MagneticBunch -> FloralSwirls.magneticSpiralsBunch |> prepare
 
 
 
@@ -423,4 +432,5 @@ let allEnvironmentSettingsTypes =
         typeof<Maze>; 
         typeof<FlowingLeavesExperiment>; 
         typeof<Vine>;
+        typeof<FloralSwirls>;
     |]
