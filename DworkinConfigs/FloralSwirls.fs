@@ -42,7 +42,7 @@ module BranchingCriterionBased =
                     Curvature=None;
                     Distance=Some(TerminationConditionDistance.Instance)
                  } with get, set
-            member val Offset = 3 with get, set
+            member val Offset = 2.0f with get, set
             override val Levels = NumberRange(1.0f, 10.0f) with get, set
             member val MaxCurvature = 0.03f with get, set
             
@@ -75,7 +75,7 @@ module BranchingCriterionBased =
                                     let spawnBlock = 
                                         ProbeSpawnOptions(
                                             AngleDeg=phi,
-                                            OffsetSideways=(float32 this.Offset) * agent.ThicknessFactor,
+                                            OffsetSideways=this.Offset * agent.ThicknessFactor + (agent.Thickness/2.0f),
                                             StepsBetweenCollisionCheck=2)
                                     let probeData = 
                                         agent.LaunchProbe(
@@ -950,7 +950,7 @@ module LeafStrategies =
                          |> Optic.set steps_ 1
                          |> Optic.set (config_ >-> curvature_<CurvatureFormula.Constant> >-> c_) 0.06f
                          |> Optic.set (config_ >-> terminationConditions_ >-> collision_ >-> minDistance_) 4.0f
-                         |> Optic.set offset_ 2
+                         |> Optic.set offset_ 1.5f
                          |> Optic.set BranchingCriterionBased.Leaves2SidesProbesStraight1_fs.SpawnConfig.MaxCurvature_ Single.Pi
                         )
         )
@@ -967,7 +967,7 @@ module LeafStrategies =
                          |> Optic.set (config_ >-> terminationConditions_ >-> collision_ >-> minDistance_) 4.0f
                          |> Optic.set (config_ >-> thickness_<ThicknessFormula.LeafPower_Base> >-> p_) 0.78f
                          |> Optic.set (config_ >-> totalDistance_) 33.0f
-                         |> Optic.set offset_ 1
+                         |> Optic.set offset_ 1.0f
                         )
         )
 

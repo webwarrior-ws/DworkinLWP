@@ -367,6 +367,7 @@ type FloralSwirls() =
 
         let primarySwirlsType = getValue <@ this.PrimarySwirls @>
         let leavesOnStem = getValue <@ this.LeavesOnStem @>
+        let thickness = getValue <@ this.Thickness @>
 
         let largeSwirlsStrats =
             match getValue <@ this.SecondarySwirls @> with
@@ -402,17 +403,38 @@ type FloralSwirls() =
             match getValue <@ this.Leaves @> with
             | FloralSwirlsLeaves.NoLeaves -> LibDworkin.Configs.BranchingNone() :> LibDworkin.Agents.BranchingStrategy
             | FloralSwirlsLeaves.Straight -> FloralSwirls.LeafStrategies.leaves2SidesProbesStraight1_fs |> prepareCBStrat
-            | FloralSwirlsLeaves.SlightlyCurved -> FloralSwirls.LeafStrategies.leaves2SidesProbes1_2_fs |> prepareCBStrat
+            | FloralSwirlsLeaves.SlightlyCurved -> 
+                FloralSwirls.LeafStrategies.leaves2SidesProbes1_2_fs 
+                |> Optic.map 
+                    (spawnConfig_ >-> cast<_, FloralSwirls.BranchingCriterionBased.Leaves2SidesProbesStraight1_fs.SpawnConfig> >-> scaleRange_) 
+                    (fun x -> x * sqrt(thickness))
+                |> Optic.map 
+                    (criterion_<BranchingCriteria.BranchingCriterionInterval.ConstantBoundedT> >-> d_) 
+                    (fun x -> x * sqrt(thickness))
+                |> prepareCBStrat
             | FloralSwirlsLeaves.Curved -> FloralSwirls.LeafStrategies.leavesProbesCurved1_fs |> prepareCBStrat
-            | FloralSwirlsLeaves.Teardrop -> FloralSwirls.LeafStrategies.leavesProbesFollowCurv_fs |> prepareCBStrat
-            | FloralSwirlsLeaves.WithStem -> FloralSwirls.LeafStrategies._2BranchIndependentLeafWithStem_fs() |> prepareCustomStrat
+            | FloralSwirlsLeaves.Teardrop -> 
+                FloralSwirls.LeafStrategies.leavesProbesFollowCurv_fs 
+                |> Optic.map 
+                    (spawnConfig_ >-> cast<_, FloralSwirls.BranchingCriterionBased.LeavesProbesFollowCurv_fs.SpawnConfig> 
+                     >-> config_ 
+                     >-> thickness_ >-> cast<_, ThicknessFormula.LeafPower_Base> 
+                     >-> c_) 
+                    (fun x -> x / sqrt(thickness))
+                |> prepareCBStrat
+            | FloralSwirlsLeaves.WithStem -> 
+                FloralSwirls.LeafStrategies._2BranchIndependentLeafWithStem_fs() 
+                |> Optic.map 
+                    (config_ >-> config_ >-> thickness_ >-> cast<_, ThicknessFormula.LeafPower_Base> >-> c_) 
+                    (fun x -> x / (thickness ** 0.67f))
+                |> prepareCustomStrat
             | FloralSwirlsLeaves.ScaledToBranchThickness -> FloralSwirls.LeafStrategies._2BranchIndLeafByScale_fs() |> prepareCustomStrat
 
         let inline prepare envConfig =
             envConfig
             |> Optic.set largeSwirls_ largeSwirlsStrats
             |> Optic.set leafStrategy_ leavesStrat
-            |> Optic.set thickness_ (getValue <@ this.Thickness @>)
+            |> Optic.set thickness_ thickness
             :> LibDworkin.Configs.DworkinEnvironmentConfig
 
         match primarySwirlsType with
