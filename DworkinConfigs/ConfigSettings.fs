@@ -303,6 +303,118 @@ type Vine() =
             :> LibDworkin.Configs.DworkinEnvironmentConfig
 
 
+// Floral Swirls
+type FloralSwirlsPrimary =
+    | WavySingle = 1
+    | WavyDouble = 2
+    | SShapedSingle = 3
+    | SShapedSpacefill = 4
+    | MagneticSingle = 5
+    | MagneticBunch = 6
+
+type FloralSwirlsSecondary =
+    | ShiftedSwirls = 1
+    | RecursiveSpirals = 2
+    | MagneticSpiralsDense = 3
+    | PlantLike = 4
+
+type FloralSwirlsLeaves =
+    | NoLeaves = 1
+    | Straight = 2 //leaves2SidesProbesStraight1_fs
+    | SlightlyCurved = 3 //leaves2SidesProbes1_2_fs
+    | Curved = 4 //leavesProbesCurved1_fs
+    | Teardrop = 5 //leavesProbesFollowCurv_fs
+    | WithStem = 6 //_2BranchIndependentLeafWithStem_fs
+    | ScaledToBranchThickness = 7 //_2BranchIndLeafByScale_fs
+
+let (|FloralSwirlsWavy|FloralSwirlsSShaped|FloralSwirlsMagnetic|) floralSwirlsType =
+    match floralSwirlsType with
+    | FloralSwirlsPrimary.WavySingle | FloralSwirlsPrimary.WavyDouble -> FloralSwirlsWavy
+    | FloralSwirlsPrimary.SShapedSingle | FloralSwirlsPrimary.SShapedSpacefill -> FloralSwirlsSShaped
+    | FloralSwirlsPrimary.MagneticSingle | FloralSwirlsPrimary.MagneticBunch -> FloralSwirlsMagnetic
+
+let inline thickness_< ^U , ^V when ^U : (static member Thickness_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> = 
+    makeGenericLens (fun (_ : ^U) -> (^U : (static member Thickness_ : Lens< ^U, ^V>) ())) 
+
+type FloralSwirls() =
+    inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+    static do Settings.RegisterClass<FloralSwirls>()
+
+    [<Enum([| FloralSwirlsPrimary.WavySingle; FloralSwirlsPrimary.WavyDouble; FloralSwirlsPrimary.SShapedSingle; 
+              FloralSwirlsPrimary.SShapedSpacefill; FloralSwirlsPrimary.MagneticSingle; FloralSwirlsPrimary.MagneticBunch |], 
+           ItemType=typeof<FloralSwirlsPrimary>)>]
+    member val PrimarySwirls = Defined(FloralSwirlsPrimary.WavySingle) with get, set
+
+    [<Enum([| FloralSwirlsSecondary.ShiftedSwirls; FloralSwirlsSecondary.RecursiveSpirals; 
+              FloralSwirlsSecondary.MagneticSpiralsDense; FloralSwirlsSecondary.PlantLike |],
+           ItemType=typeof<FloralSwirlsSecondary>)>]
+    member val SecondarySwirls = Defined(FloralSwirlsSecondary.ShiftedSwirls) with get, set
+
+    [<Enum([| FloralSwirlsLeaves.NoLeaves; FloralSwirlsLeaves.Straight; FloralSwirlsLeaves.SlightlyCurved; FloralSwirlsLeaves.Curved;
+              FloralSwirlsLeaves.Teardrop; FloralSwirlsLeaves.WithStem; FloralSwirlsLeaves.ScaledToBranchThickness |],
+           ItemType=typeof<FloralSwirlsLeaves>)>]
+    member val Leaves = Defined(FloralSwirlsLeaves.NoLeaves) with get, set
+
+    [<Bool>]
+    member val LeavesOnStem = Defined(false) with get, set
+
+    [<FloatRange(1.0f, 2.0f)>]
+    member val Thickness = Defined(1.0f) with get, set
+
+    override this.Build(seed) = 
+        let random = System.Random(seed)
+        let getValue expr = Randomizeable.getValue random expr
+
+        let primarySwirlsType = getValue <@ this.PrimarySwirls @>
+        let leavesOnStem = getValue <@ this.LeavesOnStem @>
+
+        let largeSwirlsStrats =
+            match getValue <@ this.SecondarySwirls @> with
+            | FloralSwirlsSecondary.ShiftedSwirls -> 
+                match primarySwirlsType with
+                | FloralSwirlsWavy -> FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Cosine
+                | FloralSwirlsSShaped -> FloralSwirls.LargeSwirlsStrategies.swirlsShifted4S
+                | FloralSwirlsMagnetic -> FloralSwirls.LargeSwirlsStrategies.swirlsShifted4Magnetic
+            | FloralSwirlsSecondary.RecursiveSpirals ->
+                match primarySwirlsType with
+                | FloralSwirlsWavy -> FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Cosine
+                | FloralSwirlsSShaped -> FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4S
+                | FloralSwirlsMagnetic -> FloralSwirls.LargeSwirlsStrategies.swirlsRecursive4Magnetic
+            | FloralSwirlsSecondary.MagneticSpiralsDense -> FloralSwirls.LargeSwirlsStrategies.swirlsMagneticMany
+            | FloralSwirlsSecondary.PlantLike ->
+                match primarySwirlsType with
+                | FloralSwirlsWavy -> FloralSwirls.LargeSwirlsStrategies.plantLike4Cosine
+                | FloralSwirlsSShaped -> FloralSwirls.LargeSwirlsStrategies.plantLike4S
+                | FloralSwirlsMagnetic -> FloralSwirls.LargeSwirlsStrategies.plantLike4Magnetic
+
+        let leavesStrat =
+            let levels = LibDworkin.SpecializedCollections.NumberRange((if leavesOnStem then 1.0f else 2.0f), 10.0f)
+            let inline prepareCBStrat strat = 
+                strat 
+                //|> Optic.set (spawnConfig_ >-> cast >-> levels_) (* ? *) levels
+                :> LibDworkin.Agents.BranchingStrategy
+            let inline prepareCustomStrat strat =
+                strat 
+                |> Optic.set levels_ levels
+                :> LibDworkin.Agents.BranchingStrategy
+            match getValue <@ this.Leaves @> with
+            | FloralSwirlsLeaves.NoLeaves -> LibDworkin.Configs.BranchingNone() :> LibDworkin.Agents.BranchingStrategy
+            | FloralSwirlsLeaves.Straight -> FloralSwirls.LeafStrategies.leaves2SidesProbesStraight1_fs |> prepareCBStrat
+            | FloralSwirlsLeaves.SlightlyCurved -> FloralSwirls.LeafStrategies.leaves2SidesProbes1_2_fs |> prepareCBStrat
+            | FloralSwirlsLeaves.Curved -> FloralSwirls.LeafStrategies.leavesProbesCurved1_fs |> prepareCBStrat
+            | FloralSwirlsLeaves.Teardrop -> FloralSwirls.LeafStrategies.leavesProbesFollowCurv_fs |> prepareCBStrat
+            | FloralSwirlsLeaves.WithStem -> FloralSwirls.LeafStrategies._2BranchIndependentLeafWithStem_fs() |> prepareCustomStrat
+            | FloralSwirlsLeaves.ScaledToBranchThickness -> FloralSwirls.LeafStrategies._2BranchIndLeafByScale_fs() |> prepareCustomStrat
+
+        let inline prepare envConfig =
+            envConfig
+            |> Optic.set largeSwirls_ largeSwirlsStrats
+            |> Optic.set leafStrategy_ leavesStrat
+            |> Optic.set thickness_ (getValue <@ this.Thickness @>)
+
+        failwith "notimplemented"
+
+
 
 let allEnvironmentSettingsTypes = 
     [| 

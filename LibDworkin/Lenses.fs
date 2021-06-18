@@ -279,5 +279,12 @@ let inline steps_< ^U , ^V when ^U : (static member Steps_ : Lens< ^U, ^V>)> : L
 let inline dRange_< ^U , ^V when ^U : (static member DRange_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
    makeGenericLens (fun (_ : ^U) -> (^U : (static member DRange_ : Lens< ^U, ^V>) ())) 
 
+let inline largeSwirls_< ^U , ^V when ^U : (static member LargeSwirls_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+   makeGenericLens (fun (_ : ^U) -> (^U : (static member LargeSwirls_ : Lens< ^U, ^V>) ())) 
+
+let inline leafStrategy_< ^U , ^V when ^U : (static member LeafStrategy_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> =
+   makeGenericLens (fun (_ : ^U) -> (^U : (static member LeafStrategy_ : Lens< ^U, ^V>) ())) 
+
+
 // compound lenses
 let termination_spawnConfig_ = termination_ >-> cast<TerminationStrategy, TerminationSpawn> >-> spawnConfig_
