@@ -99,7 +99,7 @@ type LeafPowerWithStem() =
     
     override this.Evaluate(s, t) =
         let t2 = (max ((t - this.Sl) / (1.0f - this.Sl)) 0.0f)
-        base.Evaluate(s, t2)
+        max (base.Evaluate(s, t2)) (if t2 < 0.5f then this.C * this.St else 0.0f)
 
 
 type PointyTip() = 
