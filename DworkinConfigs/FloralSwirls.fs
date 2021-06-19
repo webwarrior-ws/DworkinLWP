@@ -687,7 +687,8 @@ module LargeSwirlsStrategies =
         [|
             BranchingCriterionBased(
                 Criterion=BranchingCriterionCustom.IntervalRandBoundedT(TInterval=NumberRange(0.1f, 0.9f)),
-                SpawnConfig=BranchingMultivariant.SwirlsRecursive.SpawnConfig()
+                SpawnConfig=BranchingMultivariant.SwirlsRecursive.SpawnConfig(),
+                Delay=15
             )
         |]
     
