@@ -19,6 +19,12 @@ open BranchingCriteria
 module SpawnConfig =
     type FlowingLeavesVarSize() = 
          inherit SpawnConfig()
+         let mutable angles : float32[] = null
+         let mutable curvatures : float32[] = null
+         let mutable scales : float32[] = null
+
+         member val private IsInitialized = false with get, set
+
          member val GenLimit = 15 with get, set
          member val Angle = -35.0f with get, set
          member val Offset = 4.0f with get, set
@@ -30,7 +36,10 @@ module SpawnConfig =
          member val ScaleRange = NumberRange(1.0f, 2.0f) with get, set
          member val BaseSpeed = 1.0f with get, set
 
-         member this.Clone() = this.MemberwiseClone() :?> FlowingLeavesVarSize
+         member this.Clone() = 
+            let clone = this.MemberwiseClone() :?> FlowingLeavesVarSize
+            clone.IsInitialized <- false
+            clone
 
          static member GenLimit_ : Lens<FlowingLeavesVarSize, _> = 
              (fun x -> x.GenLimit), (fun value x -> let y = x.Clone() in y.GenLimit <- value; y)
@@ -55,35 +64,34 @@ module SpawnConfig =
 
          override this.Evaluate(agent, pos) =
              agent.GenerationLimit <- this.GenLimit
+             if not this.IsInitialized then
+                angles <- [| this.Angle; -this.Angle; |]
+                scales <- this.ScaleRange.By(this.ScaleRange.Extent / (float32 this.Steps)) |> Seq.toArray
+                curvatures <- this.CurvRandRange.By(this.CurvRandRange.Extent / (float32 this.Steps)) |> Seq.toArray
+                this.IsInitialized <- true
              seq { 
-                 for phi in [| this.Angle; -this.Angle; |] do
+                 for phi in angles do
                      let offset = this.Offset + (agent.Thickness * 0.5f)
-                     let scales = this.ScaleRange.By(this.ScaleRange.Extent / (float32 this.Steps)) |> Seq.toArray
-                     let curvatures = this.CurvRandRange.By(this.CurvRandRange.Extent / (float32 this.Steps)) |> Seq.toArray
-                     curvatures.ShuffleBy(agent.Random)
-                     scales.ShuffleBy(agent.Random)
+                     curvatures.ShuffleBy(agent.Random) |> ignore
+                     scales.ShuffleBy(agent.Random) |> ignore
+                     let spawnOptions = ProbeSpawnOptions(AngleDeg=phi, OffsetSideways=offset, StepsBetweenCollisionCheck=2)
                      for scale in scales do 
+                         let agentBlock (a : DworkinAgent) =
+                            a.Flip()
+                            a.ThicknessFactor <- scale
+                            a.LengthFactor <- scale
                          for c in curvatures do 
-                             let agentBlock = 
-                                 fun (a : DworkinAgent) -> 
-                                     a.Flip()
-                                     a.ThicknessFactor <- scale
-                                     a.LengthFactor <- scale
                              let mutable l = this.MaxLength
                              while l >= this.MinLength do
                                  let config = 
-                                     agent.Config
-                                     |> Optic.set totalDistance_ l
-                                     |> Optic.map (curvature_ >-> cast<_, CurvatureFormula.Quadratic> >-> c_) (fun x -> x * c)
-                                     |> Optic.set (speed_ >-> magnitude_) (this.BaseSpeed / scale)
-                                 let probeData = 
-                                     agent.LaunchProbe(
-                                         config, 
-                                         ProbeSpawnOptions(AngleDeg=phi, OffsetSideways=offset, StepsBetweenCollisionCheck=2),
-                                         agentBlock)
+                                     { agent.Config with
+                                        TotalDistance=l;
+                                        Curvature=(agent.Config.Curvature :?> CurvatureFormula.Quadratic) |> Optic.map c_ (fun x -> x * c);
+                                        Speed=AgentSpeedConstant(Magnitude=this.BaseSpeed / scale);
+                                     }
+                                 let probeData = agent.LaunchProbe(config, spawnOptions, agentBlock)
                                  if probeData.ReachedEnd then
                                      probeData.SpawnColliders()
-                                     let spawnOptions = AgentSpawnOptions(AngleDeg=phi, OffsetSideways=offset)
                                      spawnOptions.DelayBy(agent.Random.NextFloat() * (float32 this.Delay) |> int)
                                      yield agent.Spawn(config, 
                                                        spawnOptions, 
