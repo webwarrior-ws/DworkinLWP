@@ -27,6 +27,11 @@ type CircleCollider(parent: IDworkinAgentState option, center: Point, radius: fl
             assert (num > 0.0f)
             radius <- num
             this.FlushCache()
+
+    member this.SetCenterAndRadius(newCenter : Point, newRadius : float32) =
+        center <- newCenter
+        radius <- newRadius
+        this.FlushCache()
     
     override this.CalculateBoundingBox() =
         Rectangle(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
@@ -69,8 +74,8 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
             r2 <- this.CalculateR(bearing + centralAngle * 0.5f)
         r2
 
-    member this.SetParameters(center: Point, radius: float32, bearing: float32) =
-        if bearing = this.Bearing && radius = this.Radius then
+    member this.SetParameters(center: Point, radius: float32, newBearing: float32) =
+        if newBearing = bearing && radius = this.Radius then
             let shift = center - this.Center
             this.Center <- center
             if not this.BoundingBox.IsEmpty then
@@ -78,10 +83,8 @@ type CircleSectorCollider(parent: IDworkinAgentState option, center: Point, radi
             if not r1.IsZero then r1 <- r1 + shift
             if not r2.IsZero then r2 <- r2 + shift
         else
-            this.Center <- center
-            this.Radius <- radius
-            this.Bearing <- bearing
-            this.FlushCache()
+            bearing <- newBearing
+            this.SetCenterAndRadius(center, radius)
      
     override this.FlushCache() =
         base.FlushCache();
