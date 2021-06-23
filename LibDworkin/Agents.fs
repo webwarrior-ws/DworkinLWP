@@ -342,7 +342,9 @@ type SpawnOptions() =
                 | Some(parent) -> parent.Direction.Rotate(this.Angle * parent.FlipFactor) 
                 | None -> Point(0.0f, -1.0f).Rotate(this.Angle)
         and set(point: Point) =
-            direction <- Nullable(point)
+            let mutable p = point
+            p.Normalize()
+            direction <- Nullable(p)
 
     member this.OffsetToEdge =
         match this.Parent with 
@@ -525,7 +527,6 @@ let performAction (action : DworkinAgent -> unit) (agent : Agent) : unit =
 
 type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     inherit MovingAgent()
-    (* #paint *)
     let mutable speed = Nullable<float32>()
     let mutable curvature = Nullable<float32>()
     let mutable thickness = Nullable<float32>()

@@ -156,8 +156,8 @@ type MovingAgent() =
     member this.Direction 
         with get() : Point = direction
         and set(dir : Point) =
+            // precondition: dir is normalized
             direction <- dir
-            direction.Normalize()
     
     abstract member Speed : float32 with get, set
     default this.Speed 
