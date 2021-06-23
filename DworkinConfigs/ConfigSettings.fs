@@ -118,17 +118,17 @@ type Maze() =
         config :> EnvironmentConfig
 
 
-type FlowingLeavesExperiment() =
+type FlowingLeaves() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
-    static do Settings.RegisterClass<FlowingLeavesExperiment>()
+    static do Settings.RegisterClass<FlowingLeaves>()
 
-    [<FloatRange(1.0f, 2.0f, Step=0.05f)>]
-    member val Scale = Defined(1.5f) with get, set
+    [<FloatRange(1.5f, 3.0f, Step=0.05f)>]
+    member val Scale = Defined(2.0f) with get, set
 
-    [<FloatRange(0.5f, 2.0f, Step=0.05f)>]
+    [<FloatRange(0.5f, 1.5f, Step=0.05f)>]
     member val Density = Defined(1.0f) with get, set
 
-    [<FloatRange(0.0f, 1.0f, Step=0.05f)>]
+    [<FloatRange(0.0f, 0.75f, Step=0.05f)>]
     member val ScaleVariance = Defined(0.0f) with get, set
     
     [<FloatRange(0.0f, 2.0f, Step=0.1f)>]
@@ -452,7 +452,7 @@ let allEnvironmentSettingsTypes =
         typeof<MagneticSpiralsBunch>; 
         typeof<PCB_RandomPosChips>; 
         typeof<Maze>; 
-        typeof<FlowingLeavesExperiment>; 
+        typeof<FlowingLeaves>; 
         typeof<Vine>;
         typeof<FloralSwirls>;
     |]
