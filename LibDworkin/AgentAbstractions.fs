@@ -190,7 +190,6 @@ type Environment(bounds : Rectangle) =
     member this.Bounds = bounds
 
     abstract member Random : System.Random
-    abstract member Paint : OpenTK.Graphics.Color4
 
     member this.NextId =
         currId <- currId + 1

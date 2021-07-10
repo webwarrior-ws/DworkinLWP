@@ -798,8 +798,6 @@ type DworkinEnvironment(bounds, randomSeed : int) =
     
     override this.HasActiveAgents =
         this.ActiveAgentsCount > 0
-    
-    override this.Paint = OpenTK.Graphics.Color4.White // ?? is it needed?
 
     override this.Step() =
         this.StepAgents()
