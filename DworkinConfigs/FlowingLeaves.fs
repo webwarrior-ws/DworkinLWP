@@ -32,7 +32,7 @@ module SpawnConfig =
          member val Steps = 3 with get, set
          member val MaxLength = 80.0f with get, set
          member val MinLength = 20.0f with get, set
-         member val Delay = 50 with get, set
+         member val Delay = 15 with get, set
          member val ScaleRange = NumberRange(1.0f, 2.0f) with get, set
          member val BaseSpeed = 1.0f with get, set
 
@@ -92,7 +92,8 @@ module SpawnConfig =
                                  let probeData = agent.LaunchProbe(config, spawnOptions, agentBlock)
                                  if probeData.ReachedEnd then
                                      probeData.SpawnColliders()
-                                     spawnOptions.DelayBy(agent.Random.NextFloat() * (float32 this.Delay) |> int)
+                                     let minDelay = agent.DworkinEnvironment.AgentsCount * (this.Delay / 5)
+                                     spawnOptions.DelayBy(agent.Random.NextFloat() * float32(this.Delay + minDelay) |> int)
                                      yield agent.Spawn(config, 
                                                        spawnOptions, 
                                                        fun a -> 
