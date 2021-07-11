@@ -827,27 +827,37 @@ module internal BlockingQueue =
 
 [<AbstractClass>]
 type AbstractEnvironmentStepper() =
-    abstract member Environment : Agents.DworkinEnvironment with set 
+    abstract member Environment : Agents.DworkinEnvironment with set
+    default this.Environment 
+        with set(env) = this.EnvironmentHolder <- Some(env)
     abstract member HasMore : bool
     abstract member FetchShapesForNextStep : unit -> AgentAbstractions.ShapeAndPaint[]
+
+    member val internal EnvironmentHolder : Agents.DworkinEnvironment option = None with get, set
+
+    member this.SpeedFactor 
+        with get() : float32 =
+            match this.EnvironmentHolder with
+            | Some(env) -> env.SpeedFactor
+            | None -> 1.0f
+        and set(value : float32) = 
+            match this.EnvironmentHolder with
+            | Some(env) -> env.SpeedFactor <- value
+            | None -> ()
 
 
 type SimpleEnvironmentStepper() =
     inherit AbstractEnvironmentStepper()
-    let mutable environment : Agents.DworkinEnvironment option = None
-
-    override this.Environment 
-        with set(env) = environment <- Some(env)
 
     override this.HasMore = 
-        match environment with
+        match this.EnvironmentHolder with
         | Some(env) -> env.HasAgents
         | None -> false
     
     override this.FetchShapesForNextStep() =
         let mutable shapes = [||]
         for _ in TimeSamplers.Environment.Measure() do
-            shapes <- environment.Value.Step()
+            shapes <- this.EnvironmentHolder.Value.Step()
         shapes
 
 
@@ -885,6 +895,7 @@ type AsyncEnvironmentStepper() =
     
     override this.Environment
         with set(env) =  
+            base.Environment <- env
             // empty queue and start
             isStopped := true
             if not <| isNull cancelTokenSource then

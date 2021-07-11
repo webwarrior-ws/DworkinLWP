@@ -327,6 +327,8 @@ module CurrentSettings =
     let get() : SettingsHolder = currSettings.Value
     let set(value : SettingsHolder) = currSettings <- Some(value)
     let isSet() = currSettings.IsSome
+
+    let mutable speedFactor = 1.0f
     
 #if __ANDROID__
     // save/load
@@ -339,6 +341,7 @@ module CurrentSettings =
         | Some(settings) ->
             let json = JsonObject()
             json.["settingsHolder"] <- Serialization.toJsonValue(settings)
+            json.["speedFactor"] <- Serialization.(!>) speedFactor
             for action in saveHooks do action context json
             use ostream = new System.IO.FileStream(filePath, System.IO.FileMode.Create)
             json.Save(ostream)
@@ -354,6 +357,7 @@ module CurrentSettings =
                 let settings : SettingsHolder = Serialization.fromJsonValue(json.["settingsHolder"])
                 for action in loadHooks do action context json
                 currSettings <- Some(settings)
+                speedFactor <- Serialization.(!>) json.["speedFactor"]
             with | e ->
 #if DEBUG
                 raise e

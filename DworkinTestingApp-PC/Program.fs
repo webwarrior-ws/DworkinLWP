@@ -180,13 +180,19 @@ let configGui  =
                     ];
                 EnvironmentSettingsEditor("Floral Swirls", ConfigSettings.FloralSwirls());
             ]
-    let speedControl = 
+    let speedFactorControl =
+        Builders.floatSliderEditor 
+            "Speed factor" 
+            ((fun () -> CurrentSettings.speedFactor), (fun value () -> CurrentSettings.speedFactor <- value)) 
+            0.25f 1.0f 0.05f
+    speedFactorControl.ConfigRef <- ref ()
+    let stepsPerFrameControl = 
         Builders.radioButtonEditor 
             "Steps/frame" 
             ((fun (r : DworkinRenderer) -> r.StepsPerFrame), (fun (value : int) (r : DworkinRenderer) -> r.StepsPerFrame <- value; r))
             [ 1; 2; 5; 20 ]
-    speedControl.ConfigRef <- ref renderer
-    Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Left) 0.65 guiWidth [ configChooser; speedControl ]
+    stepsPerFrameControl.ConfigRef <- ref renderer
+    Builders.window (Gwen.Pos.Top ||| Gwen.Pos.Left) 0.65 guiWidth [ configChooser; speedFactorControl; stepsPerFrameControl ]
 
 let effectGui = 
     Builders.chooser

@@ -364,6 +364,7 @@ module Widgets =
             IntNumberboxPropertyEditor<EnvironmentSettingsEditor<'TSettings>>("Seed", 
                                                                                 ((fun e -> e.RandomSeed), 
                                                                                  (fun v e -> e.RandomSeed <- v; this.Changed := true; e)))
+        
         member val RandomSeed = 42 with get, set
 
         override this.Initialize(panel : Base) =

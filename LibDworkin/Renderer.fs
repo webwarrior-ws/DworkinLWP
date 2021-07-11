@@ -686,6 +686,9 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
 
             this.ResetStencil()
 
+        if this.EnvironmentStepper.SpeedFactor <> CurrentSettings.speedFactor then
+            this.EnvironmentStepper.SpeedFactor <- CurrentSettings.speedFactor
+
     override this.ResetEnvironment(dimensions : Point) =
         framesAfterStop <- 0
         this.ClearSDF()

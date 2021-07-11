@@ -15,10 +15,21 @@ type OverallSettingsFragment() =
     inherit Android.Support.V4.App.Fragment()
     
     let mutable seedDisplay : EditText = null
+    let mutable speedFactorSlider : SeekBar = null
+
+    static let minSpeedFactor = 0.25f
+    static let maxSpeedFactor = 1.0f
     
-    member this.SetRandomSeed(newSeed : int) =
+    member private this.SetRandomSeed(newSeed : int) =
         let oldSettings = CurrentSettings.get()
         CurrentSettings.set({ oldSettings with Seed=newSeed })
+
+    member private this.SetSpeedFactor(progress : int) =
+        CurrentSettings.speedFactor <- LibDworkin.Geometry.lerp minSpeedFactor maxSpeedFactor (float32(progress) / 100.0f)
+
+    member private this.UpdateSpeedFactorSlider() =
+        speedFactorSlider.Progress <- 
+            (CurrentSettings.speedFactor - minSpeedFactor) / (maxSpeedFactor - minSpeedFactor) * 100.0f |> round |> int
 
     override this.OnCreateView(inflater, container, bundle) = 
         let view = inflater.Inflate(Resources.Layout.OverallSettingsFragment, container)
@@ -30,6 +41,9 @@ type OverallSettingsFragment() =
             let nextSeed : int = System.Random().Next()
             seedDisplay.Text <- string nextSeed //this.SetRandomSeed() is called here beacuse text is changed 
         )
+        speedFactorSlider <- view.FindViewById<SeekBar>(Resources.Id.speed_display)
+        this.UpdateSpeedFactorSlider()
+        speedFactorSlider.ProgressChanged.Add(fun args -> this.SetSpeedFactor(args.Progress))
         view
         
     override this.OnResume() =
@@ -37,6 +51,7 @@ type OverallSettingsFragment() =
         let seedString = CurrentSettings.get().Seed |> string
         if seedDisplay.Text <> seedString then
             seedDisplay.Text <- seedString
+        this.UpdateSpeedFactorSlider()
 
 
 type PatternSettingsFragment() =

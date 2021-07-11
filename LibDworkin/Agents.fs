@@ -568,7 +568,8 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     override this.Speed
         with get() : float32 = 
             if not speed.HasValue then
-               speed <- Nullable(config.Speed.Evaluate(this) * this.LengthFactor)
+               let speedFactor = match this.Environment with | Some(env) -> env.SpeedFactor | None -> 1.0f
+               speed <- Nullable(config.Speed.Evaluate(this) * this.LengthFactor * speedFactor)
             speed.Value
         and set(aNumber : float32) =
             speed <- Nullable(aNumber * this.LengthFactor)

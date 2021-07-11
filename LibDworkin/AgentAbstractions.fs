@@ -189,6 +189,8 @@ type Environment(bounds : Rectangle) =
     member this.Age = age
     member this.Bounds = bounds
 
+    member val SpeedFactor = 1.0f with get, set
+
     abstract member Random : System.Random
 
     member this.NextId =
