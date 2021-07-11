@@ -141,7 +141,6 @@ let configGui  =
                         Builders.floatSliderEditor "LeafThickness" FlowingLeaves_WIP.LeafThickness_ 2.5f 10.0f 0.5f;
                         Builders.floatSliderEditor "LeafLength" FlowingLeaves_WIP.LeafLength_ 40.0f 90.0f 5.0f;
                         Builders.floatSliderEditor "LeafShape" FlowingLeaves_WIP.LeafShape_ 0.5f 0.8f 0.05f;
-                        Builders.floatSliderEditor "Speed" FlowingLeaves_WIP.Speed_ 0.25f 1.0f 0.05f;
                         Builders.floatSliderEditor "Brush Smoothness" (FlowingLeaves_WIP.AgentConfig_ >-> LibDworkin.Agents.DworkinAgentConfig.Brush_  >-> Lenses.cast<LibDworkin.Agents.BrushStrategy, LibDworkin.Configs.BrushStrategySolidSmoother> >-> LibDworkin.Configs.BrushStrategySolidSmoother.Smoothness_) 1.0f 5.0f 0.5f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<FlowingLeaves_WIP>;
                     ];
@@ -175,7 +174,6 @@ let configGui  =
                               Vine.BranchingCustom._2BranchIndLeafByScale_vines() :> Agents.BranchingStrategy, "2BranchIndLeafByScale_vines";
                               Vine.BranchingCustom._2BranchIndLeafWithStem_vines :> Agents.BranchingStrategy, "2BranchIndLeafWithStem_vines" ];
                         Builders.floatSliderEditor "Scale" Vine.Vines.Scale_ 1.0f 2.5f 0.1f;
-                        Builders.floatSliderEditor "Speed" Vine.Vines.Speed_ 0.25f 1.0f 0.05f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<Vine.Vines>;
                     ];
                 EnvironmentSettingsEditor("Floral Swirls", ConfigSettings.FloralSwirls());

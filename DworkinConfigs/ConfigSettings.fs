@@ -81,9 +81,6 @@ type Maze() =
     [<FloatRange(0.5f, 1.5f)>]
     member val Scale = Defined(1.0f) with get, set
 
-    [<FloatRange(0.5f, 3.0f)>]
-    member val Speed = Defined(1.0f) with get, set
-
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
@@ -100,7 +97,7 @@ type Maze() =
 
         let mutable agentConfig = 
             agentConfig 
-            |> Optic.set (speed_ >-> magnitude_) (getValue <@ this.Speed @>)
+            |> Optic.set (speed_ >-> magnitude_) 3.0f
             |> Optic.map (thickness_ >-> cast<_, ThicknessFormula.Constant> >-> c_) (fun c -> c * (getValue <@ this.WallThickness @>))
         if getValue <@ this.Curvy @> then
             agentConfig <- agentConfig |> Optic.set (curvature_) (CurvatureFormula.SNoise(A=0.075f, B=5.0f, D=0.61f))
@@ -143,9 +140,6 @@ type FlowingLeaves() =
     [<FloatRange(0.5f, 0.8f, Step=0.05f)>]
     member val LeafShape = Defined(0.5f) with get, set
 
-    [<FloatRange(0.25f, 1.0f, Step=0.05f)>]
-    member val Speed = Defined(0.5f) with get, set
-
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
@@ -158,7 +152,7 @@ type FlowingLeaves() =
             LeafThickness=getValue <@ this.LeafThickness @>,
             LeafLength=getValue <@ this.LeafLength @>,
             LeafShape=getValue <@ this.LeafShape @>,
-            Speed=getValue <@ this.Speed @>) 
+            Speed=1.0f) 
         :> EnvironmentConfig
 
 
@@ -210,9 +204,6 @@ type Vine() =
     
     [<FloatRange(1.5f, 2.5f, Step=0.1f)>]
     member val Scale = Defined(1.5f) with get, set
-
-    [<FloatRange(0.25f, 1.0f, Step=0.05f)>]
-    member val Speed = Defined(1.0f) with get, set
 
     override this.Build(seed) = 
         let random = System.Random(seed)
@@ -298,7 +289,7 @@ type Vine() =
             | VineLeafType.Curved1  -> [| Vine.BranchingCriterionBased.leavesProbesCurved1_vines |]
         
         Vine.Vines(AgentConfig=vineConfig, Alpha=alpha, Angle=angle, Sides=sides, Corners=corner, 
-                   Scale=getValue <@ this.Scale @>, Speed=getValue <@ this.Speed @>) 
+                   Scale=getValue <@ this.Scale @>, Speed=1.0f) 
             |> Optic.set (Vine.Vines.LeafStrategy_ >-> Vine.DworkinEnvironmentConfigCustom.Vines.LeafStrategy.Strategies_) leafStrategies
             :> LibDworkin.Configs.DworkinEnvironmentConfig
 
