@@ -657,12 +657,16 @@ module SpawnConfig =
                             |> Optic.set (curvature_ >-> cast<_, CurvatureFormula.DiminishingSpiral> >-> alpha_) alpha
                             |> this.GetModifiedAgentConfig agent alpha
                         let probeData = 
+                            let agentSpeed =
+                                match this.AgentConfig.Speed with
+                                | :? AgentSpeedConstant as s -> s.Magnitude
+                                | _ -> 1.0f
                             agent.LaunchProbe(
                                 config, 
                                 ProbeSpawnOptions(
                                     AngleDeg=float32 this.Angle, 
                                     OffsetSideways=float32(this.Offset * (sign agent.Curvature)),
-                                    StepsBetweenCollisionCheck = int(floor (this.AgentConfig.TerminationConditions.Collision.Value.PrimaryDetector.Distance))), 
+                                    StepsBetweenCollisionCheck = int(floor(this.AgentConfig.TerminationConditions.Collision.Value.PrimaryDetector.Distance / agentSpeed))), 
                                 agentBlock)
                         match probeData.Collision with
                         | Some(value) -> ()
