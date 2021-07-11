@@ -527,9 +527,9 @@ let performAction (action : DworkinAgent -> unit) (agent : Agent) : unit =
 
 type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
     inherit MovingAgent()
-    let mutable speed = Nullable<float32>()
-    let mutable curvature = Nullable<float32>()
-    let mutable thickness = Nullable<float32>()
+    let mutable speed = nanf
+    let mutable curvature = nanf
+    let mutable thickness = nanf
     let mutable flipFactor = 1.0f
     // readonly (initailized once, then only read):
     let mutable brush : Brush = null
@@ -556,23 +556,23 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         attributes
 
     member this.Curvature = 
-        if not curvature.HasValue then
-            curvature <- Nullable(config.Curvature.Evaluate(this) * this.FlipFactor / this.LengthFactor)
-        curvature.Value
+        if Single.IsNaN curvature then
+            curvature <- config.Curvature.Evaluate(this) * this.FlipFactor / this.LengthFactor
+        curvature
     
     member this.Thickness = 
-        if not thickness.HasValue then
-            thickness <- Nullable(config.Thickness.Evaluate(this) * this.ThicknessFactor)
-        thickness.Value
+        if Single.IsNaN thickness then
+            thickness <- config.Thickness.Evaluate(this) * this.ThicknessFactor
+        thickness
     
     override this.Speed
         with get() : float32 = 
-            if not speed.HasValue then
+            if Single.IsNaN speed then
                let speedFactor = match this.Environment with | Some(env) -> env.SpeedFactor | None -> 1.0f
-               speed <- Nullable(config.Speed.Evaluate(this) * this.LengthFactor * speedFactor)
-            speed.Value
+               speed <- config.Speed.Evaluate(this) * this.LengthFactor * speedFactor
+            speed
         and set(aNumber : float32) =
-            speed <- Nullable(aNumber * this.LengthFactor)
+            speed <- aNumber * this.LengthFactor
         
     member this.Parent 
         with get() = parent
@@ -664,9 +664,9 @@ type DworkinAgent(config: DworkinAgentConfig, randomSeed : int) =
         DworkinAgentFootprint(this) :> IDworkinAgentState
 
     member this.ResetCache() =
-        speed <- Nullable()
-        curvature <- Nullable()
-        thickness <- Nullable()
+        speed <- nanf
+        curvature <- nanf
+        thickness <- nanf
         this.Collision <- None
 
     member this.ScaleBy(s : Point) =
