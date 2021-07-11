@@ -157,7 +157,7 @@ module DworkinAgentConfig =
                         SelfIntersection=false)
                     |> Optic.set (primaryDetector_ >-> angle_) 120.0f
                     |> Optic.set (primaryDetector_ >-> distance_) 15.0f);
-                Curvature=Some(TerminationConditionCurvature(MaxCurvature=0.5f));
+                Curvature=Some(TerminationConditionCurvature(MaxCurvature=0.35f));
                 Distance=Some(TerminationConditionDistance())
              };
             Thickness=ThicknessFormula.DecLinear(A=5.0f,P=0.5f)

@@ -39,7 +39,7 @@ module BranchingCriterionBased =
                 |> Optic.set colliderOptions_ (ColliderOptionsGeneral())
                 |> Optic.set terminationConditions_ { 
                     Collision=Some(TerminationConditionCollision(IgnoreParent=true,SelfIntersection=false) |> Optic.set (primaryDetector_ >-> distance_) 2.0f);
-                    Curvature=None;
+                    Curvature=Some(TerminationConditionCurvature(MaxCurvature=0.35f));
                     Distance=Some(TerminationConditionDistance.Instance)
                  }
                  |> Optic.set brush_ (BrushStrategySolidSmoother()) with get, set
@@ -70,6 +70,7 @@ module BranchingCriterionBased =
                         for scale in Seq.rev scaleValues do
                             match angles with
                             | NotEmpty(value) -> 
+                                let scaleFactor = Point((agent.LengthFactor / agent.ThicknessFactor * scale) ** 0.75f, scale)
                                 for phi in angles.ToArray() do
                                     let agentBlock (a :DworkinAgent) = 
                                         if (sign phi) < 0 then a.Flip()
@@ -85,7 +86,7 @@ module BranchingCriterionBased =
                                             spawnBlock, 
                                             fun a ->
                                                 agentBlock a
-                                                a.ScaleBy(Point(1.0f, scale)))
+                                                a.ScaleBy(scaleFactor))
                                     match probeData.Collision with
                                     | Some(_) -> ()
                                     | None -> 
@@ -95,7 +96,7 @@ module BranchingCriterionBased =
                                             spawnBlock, 
                                             fun a ->
                                                 agentBlock a
-                                                a.ScaleBy(Point(1.0f, scale))
+                                                a.ScaleBy(scaleFactor)
                                                 a.NoCollisions <- true
                                                 probeData.Id <- a.Id
                                                 probeData.SpawnColliders())
@@ -300,11 +301,11 @@ module BranchingMultivariant =
                         TerminationConditionCollision(DetectorSize=DetectorSize.Absolute,MinDistance=15.0f,SelfIntersection=false)
                         |> Optic.set (primaryDetector_ >-> angle_) 120.0f
                         |> Optic.set (primaryDetector_ >-> distance_) 4.0f);
-                    Curvature=None;
-                    Distance=Some(TerminationConditionDistance())
+                    Curvature=Some(TerminationConditionCurvature(MaxCurvature=0.35f));
+                    Distance=Some(TerminationConditionDistance.Instance)
                  }
                 |> Optic.set thickness_ (ThicknessFormula.DecLinear(A=3.0f,P=0.4f)) 
-                |> Optic.set brush_ (BrushStrategySolid(AlignWithParent=true)) with get, set
+                |> Optic.set brush_ (BrushStrategySolid(AlignWithParent=true, Cap=BrushCap.Round)) with get, set
             member val Offset = 0.0f with get, set
             member val Levels = NumberRange(1.0f, 8.0f) with get, set
             
@@ -1205,7 +1206,7 @@ type MagneticSpiralsBunchFromEdge() =
     member val Angle = 30 with get, set
     member val AgentConfig = DworkinAgentConfig.swirlMagnetic 
                              |> Optic.set speed_ (AgentSpeedConstant(Magnitude=2.0f))
-                             |> Optic.set brush_ (BrushStrategySolidSmoother()) with get, set
+                             |> Optic.set brush_ (BrushStrategySolidSmoother(Smoothness=2.0f)) with get, set
     member val FlipFactors = [| 1 |] with get, set
     member val LargeSwirls : BranchingStrategy[] = [| |] with get, set
     member val N = 3 with get, set
