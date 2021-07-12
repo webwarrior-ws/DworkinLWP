@@ -78,19 +78,6 @@ type BrushStrategySolid() =
     override this.GetBrushFor(anAgent) =
         BrushSolid(Cap=this.Cap, AlignWithParent=this.AlignWithParent) :> Brush
 
-    
-type BrushStrategySolidJoint() = 
-    inherit BrushStrategy()
-    member val JointType : BrushJoint = BrushJoint.Miter with get, set
-
-    member this.Clone() = this.MemberwiseClone() :?> BrushStrategySolidJoint
-
-    static member JointType_ : Lens<BrushStrategySolidJoint, BrushJoint> = 
-        (fun x -> x.JointType), (fun value x -> let y = x.Clone() in y.JointType <- value; y)
-
-    override this.GetBrushFor(anAgent) =
-        BrushSolidJoint(JointType=this.JointType) :> Brush
-
 
 type BrushStrategySolidSmoother() =
     inherit BrushStrategy()

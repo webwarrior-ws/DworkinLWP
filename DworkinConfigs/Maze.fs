@@ -49,7 +49,6 @@ module SpawnConfig =
                     |> Optic.set 
                         (termination_ >-> TerminationSpawn.SpawnConfig_ >-> cast<_, StraightMazeRandomAngle> >-> angle_) 
                         (this.PossibleAngles.AtRandom(agent.Random))
-                    |> Optic.set brush_ (BrushStrategySolidJoint(JointType=if this.Angle <= 90 then BrushJoint.Miter else BrushJoint.Bevel))
                     |> Optic.set 
                         (curvature_ >-> tryCast<_, CurvatureFormula.SNoise> >?> d_) 
                         (agent.Random.NextFloat() * 10.0f)
@@ -63,21 +62,24 @@ module SpawnConfig =
                 if Option.isNone probeData.Collision then
                     let delay = (round (agent.Config.TotalDistance / agent.Speed)) * float32(i-1) |> int
                     let spawnOptions = AgentSpawnOptions(AngleDeg=float32 phi)
-                    spawnOptions.DelayBy(delay)
+                    let numSteps = int(agent.Thickness / agent.Speed) |> max 1
+                    if phi <> 0 then
+                        let jointType = if this.Angle <= 90 then Util.JointType.Miter else Util.JointType.Bevel
+                        Util.drawJoint(agent, agent.Direction.Rotate(deg2rad(float32 phi) * agent.FlipFactor), jointType, numSteps, delay)
+                    spawnOptions.DelayBy(if phi <> 0 then delay + numSteps else delay)
                     probeData.SpawnColliders()
                     agent.Spawn(
                         config, 
                         spawnOptions, 
                         fun a -> 
-                            a.NoCollisions <- true
-                            a.Attributes.DrawJoint.Set(true))
+                            a.NoCollisions <- true)
                     i <- i + 1
 
 
 module DworkinAgentConfig =
     let straightMazeRandomAngle_v2 = 
         { DworkinAgentConfig.Default with 
-            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Miter);
+            Brush=BrushStrategySolid();
             ColliderOptions=ColliderOptionsGeneral(Strategy=ColliderStrategySegments());
             Speed=AgentSpeedConstant();
             Termination=TerminationSpawn(SpawnConfig=SpawnConfig.StraightMazeRandomAngle());
@@ -104,7 +106,7 @@ module DworkinAgentConfig =
 
     let straightMazeRandomAngle_v1 = 
         { straightMazeRandomAngle_v2 with 
-            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Bevel);
+            Brush=BrushStrategySolid();
             Termination=
                 TerminationSpawn(
                     SpawnConfig=SpawnConfig.StraightMazeRandomAngle(P=0.5f, PossibleAngles=[| 135; 90; 45; 0 |], CollisionAccuracy=5)
@@ -124,7 +126,7 @@ module DworkinAgentConfig =
 
     let straightMazeRandomAngle_v5 = 
         { straightMazeRandomAngle_v2 with 
-            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Bevel);
+            Brush=BrushStrategySolid();
             Termination=
                 TerminationSpawn(
                     SpawnConfig=SpawnConfig.StraightMazeRandomAngle(Angle=60, PossibleAngles=[| 60; 120; 0 |], CollisionAccuracy=5)
@@ -136,7 +138,7 @@ module DworkinAgentConfig =
 
     let straightMazeRandomAngle_v6 = 
         { straightMazeRandomAngle_v2 with 
-            Brush=BrushStrategySolidJoint(JointType=BrushJoint.Bevel);
+            Brush=BrushStrategySolid();
             Termination=
                 TerminationSpawn(
                     SpawnConfig=

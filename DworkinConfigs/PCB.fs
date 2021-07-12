@@ -185,11 +185,15 @@ module SpawnConfig =
                     | Some(p) when ((abs (min (agent.Direction.AngleWith(p.Direction)) (p.Direction.AngleWith(agent.Direction)))) > Single.HalfPi) ->
                         this.TerminalConfig.Evaluate(agent)
                     | Some(p) ->
+                        let spawnOptions = AgentSpawnOptions(Direction=p.Direction)
+                        if angle <> 0.0f then
+                            let numSteps = int(agent.Thickness / agent.Speed) |> max 1
+                            Util.drawJoint(agent, p.Direction, Util.JointType.Bevel, numSteps, 0)
+                            spawnOptions.DelayBy(numSteps)
                         agent.Spawn(
                             agent.Config, 
-                            AgentSpawnOptions(Direction=p.Direction), 
+                            spawnOptions, 
                             fun a -> 
-                                a.Attributes.DrawJoint.Set(true)
                                 match a.Config.TerminationConditions.Collision with
                                 | Some cond -> 
                                     if cond.Evaluate(a) then
@@ -197,11 +201,15 @@ module SpawnConfig =
                                         a.Delete()
                                 | None -> ())
                 | None -> 
+                    let spawnOptions = AgentSpawnOptions(AngleDeg=angle)
+                    if angle <> 0.0f then
+                        let numSteps = int(agent.Thickness / agent.Speed) |> max 1
+                        Util.drawJoint(agent, agent.Direction.Rotate(deg2rad(angle) * agent.FlipFactor), Util.JointType.Bevel, numSteps, 0)
+                        spawnOptions.DelayBy(numSteps)
                     agent.Spawn(
                         config, 
-                        AgentSpawnOptions(AngleDeg=angle), 
+                        spawnOptions, 
                         fun a -> 
-                            a.Attributes.DrawJoint.Set(true)
                             if (angle <> 0.0f) && (agent.Random.NextFloat() < this.FlipProbability) then
                                 a.Flip())
 
@@ -375,7 +383,7 @@ module SpawnConfig =
 type PCB_RandomPosChips() = 
     inherit DworkinEnvironmentConfigCustom()
     member val Angle = 0.0f with get, set
-    member val AgentConfig = SpawnConfig.PCBTracesFromChip() |> Optic.set (groupConfig_ >-> config_ >-> brush_) (BrushStrategySolidJoint()) with get, set
+    member val AgentConfig = SpawnConfig.PCBTracesFromChip() with get, set
     member val NxRange = NumberRange(2.0f, 8.0f) with get, set
     member val NyRange = NumberRange(4.0f, 8.0f) with get, set
     member val ThicknessVariance = 0.0f with get, set

@@ -28,8 +28,7 @@ module Presets =
                 | None -> 
                     agent.Spawn(
                         agent.Config |> Optic.map totalDistance_ (fun x -> x - this.Gap), 
-                        AgentSpawnOptions(AngleDeg=this.Angle), 
-                        fun a -> a.Attributes.DrawJoint.Set(true))
+                        AgentSpawnOptions(AngleDeg=this.Angle))
                 | Some(_) -> ()
     
 
@@ -82,15 +81,6 @@ let brushesAndSpeedsTest : IDworkinEnvironmentConfig =
         DworkinAgentConfig.Default
         |> Optic.set brush_ (BrushStrategySolid(Cap=BrushCap.Round))
         |> Optic.set speed_ (AgentSpeedScaleAdaptive())
-    let agent_SolidWithJoint =
-        DworkinAgentConfig.Default
-        |> Optic.set termination_ (TerminationCustom.Spiral())
-    let agent_SolidWithJoint_Triangle =
-        agent_SolidWithJoint 
-        |> Optic.set brush_ (BrushStrategySolidJoint())
-    let agent_SolidWithJoint_Quad =
-        agent_SolidWithJoint 
-        |> Optic.set brush_ (BrushStrategySolidJoint(JointType=BrushJoint.Bevel))
     let agent_Circles_Thickness =
         DworkinAgentConfig.Default 
         |> Optic.set brush_ (BrushStrategyCircles())
@@ -103,30 +93,9 @@ let brushesAndSpeedsTest : IDworkinEnvironmentConfig =
             let bottomY = size.Y * 0.67f
 
             let scale (agent : DworkinAgent) = agent.ScaleBy(Point(10.0f, 1.5f))
-            let setDrawJointAndScale (agent : DworkinAgent) = 
-                scale agent
-                agent.Attributes.DrawJoint.Set(true)
 
             env.Spawn(agent_Solid_Adaptive, AgentSpawnOptions(Position=Point(0.1f * size.X, topY)), scale) |> ignore
             env.Spawn(agent_Circles_Thickness, AgentSpawnOptions(Position=Point(0.2f * size.X, topY)), fun a -> a.ScaleBy(Point(15.0f, 2.0f))) |> ignore
-
-            // flipFactor=1, turn left
-            env.Spawn(agent_SolidWithJoint_Triangle, AgentSpawnOptions(Position=Point(0.55f * size.X, topY)), setDrawJointAndScale) |> ignore
-            env.Spawn(agent_SolidWithJoint_Quad, AgentSpawnOptions(Position=Point(0.9f * size.X, topY)), setDrawJointAndScale) |> ignore
-
-            // flipFactor=-1, turn left
-            let flipAndRest agent =
-                setDrawJointAndScale agent
-                agent.Flip()
-            env.Spawn(agent_SolidWithJoint_Triangle, AgentSpawnOptions(Position=Point(0.05f * size.X, bottomY)), flipAndRest) |> ignore
-            env.Spawn(agent_SolidWithJoint_Quad, AgentSpawnOptions(Position=Point(0.3f * size.X, bottomY)), flipAndRest) |> ignore
-
-            // flipFactor=1, turn right, angle = 60 degrees
-            let turnRight (config : DworkinAgentConfig) =
-                config  
-                |> Optic.set termination_ (TerminationCustom.Spiral(Angle= -60.0f))
-            env.Spawn(turnRight agent_SolidWithJoint_Triangle, AgentSpawnOptions(Position=Point(0.55f * size.X, bottomY)), setDrawJointAndScale) |> ignore
-            env.Spawn(turnRight agent_SolidWithJoint_Quad, AgentSpawnOptions(Position=Point(0.75f * size.X, bottomY)), setDrawJointAndScale) |> ignore
 
             env }
             

@@ -97,9 +97,6 @@ let collision_ = TerminationConditions.Collision_
 let cap_ = BrushStrategySolid.Cap_
 let alignWithParent_ = BrushStrategySolid.AlignWithParent_ 
 
-// BrushStrategySolidJoint
-let jointType_ = BrushStrategySolidJoint.JointType_
-
 // ColliderStrategyCircles
 // offset - generic
 let density_ = ColliderStrategyCircles.Density_

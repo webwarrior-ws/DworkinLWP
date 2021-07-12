@@ -482,7 +482,6 @@ type AttributesStore() =
     member val BranchMarks = Dictionary<int, IDictionary<int, BranchMarkList>>()
     member val Detectors = Dictionary<int, OneOrTwo<CircleSectorCollider>>()
     member val LastCollider = Dictionary<int, Collider>()
-    member val DrawJoint = Dictionary<int, bool>()
     member val CanBranch = Dictionary<int, bool>()
     member val BranchInterval = Dictionary<int, NumberRange>()
     member val BranchOffset = Dictionary<int, float32>()
@@ -501,7 +500,6 @@ type Attributes(store: AttributesStore, id : int) =
     member this.BranchMarks = AttributeAccessor(store.BranchMarks, id)
     member this.Detectors = AttributeAccessor(store.Detectors, id)
     member this.LastCollider = AttributeAccessor(store.LastCollider, id)
-    member this.DrawJoint = AttributeAccessor(store.DrawJoint, id)
     member this.CanBranch = AttributeAccessor(store.CanBranch, id)
     member this.BranchInterval = AttributeAccessor(store.BranchInterval, id)
     member this.BranchOffset = AttributeAccessor(store.BranchOffset, id)
@@ -897,16 +895,34 @@ type GrowingShapeDrawingAgent(shape: Shape, origin: Point, numSteps: int) =
     inherit Agent()
     let mutable step = 1
 
+    abstract GetCurrentShape : float32 -> Shape
+    default this.GetCurrentShape(t) =
+        match shape with
+        | Circle(center, radius) -> Circle(center, radius * t)
+        | Polygon(points) -> Polygon(points |> Array.map (fun pt -> lerp origin pt t))
+
     override this.LiesWithinBounds(bounds) =
         bounds.ContainsPoint origin
     
     override this.Step() =
         let t = float32(step) / float32(numSteps)
-        let currShape =
-            match shape with
-            | Circle(center, radius) -> Circle(center, radius * t)
-            | Polygon(points) -> Polygon(points |> Array.map (fun pt -> lerp origin pt t))
+        let currShape = this.GetCurrentShape(t)
         (this.Environment.Value :?> DworkinEnvironment).AddShape(currShape, ShapePaint.Default)
         if step >= numSteps then
             this.Delete()
         step <- step + 1
+
+
+type GradualTriangleDrawingAgent(p: Point, a: Point, b: Point, numSteps: int, ?delay: int) =
+    inherit GrowingShapeDrawingAgent(Polygon([| a; b |]), p, numSteps)
+    let mutable delay = defaultArg delay 0
+
+    override this.Step() =
+        if delay > 0 then
+            delay <- delay - 1 
+        else
+            base.Step()
+
+    override this.GetCurrentShape(t) =
+        let p2 = lerp a b t
+        Shape.Triangle(p, a, p2)

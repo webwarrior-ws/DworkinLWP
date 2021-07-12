@@ -14,11 +14,6 @@ type BrushCap =
     | Round
 
 
-type BrushJoint =
-    | Bevel
-    | Miter
-
-
 type BrushNone() =
     inherit Brush()
     override this.Evaluate(agent) = ()
@@ -124,57 +119,6 @@ type BrushSolid() =
         | Round -> 
             // TODO: draw half-circle
             agent.DworkinEnvironment.AddShape(Shape.Circle(agent.Position, agent.Thickness * 0.5f), ShapePaint.Default)
-
-
-type BrushSolidJoint() =
-    inherit BrushSolidBase()
-    let mutable jointDrawn = false
-    member val JointType = BrushJoint.Miter with get, set
-
-    override this.Evaluate(agent) =
-        if not jointDrawn then
-            match agent.Parent with
-            | None -> ()
-            | Some(_) when not (agent.Attributes.DrawJoint.Get() |> Option.exists id) -> ()
-            | Some(parent) ->
-                let p = parent.Position
-                let turnFactor = -(sign <| agent.Direction.Cross(parent.Direction))
-                if turnFactor <> 0 then
-                    let parentPerp = (parent.Direction.LeftRotated * parent.Thickness) * 0.5f * (float32 turnFactor)
-                    let agentPerp = (agent.Direction.LeftRotated * agent.Thickness) * 0.5f * (float32 turnFactor)
-                    let a = p + parentPerp
-                    let b = p + agentPerp
-                    let numSteps = int((parent.Thickness + agent.Thickness) / 2.0f / agent.Speed) |> max 1
-                    match this.JointType with
-                    | Bevel -> 
-                        agent.DworkinEnvironment.AddAgent(GrowingShapeDrawingAgent(Shape.Triangle(a, b, p), p, numSteps))
-                    | Miter ->
-                        let c =
-                            // find intersection between lines on which point c lies
-                            let a' = a + parentPerp.PerpendicularRight
-                            let b' = b + agentPerp.PerpendicularLeft
-
-                            let a1 = a'.Y - a.Y 
-                            let b1 = a.X - a'.X 
-                            let c1 = a1 * a.X + b1 * a.Y; 
-                            let a2 = b'.Y - b.Y
-                            let b2 = b.X - b'.X
-                            let c2 = a2 * b.X + b2 * b.Y
-
-                            let determinant = a1 * b2 - a2 * b1
-
-                            if determinant = 0.0f then 
-                                // The lines are parallel
-                                a
-                            else
-                                let x = (b2 * c1 - b1 * c2) / determinant
-                                let y = (a1 * c2 - a2 * c1) / determinant
-                                Point(x, y)
-                        
-                        agent.DworkinEnvironment.AddAgent(GrowingShapeDrawingAgent(Shape.Quad(a, c, b, p), p, numSteps))
-            jointDrawn <- true
-        
-        base.Evaluate(agent)
 
 
 type BrushSolidSmoother(smoothness) =
