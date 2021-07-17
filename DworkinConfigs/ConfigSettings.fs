@@ -59,12 +59,25 @@ type PCB_RandomPosChips() =
         :> EnvironmentConfig
 
 
+
+// Maze
+type MazeAngles =
+    | Square = 1
+    | FortyFive = 2
+    | FortyFiveSharp = 3
+    | Hexagonal = 4
+    | Qbert = 5
+    | Arbitrary = 6
+    | Arbitrary2 = 7
+
+
 type Maze() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<Maze>()
 
-    [<Enum([| "Square"; "FortyFive"; "FortyFiveSharp"; "Hexagonal"; "Qbert"; "Arbitrary"; "Arbitrary2" |])>]
-    member val Angles = Defined("Square") with get, set
+    [<Enum([| MazeAngles.Square; MazeAngles.FortyFive; MazeAngles.FortyFiveSharp; MazeAngles.Hexagonal; MazeAngles.Qbert; MazeAngles.Arbitrary; MazeAngles.Arbitrary2 |], 
+           ItemType=typeof<MazeAngles>)>]
+    member val Angles = Defined(MazeAngles.Square) with get, set
 
     [<FloatRange(0.5f, 2.0f)>]
     member val WallThickness = Defined(1.0f) with get, set
@@ -87,13 +100,13 @@ type Maze() =
 
         let agentConfig, gridSize, angleIncr =
             match getValue <@ this.Angles @> with
-            | "Square" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v2, 60, 90
-            | "FortyFive" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v3, 42, 45
-            | "FortyFiveSharp" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v1, 42, 45
-            | "Hexagonal" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v4, 52, 60
-            | "Qbert" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v5, 52, 60
-            | "Arbitrary" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v6, 15, 60
-            | "Arbitrary2" -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v7, 30, 60
+            | MazeAngles.Square -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v2, 60, 90
+            | MazeAngles.FortyFive -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v3, 42, 45
+            | MazeAngles.FortyFiveSharp -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v1, 42, 45
+            | MazeAngles.Hexagonal -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v4, 52, 60
+            | MazeAngles.Qbert -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v5, 52, 60
+            | MazeAngles.Arbitrary -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v6, 15, 60
+            | MazeAngles.Arbitrary2 -> Maze.DworkinAgentConfig.straightMazeRandomAngle_v7, 30, 60
 
         let mutable agentConfig = 
             agentConfig 
