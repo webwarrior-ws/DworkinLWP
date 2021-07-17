@@ -380,6 +380,11 @@ module SpawnConfig =
 
 
 
+type Endpoints =
+    | Hollow = 1
+    | Filled = 2
+
+
 type PCB_RandomPosChips() = 
     inherit DworkinEnvironmentConfigCustom()
     member val Angle = 0.0f with get, set
@@ -388,7 +393,7 @@ type PCB_RandomPosChips() =
     member val NyRange = NumberRange(4.0f, 8.0f) with get, set
     member val ThicknessVariance = 0.0f with get, set
     member val Density = 0.5f with get, set
-    member val Endpoints = "hollow" with get, set
+    member val Endpoints = Endpoints.Hollow with get, set
     member val Vias = false with get, set
     member val Angles = [| -45.0f |] with get, set
     member val Branch = false with get, set
@@ -467,12 +472,11 @@ type PCB_RandomPosChips() =
                 ((if this.Vias then
                     "vias"
                   else
-                    if this.Endpoints = "hollow" then
-                        "contour"
-                    else
-                        "filled"))
+                    match this.Endpoints with
+                    | Endpoints.Hollow -> "contour"
+                    | Endpoints.Filled -> "filled"))
             |> Optic.set (groupConfig_ >-> config_ >-> termination_spawnConfig_ >-> cast >-> SpawnConfig.PCBTraceLengthLimited.TerminalConfig_ >-> hollowPart_) 
-                ((if this.Endpoints = "hollow" then 0.5f else 0.0f))
+                ((match this.Endpoints with | Endpoints.Hollow -> 0.5f | Endpoints.Filled -> 0.0f))
             |> Optic.set (groupConfig_ >-> config_ >-> termination_spawnConfig_ >-> cast >-> SpawnConfig.PCBTraceLengthLimited.Angles_) this.Angles
             |> Optic.set (groupConfig_ >-> config_ >-> branching_) 
                 (if this.Branch then

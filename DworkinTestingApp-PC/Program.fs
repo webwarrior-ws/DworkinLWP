@@ -103,7 +103,7 @@ let configGui  =
                     [ 
                         Builders.floatSliderEditor "Angle" PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
                         Builders.checkboxEditor "Vias" PCB_RandomPosChips.Vias_;
-                        Builders.radioButtonEditor "Endpoints" PCB_RandomPosChips.Endpoints_ ["hollow"; "filled"];
+                        Builders.radioButtonEditor "Endpoints" PCB_RandomPosChips.Endpoints_ [Endpoints.Hollow; Endpoints.Filled];
                         Builders.checkboxEditor "Branch" PCB_RandomPosChips.Branch_;
                         Builders.checkboxEditor "Octagonal" PCB_RandomPosChips.Octagonal_;
                         Builders.dropdownListEditor "Angles" PCB_RandomPosChips.Angles_ possibleAnglesValues;
