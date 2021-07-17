@@ -62,7 +62,7 @@ module SpawnConfig =
                 if Option.isNone probeData.Collision then
                     let delay = (round (agent.Config.TotalDistance / agent.Speed)) * float32(i-1) |> int
                     let spawnOptions = AgentSpawnOptions(AngleDeg=float32 phi)
-                    let numSteps = int(agent.Thickness / agent.Speed) |> max 1
+                    let numSteps = int(agent.Thickness / agent.Speed) |> max 2
                     if phi <> 0 then
                         let jointType = if this.Angle <= 90 then Util.JointType.Miter else Util.JointType.Bevel
                         Util.drawJoint(agent, agent.Direction.Rotate(deg2rad(float32 phi) * agent.FlipFactor), jointType, numSteps, delay)
