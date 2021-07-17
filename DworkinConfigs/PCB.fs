@@ -6,6 +6,7 @@ open LibDworkin.Aether.Operators
 open LibDworkin.Geometry
 open LibDworkin.AgentAbstractions
 open LibDworkin.Agents
+open LibDworkin.Probes
 open LibDworkin.Configs
 open LibDworkin.Lenses
 open LibDworkin.SpecializedCollections
@@ -45,7 +46,7 @@ module SpawnConfig =
         member val Flip = false with get, set
         member val BranchProb = 0.75f with get, set
         member val ColliderAngle = 45.0f with get, set
-        member val ColliderSize = 10.0f with get, set
+        member val MinDistance = 20.0f with get, set
         member val Offset = 7.5f with get, set
         member val Direction = "termination angle" with get, set
         member val StartWithVias = true with get, set
@@ -66,8 +67,8 @@ module SpawnConfig =
             (fun x -> x.BranchProb), (fun value x -> let y = x.Clone() in y.BranchProb <- value; y)
         static member ColliderAngle_ : Lens<PCBBranchOffset, _> = 
             (fun x -> x.ColliderAngle), (fun value x -> let y = x.Clone() in y.ColliderAngle <- value; y)
-        static member ColliderSize_ : Lens<PCBBranchOffset, _> = 
-            (fun x -> x.ColliderSize), (fun value x -> let y = x.Clone() in y.ColliderSize <- value; y)
+        static member MinDistance_ : Lens<PCBBranchOffset, _> = 
+            (fun x -> x.MinDistance), (fun value x -> let y = x.Clone() in y.MinDistance <- value; y)
         static member Offset_ : Lens<PCBBranchOffset, _> = 
             (fun x -> x.Offset), (fun value x -> let y = x.Clone() in y.Offset <- value; y)
         static member Direction_ : Lens<PCBBranchOffset, _> = 
@@ -92,51 +93,39 @@ module SpawnConfig =
                     angle <- -angle
                 if this.Flip then
                     angle <- -angle
-                let collider = 
-                    (CircleSectorCollider(
-                        None, 
-                        pos + (((agent.Direction.LeftRotated * agent.FlipFactor) * this.Offset) * (if this.Flip then 1.0f else -1.0f)), 
-                        this.ColliderSize * (max agent.Thickness agent.Speed), 
-                        agent.Direction.Theta - ((deg2rad angle) * agent.FlipFactor), 
-                        deg2rad this.ColliderAngle))
-                let exit = 
-                    agent.DworkinEnvironment.QueryColliders(
-                        (collider :> IHasBounds).Bounds, 
-                        agent.Config.TerminationConditions.Collision.Value.Layers, 
-                        fun layer each -> (each.Parent <> Some(agent :> IDworkinAgentState)) && (collide collider each) )
-            
-                if not exit then
-                    let mutable config = 
-                        agent.Config 
-                        |> Optic.set 
-                            (branching_ >-> BranchingCriterionBased.SpawnConfig_ >-> cast<SpawnConfig, PCBBranchOffset> >-> recursionLimit_) 
-                            (this.RecursionLimit - 1)
-                    try 
-                        let lengthRange : NumberRange = terminationConfig.LengthRange
-                        config <- config |> Optic.set totalDistance_ (agent.Random.NextInRange(lengthRange))
-                    with | _ -> ()
-                    let agentCopy = agent.Copy()
-                    agent.DworkinEnvironment.Delay(
-                        (fun _ -> 
+                
+                let agentCopy = agent.Copy()
+                agent.DworkinEnvironment.Delay(
+                    (fun _ -> 
+                        let spawnOptions = ProbeSpawnOptions(AngleDeg=angle, OffsetSideways=this.Offset) 
+                        let probeData = agentCopy.LaunchProbe(agent.Config |> Optic.set totalDistance_ this.MinDistance, spawnOptions)
+                        if probeData.ReachedEnd then
+                            let mutable config = 
+                                agent.Config 
+                                |> Optic.set 
+                                    (branching_ >-> BranchingCriterionBased.SpawnConfig_ >-> cast<SpawnConfig, PCBBranchOffset> >-> recursionLimit_) 
+                                    (this.RecursionLimit - 1)
+                            try 
+                                let lengthRange : NumberRange = terminationConfig.LengthRange
+                                config <- config |> Optic.set totalDistance_ (agent.Random.NextInRange(lengthRange))
+                            with | _ -> ()
+                            
                             agentCopy.Spawn(
                                 config, 
-                                AgentSpawnOptions(AngleDeg=angle, OffsetSideways=this.Offset), 
+                                spawnOptions, 
                                 fun a -> 
+                                    probeData.Id <- a.Id
+                                    probeData.SpawnColliders()
                                     a.ScaleBy(Point(this.ThicknessScale, 1.0f))
                                     if this.StartWithVias then
-                                        let opts = AgentSpawnOptions(Angle=Single.Pi)
                                         let terminalConfig : SpawnConfig.CircleAdvanced = 
-                                            a.Config 
-                                            |> Optic.get (termination_spawnConfig_ >-> cast<SpawnConfig, PCBTraceLengthLimited> >-> terminalConfig_)
-                                        opts.DelayBy(int <| ((terminalConfig.Radius * a.Thickness) * 0.5f) / a.Speed)
-                                        a.Spawn(
                                             a.Config
-                                            |> Optic.set totalDistance_ 0.01f
-                                            |> Optic.set (terminationConditions_ >-> collision_ >-> minDistance_) 1.0f, 
-                                            opts, 
-                                            fun x -> x.Parent <- Some(a)))
-                            None), 
-                        this.Delay)
+                                            |> Optic.get (termination_spawnConfig_ >-> cast<SpawnConfig, PCBTraceLengthLimited> >-> terminalConfig_)
+                                        let aCopy = a.Copy()
+                                        aCopy.Direction <- -aCopy.Direction
+                                        terminalConfig.Evaluate(aCopy) )
+                        None), 
+                    this.Delay)
 
     
     let termination_lengthLimit_ = 
@@ -147,7 +136,7 @@ module SpawnConfig =
         inherit SpawnConfig()
         member val Angles = [| -45.0f |] with get, set
         member val LengthRange = NumberRange(40.0f, 120.0f) with get, set
-        member val TerminalConfig = SpawnConfig.CircleAdvanced() with get, set
+        member val TerminalConfig = SpawnConfig.CircleAdvanced(Offset=0.75f) with get, set
         member val LengthLimit = 300.0f with get, set
         member val FlipProbability = 0.5f with get, set
         member val LengthAlternation = 5.0f with get, set
@@ -185,33 +174,24 @@ module SpawnConfig =
                     | Some(p) when ((abs (min (agent.Direction.AngleWith(p.Direction)) (p.Direction.AngleWith(agent.Direction)))) > Single.HalfPi) ->
                         this.TerminalConfig.Evaluate(agent)
                     | Some(p) ->
-                        let spawnOptions = AgentSpawnOptions(Direction=p.Direction)
-                        if angle <> 0.0f then
-                            let numSteps = int(agent.Thickness / agent.Speed) |> max 1
+                        let spawnOptions = ProbeSpawnOptions(Direction=p.Direction)
+                        let probeData = agent.LaunchProbe(agent.Config |> Optic.set totalDistance_ 10.0f, spawnOptions)
+                        if probeData.ReachedEnd then
+                            let numSteps = int(agent.ThicknessFactor / agent.Speed) |> max 1
                             Util.drawJoint(agent, p.Direction, Util.JointType.Bevel, numSteps, 0)
                             spawnOptions.DelayBy(numSteps)
-                        agent.Spawn(
-                            agent.Config, 
-                            spawnOptions, 
-                            fun a -> 
-                                match a.Config.TerminationConditions.Collision with
-                                | Some cond -> 
-                                    if cond.Evaluate(a) then
-                                        this.TerminalConfig.Evaluate(agent)
-                                        a.Delete()
-                                | None -> ())
+                            agent.Spawn(agent.Config, spawnOptions)
+                        else
+                            this.TerminalConfig.Evaluate(agent)
                 | None -> 
-                    let spawnOptions = AgentSpawnOptions(AngleDeg=angle)
-                    if angle <> 0.0f then
-                        let numSteps = int(agent.Thickness / agent.Speed) |> max 1
+                    let spawnOptions = ProbeSpawnOptions(AngleDeg=angle)
+                    let flip = (angle <> 0.0f) && (agent.Random.NextFloat() < this.FlipProbability) 
+                    let agentBlock (a : DworkinAgent) = if flip then a.Flip()
+                    if angle <> 0.0f && agent.LaunchProbe(config |> Optic.set totalDistance_ 10.0f, spawnOptions, agentBlock).S > 0.0f then
+                        let numSteps = int(agent.ThicknessFactor / agent.Speed) |> max 1
                         Util.drawJoint(agent, agent.Direction.Rotate(deg2rad(angle) * agent.FlipFactor), Util.JointType.Bevel, numSteps, 0)
                         spawnOptions.DelayBy(numSteps)
-                    agent.Spawn(
-                        config, 
-                        spawnOptions, 
-                        fun a -> 
-                            if (angle <> 0.0f) && (agent.Random.NextFloat() < this.FlipProbability) then
-                                a.Flip())
+                    agent.Spawn(config, spawnOptions, agentBlock)
 
 
     type PCBTraceGroup2VarLen() = 
@@ -249,16 +229,18 @@ module SpawnConfig =
 
         override this.Evaluate(agent, pos) =
             let seed = agent.Random.Next(System.Int32.MaxValue)
-            let interval = 
+            let interval : float32 seq = 
+                let w = float32 this.Width
+                let n = float32 this.N
                 if isOdd this.N then
                     Seq.append 
-                        (Seq.rev (seq { 0 .. (this.Width / (1 - this.N)) .. (this.Width / (-2)) })) 
-                        (seq { (this.Width / (this.N - 1)) .. (this.Width / (this.N - 1)) .. (this.Width / 2) })
+                        (Seq.rev (seq { 0.0f .. (w / (1.0f - n)) .. (w / (-2.0f)) })) 
+                        (seq { (w / (n - 1.0f)) .. (w / (n - 1.0f)) .. (w / 2.0f) })
                 else
-                    seq { (this.Width / (-2)) .. (this.Width / (this.N - 1)) .. (this.Width / 2) }
+                    seq { (w / (-2.0f)) .. (w / (n - 1.0f)) .. (w / 2.0f) }
+
             withIndexDo
                 (fun dx i -> 
-                    let dx = float32 dx
                     let bias = 
                         if isOdd this.N then
                             0.0f
@@ -287,7 +269,7 @@ module SpawnConfig =
                                 Seed=Some(1),
                                 OffsetSideways=dx,
                                 Angle=Single.Pi,
-                                Offset=(this.Config |> Optic.get (termination_terminalConfig_ >-> radius_)) * 0.5f
+                                Offset=(this.Config |> Optic.get (termination_terminalConfig_ >-> radius_)) * (agent.ThicknessFactor / agent.LengthFactor) * 0.25f
                             ), 
                             fun a -> a.Terminate()))
                 (Seq.rev interval)
@@ -399,8 +381,8 @@ type PCB_RandomPosChips() =
     member val Branch = false with get, set
     member val BranchingConfig = 
         BranchingCriterionBased(
-            Criterion=(BranchingCriterionCustom.IntervalBoundedTRand() |> Optic.set d_ 8.0f),  
-            SpawnConfig=(SpawnConfig.PCBBranchOffset() |> Optic.set recursionLimit_ 4))
+            Criterion=BranchingCriterionCustom.IntervalBoundedTRand(D=10.0f),  
+            SpawnConfig=SpawnConfig.PCBBranchOffset(RecursionLimit=4))
         with get, set
     member val Speed = 0.5f with get, set
     member val Octagonal = true with get, set
@@ -449,7 +431,7 @@ type PCB_RandomPosChips() =
         let mutable ny = int (round <| env.Random.NextInRange(this.NyRange))
         let spawnSites = ResizeArray()
         let mutable i = 0
-        let mutable ts = [| for k in 1..n -> (env.Random.NextGaussian() * this.ThicknessVariance) + 1.0f |]
+        let mutable ts = [| for k in 1..n -> ((env.Random.NextGaussian() |> min 1.0f) * this.ThicknessVariance) + 1.0f |]
         let tsAverage = ts |> Array.average
         ts <- ts |> Array.map (fun x -> (max (x / tsAverage) 1.0f) * this.Size)
         
@@ -487,22 +469,21 @@ type PCB_RandomPosChips() =
         
         withIndexDo
             (fun struct (pos, size) k -> 
+                let currThickness = ts.[k-1]
                 let mutable dist = (min width height) * 0.5f
                 for struct (sp, ss) in spawnSites do 
                     if sp <> pos then
                         let p = ((pos - sp).Abs()) - ((size + ss) * gap)
                         dist <- min dist (max p.X p.Y)
                 if this.Branch then
-                    let transform d = d * ts.[k-1]
                     configToSpawn <- 
                         configToSpawn
                         |> Optic.map 
                             (groupConfig_ >-> config_ >-> branching_) 
                             (fun branching -> 
                                 branching
-                                |> Optic.map (criterion_ >-> BranchingCriterionCustom.IntervalBoundedTRand.D_) transform
-                                |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.Offset_) transform
-                                |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.ColliderSize_) transform)
+                                |> Optic.map (criterion_ >-> BranchingCriterionCustom.IntervalBoundedTRand.D_) (fun d ->  d * currThickness / sqrt(this.Size))
+                                |> Optic.map (spawnConfig_ >-> cast >-> SpawnConfig.PCBBranchOffset.Offset_) (fun d -> d * sqrt(currThickness)) )
                 let opts = AgentSpawnOptions(Position=pos, AngleDeg=this.Angle)
                 if k > 1 then
                     opts.DelayBy(int ((env.Random.NextFloat() * dist) / this.Speed / this.Size))
@@ -510,9 +491,9 @@ type PCB_RandomPosChips() =
                     configToSpawn
                     |> Optic.set nx_ (int size.X)
                     |> Optic.set ny_ (int size.Y)
-                    |> Optic.map gap_ (fun x -> x * ts.[k-1]), 
+                    |> Optic.map gap_ (fun x -> x * currThickness), 
                     opts,
-                    fun a -> a.ScaleBy(Point(ts.[k-1], 1.0f)))
+                    fun a -> a.ScaleBy(Point(currThickness, 1.0f)))
                     |> ignore)
             spawnSites
 
