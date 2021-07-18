@@ -361,6 +361,30 @@ module SpawnConfig =
                             1))
 
 
+module BranchingCriterionBased = 
+    module PCBRandomizedOffset = 
+        type Criterion() = 
+            inherit BranchingCriterionCustom()
+            member val MinRange = NumberRange(0.2f, 0.5f) with get, set
+            member val MaxRange = NumberRange(0.5f, 0.8f) with get, set
+            member val D = 10.0f with get, set
+            
+            member this.Clone() = this.MemberwiseClone() :?> Criterion
+            
+            static member MinRange_ : Lens<Criterion, _> = 
+                (fun x -> x.MinRange), (fun value x -> let y = x.Clone() in y.MinRange <- value; y)
+            static member MaxRange_ : Lens<Criterion, _> = 
+                (fun x -> x.MaxRange), (fun value x -> let y = x.Clone() in y.MaxRange <- value; y)
+            static member D_ : Lens<Criterion, _> = 
+                (fun x -> x.D), (fun value x -> let y = x.Clone() in y.D <- value; y)
+            
+            override this.Evaluate(agent, mark, tag) =
+                let tInterval = 
+                    agent.Attributes.BranchInterval.GetOrSetIfAbsent(
+                        fun () -> NumberRange([| agent.Random.NextInRange(this.MinRange); agent.Random.NextInRange(this.MaxRange) |]))
+                (mark.S + this.D < agent.S) && (tInterval.Contains agent.T)
+
+
 
 type Endpoints =
     | Hollow = 1
@@ -497,3 +521,117 @@ type PCB_RandomPosChips() =
                     |> ignore)
             spawnSites
 
+
+type PCB_RandomPosTraces() = 
+    inherit DworkinEnvironmentConfigCustom()
+    
+    static let terminarion_spawnConfig_ = termination_<TerminationSpawn> >-> spawnConfig_ >-> cast<_, SpawnConfig.PCBTraceLengthLimited>
+
+    member val AgentConfig = 
+        DworkinAgentConfig.pCBTrace
+        |> Optic.set branching_ (
+            BranchingCriterionBased(
+                Criterion=BranchingCriterionBased.PCBRandomizedOffset.Criterion(),
+                SpawnConfig=(SpawnConfig.PCBBranchOffset(RecursionLimit=6,BranchProb=0.8f,MinDistance=15.0f,MinGeneration=1)))
+            )
+        |> Optic.set brush_ (BrushStrategySolid())
+        |> Optic.set (terminarion_spawnConfig_ >-> lengthRange_) (NumberRange(35.0f, 75.0f))
+        |> Optic.set (terminarion_spawnConfig_ >-> lengthLimit_) 400.0f
+        |> Optic.set (terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 7.5f with get, set
+    member val Angles = [| -45.0f |] with get, set
+    member val InitialLengthRange = NumberRange(25.0f, 75.0f) with get, set
+    member val ThicknessVariance = 0.5f with get, set
+    member val Size = 1.5f with get, set
+    member val Speed = 1.0f with get, set
+    member val Endpoints = Endpoints.Hollow with get, set
+    member val SitesDensity = 0.5f with get, set
+    member val BranchDensity = 0.5f with get, set
+    member val MinThickness = 1.0f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> PCB_RandomPosTraces
+    
+    static member AgentConfig_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
+    static member Angles_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.Angles), (fun value x -> let y = x.Clone() in y.Angles <- value; y)
+    static member InitialLengthRange_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.InitialLengthRange), (fun value x -> let y = x.Clone() in y.InitialLengthRange <- value; y)
+    static member ThicknessVariance_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.ThicknessVariance), (fun value x -> let y = x.Clone() in y.ThicknessVariance <- value; y)
+    static member Size_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.Size), (fun value x -> let y = x.Clone() in y.Size <- value; y)
+    static member Speed_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.Speed), (fun value x -> let y = x.Clone() in y.Speed <- value; y)
+    static member Endpoints_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.Endpoints), (fun value x -> let y = x.Clone() in y.Endpoints <- value; y)
+    static member SitesDensity_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.SitesDensity), (fun value x -> let y = x.Clone() in y.SitesDensity <- value; y)
+    static member BranchDensity_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.BranchDensity), (fun value x -> let y = x.Clone() in y.BranchDensity <- value; y)
+    static member MinThickness_ : Lens<PCB_RandomPosTraces, _> = 
+        (fun x -> x.MinThickness), (fun value x -> let y = x.Clone() in y.MinThickness <- value; y)
+    
+    override this.Evaluate(env) =
+        let width = env.Bounds.Width
+        let height = env.Bounds.Height
+        let radius = 10.0f * (this.Size + (this.ThicknessVariance / 2.0f))
+        let spawnSites = ResizeArray()
+        let mutable n = ((this.SitesDensity * (width * height)) / (squared radius)) / 25.0f |> floor |> int
+        let ts = 
+            Array.init 
+                n 
+                (fun _ -> 
+                    let x = max ((((env.Random.NextGaussian()) * this.ThicknessVariance) + 1.0f) * this.Size) this.MinThickness
+                    x 
+                    |> min ((this.Size * (this.ThicknessVariance + 1.0f)) * 2.0f)
+                    |> max ((this.Size / (this.ThicknessVariance + 1.0f)) / 2.0f) )
+        let spawnAngles = 
+            this.Angles
+            |> Seq.collect (fun x -> seq { 0.0f .. (abs x) .. 359.0f })
+            |> Seq.distinct
+            |> Seq.toArray
+
+        let spawn = CollisionLayer(33) // layer id, any unique number is ok
+        while spawnSites.Length < n do
+            let p = env.Random.NextInRectangle(env.Bounds.InsetBy(radius))
+            let collider = CircleCollider(None, p, radius)
+            let collides = env.QueryColliders(collider.BoundingBox, CollisionLayers([| spawn |], false), fun _ each -> collide each collider)
+            if not <| collides then 
+                env.AddColliderToLayer(collider, spawn)
+                spawnSites.Add(p)
+        env.RemoveColliderLayer(spawn)
+        spawnSites |> withIndexDo 
+            (fun p i ->
+                let mutable dist = (min width height) / 2.0f
+                spawnSites
+                |> Seq.except [| p |]
+                |> Seq.iter
+                    (fun each ->
+                        let d = (p - each).Abs()
+                        dist <- min dist ((max d.X d.Y) + ((min d.X d.Y) * ((sqrt 2.0f) - 1.0f))) )
+                let thickness = ts.[i-1]
+                let multByThickness = fun x -> x * thickness
+                let delay = ((env.Random.NextFloat()) * dist) / (this.AgentConfig.Speed :?> AgentSpeedThickness).Factor
+                let spawnOptions = AgentSpawnOptions(Position=p,AngleDeg=spawnAngles.AtRandom(env.Random))
+                spawnOptions.DelayBy(int delay)
+                let branching_spawnConfig_ = branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_,SpawnConfig.PCBBranchOffset>
+                env.Spawn(
+                    this.AgentConfig
+                    |> Optic.set totalDistance_ (env.Random.NextInRange(this.InitialLengthRange))
+                    |> Optic.set (speed_<AgentSpeedThickness> >-> factor_) this.Speed
+                    |> Optic.set (terminarion_spawnConfig_ >-> terminalConfig_ >-> hollowPart_) (match this.Endpoints with | Endpoints.Hollow -> 0.5f | _ -> 0.0f)
+                    |> Optic.set (terminarion_spawnConfig_ >-> angles_) this.Angles
+                    |> Optic.map (branching_ >-> criterion_<BranchingCriterionBased.PCBRandomizedOffset.Criterion> >-> d_) multByThickness
+                    |> Optic.map (branching_spawnConfig_ >-> offset_) multByThickness
+                    |> Optic.set (branching_spawnConfig_ >-> branchProb_) this.BranchDensity, 
+                    spawnOptions, 
+                    fun (a : DworkinAgent) ->
+                        a.ThicknessFactor <- thickness
+                        let temp = a.Copy()
+                        temp.Direction <- -a.Direction
+                        temp.Position <- 
+                            let r = ((this.AgentConfig.Termination :?> TerminationSpawn).SpawnConfig :?> SpawnConfig.PCBTraceLengthLimited).TerminalConfig.Radius
+                            a.Position - (((a.Direction * r) * thickness) * 0.25f)
+                        a.Config.Termination.Evaluate(temp) )
+                |> ignore ) 
+            

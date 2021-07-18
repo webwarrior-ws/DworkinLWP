@@ -114,6 +114,19 @@ let configGui  =
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<PCB_RandomPosChips>;
                     ];
                 Builders.environmentEditor
+                    "PCB-RandPosTraces"
+                    (PCB_RandomPosTraces())
+                    [ 
+                        Builders.radioButtonEditor "Endpoints" PCB_RandomPosTraces.Endpoints_ [Endpoints.Hollow; Endpoints.Filled];
+                        Builders.dropdownListEditor "Angles" PCB_RandomPosTraces.Angles_ possibleAnglesValues;
+                        Builders.floatSliderEditor "Thickness variance" PCB_RandomPosTraces.ThicknessVariance_ 0.0f 1.0f 0.1f;
+                        Builders.floatSliderEditor "Sites Density" PCB_RandomPosTraces.SitesDensity_ 0.2f 0.8f 0.05f;
+                        Builders.floatSliderEditor "Branch Density" PCB_RandomPosTraces.BranchDensity_ 0.2f 0.8f 0.05f;
+                        Builders.floatSliderEditor "Size" PCB_RandomPosTraces.Size_ 0.75f 1.5f 0.05f;
+                        Builders.floatSliderEditor "Speed" PCB_RandomPosTraces.Speed_ 0.1f 1.0f 0.1f;
+                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<PCB_RandomPosTraces>;
+                    ];
+                Builders.environmentEditor
                     "SpiralsProbesBranching1"
                     (SpiralsProbesBranching1())
                     [ 

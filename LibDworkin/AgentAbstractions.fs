@@ -69,7 +69,7 @@ type Collider(parent : IDworkinAgentState option) =
             this.BoundingBox
     
     /// Note: empty rectangle means no value
-    member val internal BoundingBox : Rectangle = Rectangle() with get, set
+    member val BoundingBox : Rectangle = Rectangle() with get, set
     member val Parent = parent with get, set
     
     abstract member CalculateBoundingBox : unit -> Rectangle
