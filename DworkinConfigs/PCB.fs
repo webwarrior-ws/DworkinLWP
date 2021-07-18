@@ -45,7 +45,6 @@ module SpawnConfig =
         member val Delay = 0 with get, set
         member val Flip = false with get, set
         member val BranchProb = 0.75f with get, set
-        member val ColliderAngle = 45.0f with get, set
         member val MinDistance = 20.0f with get, set
         member val Offset = 7.5f with get, set
         member val Direction = "termination angle" with get, set
@@ -65,8 +64,6 @@ module SpawnConfig =
             (fun x -> x.Flip), (fun value x -> let y = x.Clone() in y.Flip <- value; y)
         static member BranchProb_ : Lens<PCBBranchOffset, _> = 
             (fun x -> x.BranchProb), (fun value x -> let y = x.Clone() in y.BranchProb <- value; y)
-        static member ColliderAngle_ : Lens<PCBBranchOffset, _> = 
-            (fun x -> x.ColliderAngle), (fun value x -> let y = x.Clone() in y.ColliderAngle <- value; y)
         static member MinDistance_ : Lens<PCBBranchOffset, _> = 
             (fun x -> x.MinDistance), (fun value x -> let y = x.Clone() in y.MinDistance <- value; y)
         static member Offset_ : Lens<PCBBranchOffset, _> = 
@@ -385,6 +382,27 @@ module BranchingCriterionBased =
                 (mark.S + this.D < agent.S) && (tInterval.Contains agent.T)
 
 
+module DworkinEnvironmentConfigCustom = 
+    module PCB_GridTraces = 
+        module AgentConfig = 
+            module Branching = 
+                type Criterion() = 
+                    inherit BranchingCriterionCustom()
+                    member val NRange = NumberRange(1.0f, 3.0f) with get, set
+                    member val TRange = NumberRange(0.2f, 0.8f) with get, set
+                    
+                    member this.Clone() = this.MemberwiseClone() :?> Criterion
+                    
+                    static member NRange_ : Lens<Criterion, _> = 
+                        (fun x -> x.NRange), (fun value x -> let y = x.Clone() in y.NRange <- value; y)
+                    static member TRange_ : Lens<Criterion, _> = 
+                        (fun x -> x.TRange), (fun value x -> let y = x.Clone() in y.TRange <- value; y)
+                    
+                    override this.Evaluate(agent, mark, tag) =
+                        let n = agent.Attributes.BranchesN.GetOrSetIfAbsent(fun () -> int(round(agent.Random.NextInRange(this.NRange)))) 
+                        agent.S >= (mark.S + agent.TotalDistance * (this.TRange.Min * float32(n) + this.TRange.Max) / float32(n + 1)) && agent.TotalNumBranches < n
+
+
 
 type Endpoints =
     | Hollow = 1
@@ -635,3 +653,124 @@ type PCB_RandomPosTraces() =
                         a.Config.Termination.Evaluate(temp) )
                 |> ignore ) 
             
+
+type PCB_GridTraces() = 
+    inherit DworkinEnvironmentConfigCustom()
+    member val AgentConfig = 
+        { DworkinAgentConfig.Default with 
+            Branching=
+                BranchingCriterionBased(
+                    Criterion=DworkinEnvironmentConfigCustom.PCB_GridTraces.AgentConfig.Branching.Criterion(),
+                    SpawnConfig=SpawnConfig.PCBBranchOffset(
+                        RecursionLimit=2,Delay=10,MinDistance=20.0f,Offset=0.0f,
+                        Direction="perpendicular",StartWithVias=false,Alternate=true,MinGeneration=1)
+                );
+            Brush=BrushStrategySolid();
+            Speed=AgentSpeedThickness(Factor=0.25f);
+            ColliderOptions=ColliderOptionsGeneral();
+            Termination=TerminationSpawn(SpawnConfig=SpawnConfig.PCBTraceLengthLimited(LengthLimit=150.0f));
+            Thickness=ThicknessFormula.Constant(C=2.0f);
+            TerminationConditions={ 
+                Collision=
+                    Some(
+                        TerminationConditionCollision(
+                            IgnoreParent=true,
+                            SecondaryDetector=Some({ CollisionDetectorConfig.Default with Angle=180.0f;Distance=2.5f }),
+                            SelfIntersection=false
+                    )
+                    |> Optic.set (primaryDetector_ >-> angle_) 45.0f
+                    |> Optic.set (primaryDetector_ >-> distance_) 5.0f);
+                Curvature=None;
+                Distance=Some(TerminationConditionDistance())
+             };
+             TotalDistance=15.0f;
+         } with get, set
+    member val PosSpread = 0.0f with get, set
+    member val DelayFactor = 1.0f with get, set
+    member val ThicknessVariance = 0.0f with get, set
+    member val Branch = false with get, set
+    member val Angles = [| -45.0f |] with get, set
+    member val Speed = 0.5f with get, set
+    member val Size = 1.0f with get, set
+    member val Endpoints = Endpoints.Hollow with get, set
+    member val Density = 0.5f with get, set
+    
+    member this.Clone() = this.MemberwiseClone() :?> PCB_GridTraces
+    
+    static member AgentConfig_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.AgentConfig), (fun value x -> let y = x.Clone() in y.AgentConfig <- value; y)
+    static member PosSpread_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.PosSpread), (fun value x -> let y = x.Clone() in y.PosSpread <- value; y)
+    static member DelayFactor_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.DelayFactor), (fun value x -> let y = x.Clone() in y.DelayFactor <- value; y)
+    static member ThicknessVariance_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.ThicknessVariance), (fun value x -> let y = x.Clone() in y.ThicknessVariance <- value; y)
+    static member Branch_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.Branch), (fun value x -> let y = x.Clone() in y.Branch <- value; y)
+    static member Angles_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.Angles), (fun value x -> let y = x.Clone() in y.Angles <- value; y)
+    static member Speed_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.Speed), (fun value x -> let y = x.Clone() in y.Speed <- value; y)
+    static member Size_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.Size), (fun value x -> let y = x.Clone() in y.Size <- value; y)
+    static member Endpoints_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.Endpoints), (fun value x -> let y = x.Clone() in y.Endpoints <- value; y)
+    static member Density_ : Lens<PCB_GridTraces, _> = 
+        (fun x -> x.Density), (fun value x -> let y = x.Clone() in y.Density <- value; y)
+    
+    override this.Evaluate(env) =
+        let width = env.Bounds.Width
+        let height = env.Bounds.Height
+        let n = int(floor(sqrt(width * height * this.Density) / this.Size)) / (if this.Branch then 60 else 30)
+        let nx, ny =
+            if width > height then 
+                int(floor ((float32(n) * width) / height)), n
+            else 
+                n, int(floor ((float32(n) * height) / width))
+        let dist = min (width / float32(nx)) (height / float32(ny))
+        
+        let mutable config = 
+            let termination_spawnConfig_ = termination_<TerminationSpawn> >-> spawnConfig_ >-> cast<_, SpawnConfig.PCBTraceLengthLimited>
+            this.AgentConfig
+            |> Optic.set 
+                (termination_spawnConfig_ >-> terminalConfig_ >-> hollowPart_) 
+                (match this.Endpoints with | Endpoints.Hollow -> 0.5f | _ -> 0.0f)
+            |> Optic.set (termination_spawnConfig_ >-> angles_) this.Angles
+            |> Optic.set (speed_<AgentSpeedThickness> >-> factor_) this.Speed
+        if this.Branch then 
+            config <- 
+                config 
+                |> Optic.set 
+                    (branching_<BranchingCriterionBased> >-> spawnConfig_ >-> cast<_,SpawnConfig.PCBBranchOffset> >-> branchProb_) 
+                    (sqrt this.Density)
+        else 
+            config <- config |> Optic.set branching_ BranchingNone.Instance
+        
+        let spawnAngles = 
+            this.Angles
+            |> Seq.collect (fun x -> seq { 0.0f .. float32(abs x) .. 359.0f })
+            |> Seq.distinct
+            |> Seq.toArray
+        let thicknessRange = NumberRange(lerp 2.5f 1.5f this.ThicknessVariance, lerp 2.5f 3.5f this.ThicknessVariance)
+
+        for y in (height * float32(1 - ny)) / (float32(2 * ny) + 2.0f) .. height / float32(ny + 1) .. (height / 2.0f) - 1.0f do
+            for x in (width * float32(1 - nx)) / (float32(2 * nx) + 2.0f) .. width / float32(nx + 1) .. (width / 2.0f) - 1.0f do
+                let shift = (((Point(env.Random.NextGaussian(), env.Random.NextGaussian())) * this.PosSpread) * dist).Round()
+                let p = (Point(x, y) + env.Bounds.Origin + Point(width/2.0f, height/2.0f)) + shift
+                assert(env.Bounds.ContainsPoint(p))
+                let delay = int(floor(env.Random.NextFloat() * dist * this.DelayFactor / this.Speed))
+                let theta = spawnAngles.AtRandom(env.Random)
+                if env.Random.NextFloat() < this.Density then 
+                    env.SpawnShape(Shape.Circle(Point(), 10.0f), ShapeSpawnOptions(Position=p))
+                    let trySpawnAgent _ =
+                        let thickness = env.Random.NextInRange(thicknessRange)
+                        let r = ((config.Termination :?> TerminationSpawn).SpawnConfig :?> SpawnConfig.PCBTraceLengthLimited).TerminalConfig.Radius
+                        let collider = CircleCollider(None, p, r * thickness * this.Size * 2.0f)
+                        if not <| env.TestForCollision(config.TerminationConditions.Collision.Value.Layers, collider) then 
+                            for thetaPrime in [| theta; theta + 180.0f |] do
+                                env.Spawn(
+                                    config |> Optic.set (thickness_<ThicknessFormula.Constant> >-> c_) thickness,
+                                    AgentSpawnOptions(Position=p,AngleDeg=thetaPrime),
+                                    fun a -> a.ScaleBy(this.Size)) |> ignore
+                        None
+                    env.Delay(trySpawnAgent, delay)

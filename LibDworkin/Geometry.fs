@@ -115,6 +115,9 @@ type OpenTK.Vector2 with
     
     member inline this.Normalized() =
         Point.Normalize(this)
+
+    member this.Round() =
+        Point(round this.X, round this.Y)
  
 
 

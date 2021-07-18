@@ -485,6 +485,7 @@ type AttributesStore() =
     member val CanBranch = Dictionary<int, bool>()
     member val BranchInterval = Dictionary<int, NumberRange>()
     member val BranchOffset = Dictionary<int, float32>()
+    member val BranchesN = Dictionary<int, int>()
 
     
 /// To be used in collider strategies
@@ -503,6 +504,7 @@ type Attributes(store: AttributesStore, id : int) =
     member this.CanBranch = AttributeAccessor(store.CanBranch, id)
     member this.BranchInterval = AttributeAccessor(store.BranchInterval, id)
     member this.BranchOffset = AttributeAccessor(store.BranchOffset, id)
+    member this.BranchesN = AttributeAccessor(store.BranchesN, id)
 
     interface IColliderAttributes with
         member this.LastCollider = this.LastCollider :> IAttributeAccessor<Collider>

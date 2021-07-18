@@ -19,6 +19,14 @@ open BranchingCriteria
 
 
 module CollisionHandler =
+    type IgnoreSibling() = 
+        inherit CollisionHandler()
+        
+        override this.Evaluate(agent, collision) =
+            (agent.Parent |> Option.map (fun x -> x :> IDworkinAgentState)) <> 
+            (match collision.Obstacle.Parent with | Some(object) -> object.Parent | None -> None)
+
+
     type IgnoreSiblingUpTo() = 
         inherit CollisionHandler()
         member val MinT = 0.1f with get, set
