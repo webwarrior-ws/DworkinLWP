@@ -192,7 +192,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             offset / factor * width * 0.5f 
 
         let mutable s1 = segment points.[0] points.[1]
-        let mutable offset1 = offset s1 (segment points.[1] points.[2])
+        let mutable offset1 = offset (segment points.[n-1] points.[0]) s1
         points |> Array.mapi (fun i p1 ->
             let p2 = points.[(i+1)%n]
             let s2 = segment p2 (points.[(i+2)%n])
