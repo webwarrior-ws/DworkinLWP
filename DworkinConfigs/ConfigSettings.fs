@@ -78,6 +78,70 @@ type PCB_RandomPosChips() =
         :> EnvironmentConfig
 
 
+type PCBTracesKind =
+    | Random = 1
+    | Grid = 2
+    | GridWithBranches = 3
+
+
+type PCB_Traces() =
+    inherit LibDworkin.DworkinSettings.EnvironmentSettings()
+    static do Settings.RegisterClass<PCB_Traces>()
+
+    [<Enum([| PCBTracesKind.Random; PCBTracesKind.Grid; PCBTracesKind.GridWithBranches |], ItemType=typeof<PCBTracesKind>)>]
+    member val Kind = Defined(PCBTracesKind.Random) with get, set
+
+    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A30_60_90; PCBAngles.A45_60_75_90 |], ItemType=typeof<PCBAngles>)>]
+    member val Angles = Defined(PCBAngles.A45) with get, set
+
+    [<FloatRange(0.0f, 1.0f, Step=0.05f)>]
+    member val Density = Defined(0.5f) with get, set
+
+    [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>)>]
+    member val Endpoints = Defined(PCB.Endpoints.Hollow) with get, set
+    
+    [<FloatRange(0.75f, 1.5f)>]
+    member val Size = Defined(1.0f) with get, set
+        
+    [<FloatRange(0.0f, 1.0f, Step=0.1f)>]
+    member val ThicknessVariance = Defined(0.0f) with get, set
+
+    override this.Build(seed) =
+        let random = System.Random(seed)
+        let getValue expr = Randomizeable.getValue random expr
+
+        let angles = PCBAngles.GetAngles(getValue <@ this.Angles @>)
+        let density = getValue <@ this.Density @>
+        let endpoints = getValue <@ this.Endpoints @>
+        let size = getValue <@ this.Size @>
+        let thicknessVariance = getValue <@ this.ThicknessVariance @>
+        let kind = getValue <@ this.Kind @>
+
+        let result =
+            match kind with
+            | PCBTracesKind.Random -> 
+                let d = LibDworkin.Geometry.lerp 0.2f 0.8f density
+                PCB.PCB_RandomPosTraces(
+                    Angles=angles, 
+                    BranchDensity=d, SitesDensity=d, 
+                    Endpoints=endpoints, 
+                    Size=size, 
+                    ThicknessVariance=thicknessVariance)
+                :> EnvironmentConfig
+            | PCBTracesKind.Grid | PCBTracesKind.GridWithBranches ->
+                let d = LibDworkin.Geometry.lerp 0.25f 0.75f density
+                PCB.PCB_GridTraces(
+                    Angles=angles, 
+                    Density=d, 
+                    Endpoints=endpoints, 
+                    Size=size, 
+                    ThicknessVariance=thicknessVariance,
+                    Branch=(kind = PCBTracesKind.GridWithBranches))
+                :> EnvironmentConfig
+        result.RandomSeed <- seed
+        result
+
+
 
 // Maze
 type MazeAngles =
@@ -320,7 +384,7 @@ type Vine() =
             | VineLeafType.Straight1  -> [| Vine.BranchingCriterionBased.leaves2SidesProbesStraigh1_vines |]
             | VineLeafType.Curved1  -> [| Vine.BranchingCriterionBased.leavesProbesCurved1_vines |]
         
-        Vine.Vines(AgentConfig=vineConfig, Alpha=alpha, Angle=angle, Sides=sides, Corners=corner, 
+        Vine.Vines(RandomSeed=seed, AgentConfig=vineConfig, Alpha=alpha, Angle=angle, Sides=sides, Corners=corner, 
                    Scale=getValue <@ this.Scale @>, Speed=1.0f) 
             |> Optic.set (Vine.Vines.LeafStrategy_ >-> Vine.DworkinEnvironmentConfigCustom.Vines.LeafStrategy.Strategies_) leafStrategies
             :> LibDworkin.Configs.DworkinEnvironmentConfig
@@ -460,19 +524,23 @@ type FloralSwirls() =
             |> Optic.set thickness_ thickness
             :> LibDworkin.Configs.DworkinEnvironmentConfig
 
-        match primarySwirlsType with
-        | FloralSwirlsPrimary.WavySingle -> FloralSwirls.CosineSwirl(IsDouble=false) |> prepare
-        | FloralSwirlsPrimary.WavyDouble -> FloralSwirls.CosineSwirl(IsDouble=true) |> prepare
-        | FloralSwirlsPrimary.SShapedSingle -> FloralSwirls.S_ShapedSwirlSingle() |> prepare
-        | FloralSwirlsPrimary.SShapedSpacefill -> FloralSwirls.S_ShapedSwirlSpacefill() |> prepare
-        | FloralSwirlsPrimary.MagneticSingle -> FloralSwirls.magneticSpiralSingle |> prepare
-        | FloralSwirlsPrimary.MagneticBunch -> FloralSwirls.magneticSpiralsBunch |> prepare
+        let result =
+            match primarySwirlsType with
+            | FloralSwirlsPrimary.WavySingle -> FloralSwirls.CosineSwirl(IsDouble=false) |> prepare
+            | FloralSwirlsPrimary.WavyDouble -> FloralSwirls.CosineSwirl(IsDouble=true) |> prepare
+            | FloralSwirlsPrimary.SShapedSingle -> FloralSwirls.S_ShapedSwirlSingle() |> prepare
+            | FloralSwirlsPrimary.SShapedSpacefill -> FloralSwirls.S_ShapedSwirlSpacefill() |> prepare
+            | FloralSwirlsPrimary.MagneticSingle -> FloralSwirls.magneticSpiralSingle |> prepare
+            | FloralSwirlsPrimary.MagneticBunch -> FloralSwirls.magneticSpiralsBunch |> prepare
+        result.RandomSeed <- seed
+        result
 
 
 
 let allEnvironmentSettingsTypes = 
     [| 
         typeof<PCB_RandomPosChips>; 
+        typeof<PCB_Traces>;
         typeof<Maze>; 
         typeof<FlowingLeaves>; 
         typeof<Vine>;

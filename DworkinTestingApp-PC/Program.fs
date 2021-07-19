@@ -91,39 +91,13 @@ module Builders =
 
 
 let configGui  = 
-    let possibleAnglesValues = [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -90.0f |]; [| -30.0f; -45.0f; -90.0f |] ]
     let configChooser =
         Builders.chooser
             "Environment"
             renderer
             [
                 EnvironmentSettingsEditor("PCB-RandPosChips", ConfigSettings.PCB_RandomPosChips());
-                Builders.environmentEditor
-                    "PCB-RandPosTraces"
-                    (PCB_RandomPosTraces())
-                    [ 
-                        Builders.radioButtonEditor "Endpoints" PCB_RandomPosTraces.Endpoints_ [Endpoints.Hollow; Endpoints.Filled];
-                        Builders.dropdownListEditor "Angles" PCB_RandomPosTraces.Angles_ [ [| -45.0f |]; [| -60.0f |]; [| -45.0f; -60.0f; -75.0f; -90.0f |] ];
-                        Builders.floatSliderEditor "Thickness variance" PCB_RandomPosTraces.ThicknessVariance_ 0.0f 1.0f 0.1f;
-                        Builders.floatSliderEditor "Sites Density" PCB_RandomPosTraces.SitesDensity_ 0.2f 0.8f 0.05f;
-                        Builders.floatSliderEditor "Branch Density" PCB_RandomPosTraces.BranchDensity_ 0.2f 0.8f 0.05f;
-                        Builders.floatSliderEditor "Size" PCB_RandomPosTraces.Size_ 0.75f 1.5f 0.05f;
-                        Builders.floatSliderEditor "Speed" PCB_RandomPosTraces.Speed_ 0.1f 1.0f 0.1f;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<PCB_RandomPosTraces>;
-                    ];
-                Builders.environmentEditor
-                    "PCB-GridTraces"
-                    (PCB_GridTraces())
-                    [ 
-                        Builders.radioButtonEditor "Endpoints" PCB_GridTraces.Endpoints_ [Endpoints.Hollow; Endpoints.Filled];
-                        Builders.dropdownListEditor "Angles" PCB_GridTraces.Angles_ possibleAnglesValues;
-                        Builders.checkboxEditor "Branch" PCB_GridTraces.Branch_;
-                        Builders.floatSliderEditor "Thickness variance" PCB_GridTraces.ThicknessVariance_ 0.0f 1.0f 0.1f;
-                        Builders.floatSliderEditor "Density" PCB_GridTraces.Density_ 0.25f 0.75f 0.05f;
-                        Builders.floatSliderEditor "Size" PCB_GridTraces.Size_ 0.75f 1.5f 0.05f;
-                        Builders.floatSliderEditor "Speed" PCB_GridTraces.Speed_ 0.1f 1.0f 0.1f;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<PCB_GridTraces>;
-                    ];
+                EnvironmentSettingsEditor("PCB-Traces", ConfigSettings.PCB_Traces());
                 EnvironmentSettingsEditor("Maze", ConfigSettings.Maze());
                 Builders.environmentEditor
                     "FlowingLeaves"
