@@ -97,22 +97,7 @@ let configGui  =
             "Environment"
             renderer
             [
-                Builders.environmentEditor
-                    "PCB-RandPosChips"
-                    pcbConfig
-                    [ 
-                        Builders.floatSliderEditor "Angle" PCB_RandomPosChips.Angle_ 0.0f 90.0f 45.0f;
-                        Builders.checkboxEditor "Vias" PCB_RandomPosChips.Vias_;
-                        Builders.radioButtonEditor "Endpoints" PCB_RandomPosChips.Endpoints_ [Endpoints.Hollow; Endpoints.Filled];
-                        Builders.checkboxEditor "Branch" PCB_RandomPosChips.Branch_;
-                        Builders.checkboxEditor "Octagonal" PCB_RandomPosChips.Octagonal_;
-                        Builders.dropdownListEditor "Angles" PCB_RandomPosChips.Angles_ possibleAnglesValues;
-                        Builders.floatSliderEditor "Thickness variance" PCB_RandomPosChips.ThicknessVariance_ 0.0f 1.0f 0.1f;
-                        Builders.floatSliderEditor "Density" PCB_RandomPosChips.Density_ 0.2f 0.8f 0.05f;
-                        Builders.floatSliderEditor "Size" PCB_RandomPosChips.Size_ 0.75f 1.5f 0.05f;
-                        Builders.floatSliderEditor "Speed" PCB_RandomPosChips.Speed_ 0.1f 1.0f 0.1f;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<PCB_RandomPosChips>;
-                    ];
+                EnvironmentSettingsEditor("PCB-RandPosChips", ConfigSettings.PCB_RandomPosChips());
                 Builders.environmentEditor
                     "PCB-RandPosTraces"
                     (PCB_RandomPosTraces())

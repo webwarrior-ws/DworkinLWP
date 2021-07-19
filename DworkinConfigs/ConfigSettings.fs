@@ -9,6 +9,29 @@ open Settings
 type EnvironmentConfig = LibDworkin.Configs.DworkinEnvironmentConfig
 
 
+type PCBAngles =
+    | A45 = 1
+    | A60 = 2
+    | A45_90 = 3
+    | A30_45_90 = 4
+    | A30_60_90 = 5
+    | A45_60_75_90 = 6
+
+module PCBAngles =
+    let GetAngles =
+        function
+        | PCBAngles.A45 -> [| -45.0f |]
+        | PCBAngles.A60 -> [| -60.0f |]
+        | PCBAngles.A45_90 -> [| -45.0f; -90.0f |]
+        | PCBAngles.A30_45_90 -> [| -30.0f; -45.0f; -90.0f |]
+        | PCBAngles.A30_60_90 -> [| -30.0f; -60.0f; -90.0f |]
+        | PCBAngles.A45_60_75_90 -> [| -45.0f; -60.0f; -75.0f; -90.0f |]
+
+
+type PCBChipShape =
+    | Rectangular = 1
+    | Octagonal = 2
+
 
 type PCB_RandomPosChips() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
@@ -17,28 +40,41 @@ type PCB_RandomPosChips() =
     [<FloatRange(0.0f, 90.0f, Step=45.0f)>]
     member val Angle = Defined(0.0f) with get, set
 
-    [<FloatRange(0.75f, 1.5f)>]
-    member val Size = Defined(1.0f) with get, set
+    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A30_45_90 |], ItemType=typeof<PCBAngles>)>]
+    member val Angles = Defined(PCBAngles.A45) with get, set
+
+    [<Enum([| PCBChipShape.Octagonal; PCBChipShape.Rectangular |], ItemType=typeof<PCBChipShape>)>]
+    member val ChipsShape = Defined(PCBChipShape.Octagonal) with get, set
     
     [<Bool>]
     member val Vias = Defined(false) with get, set
 
     [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>)>]
     member val Endpoints = Defined(PCB.Endpoints.Hollow) with get, set
+    
+    [<FloatRange(0.75f, 1.5f)>]
+    member val Size = Defined(1.0f) with get, set
 
     [<FloatRange(0.2f, 0.8f, Step=0.05f)>]
     member val Density = Defined(0.5f) with get, set
 
+    [<FloatRange(0.0f, 1.0f, Step=0.1f)>]
+    member val ThicknessVariance = Defined(0.0f) with get, set
+
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
+        let isOctagonal = match getValue<@ this.ChipsShape @> with | PCBChipShape.Octagonal -> true | _ -> false
         PCB.PCB_RandomPosChips(
             RandomSeed=seed,
             Angle=getValue <@ this.Angle @>,
+            Angles=PCBAngles.GetAngles(getValue<@ this.Angles @>),
+            Octagonal=isOctagonal,
             Size=getValue <@ this.Size @>,
             Vias=getValue <@ this.Vias @>,
             Endpoints=getValue <@ this.Endpoints @>,
-            Density=getValue <@ this.Density @>) 
+            Density=getValue <@ this.Density @>,
+            ThicknessVariance=getValue<@ this.ThicknessVariance @>) 
         :> EnvironmentConfig
 
 
