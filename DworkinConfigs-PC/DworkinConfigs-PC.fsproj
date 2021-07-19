@@ -57,9 +57,6 @@
     <Compile Include="../DworkinConfigs/MiscConfigs.fs">
       <Link>MiscConfigs.fs</Link>
     </Compile>
-    <Compile Include="../DworkinConfigs/DworkinEnvironmentConfigCustom.fs">
-      <Link>DworkinEnvironmentConfigCustom.fs</Link>
-    </Compile>
     <Compile Include="../DworkinConfigs/PCB.fs">
       <Link>PCB.fs</Link>
     </Compile>

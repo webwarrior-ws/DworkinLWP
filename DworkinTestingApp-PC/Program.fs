@@ -139,25 +139,9 @@ let configGui  =
                         Builders.floatSliderEditor "Speed" PCB_GridTraces.Speed_ 0.1f 1.0f 0.1f;
                         Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<PCB_GridTraces>;
                     ];
-                Builders.environmentEditor
-                    "SpiralsProbesBranching1"
-                    (SpiralsProbesBranching1())
-                    [ 
-                        Builders.intSliderEditor "N" SpiralsProbesBranching1.N_ 1 8 1;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<SpiralsProbesBranching1>;
-                    ];
-                Builders.environmentEditor
-                    "MagneticSpiralsBunch"
-                    (MagneticSpiralsBunchBranching2_3())
-                    [ 
-                        Builders.floatSliderEditor "Scale" MagneticSpiralsBunchBranching2_3.Scale_ 1.0f 2.0f 0.1f;
-                        Builders.intSliderEditor "MaxInitialAgents" 
-                            (LibDworkin.Lenses.config_ >-> MiscConfigs.SpawnConfig.ProbeBunchMagneticSpirals2Branch3.MaxInitialAgents_) 3 15 1;
-                        Builders.numberboxEditor "Random seed" LibDworkin.Lenses.randomSeed_<MagneticSpiralsBunchBranching2_3>;
-                    ];
                 EnvironmentSettingsEditor("Maze", ConfigSettings.Maze());
                 Builders.environmentEditor
-                    "FlowingLeavesExperiment"
+                    "FlowingLeaves"
                     (FlowingLeaves_WIP())
                     [ 
                         Builders.floatSliderEditor "Scale" FlowingLeaves_WIP.Scale_ 0.5f 2.0f 0.1f;

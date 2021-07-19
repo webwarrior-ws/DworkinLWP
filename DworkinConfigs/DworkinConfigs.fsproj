@@ -59,7 +59,6 @@
     <Compile Include="ThicknessFormula.fs" />
     <Compile Include="BranchingCriteria.fs" />
     <Compile Include="MiscConfigs.fs" />
-    <Compile Include="DworkinEnvironmentConfigCustom.fs" />
     <Compile Include="PCB.fs" />
     <Compile Include="FlowingLeaves.fs" />
     <Compile Include="Maze.fs" />

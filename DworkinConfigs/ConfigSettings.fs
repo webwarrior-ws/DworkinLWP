@@ -9,23 +9,6 @@ open Settings
 type EnvironmentConfig = LibDworkin.Configs.DworkinEnvironmentConfig
 
 
-type MagneticSpiralsBunch() =
-    inherit LibDworkin.DworkinSettings.EnvironmentSettings()
-    static do Settings.RegisterClass<MagneticSpiralsBunch>()
-
-    [<FloatRange(1.5f, 3.0f, Step=0.1f)>]
-    member val Scale = Defined(2.0f) with get, set
-
-    [<IntRange(2, 5)>]
-    member val MaxInitialAgents = Defined(3) with get, set
-
-    override this.Build(seed) =
-        let random = System.Random(seed)
-        let getValue expr = Randomizeable.getValue random expr
-        let config = DworkinEnvironmentConfigCustom.MagneticSpiralsBunchBranching2_3(Scale=getValue <@ this.Scale @>) 
-        config.Config.MaxInitialAgents <- getValue <@ this.MaxInitialAgents @>
-        config :> EnvironmentConfig
-
 
 type PCB_RandomPosChips() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
@@ -453,7 +436,6 @@ type FloralSwirls() =
 
 let allEnvironmentSettingsTypes = 
     [| 
-        typeof<MagneticSpiralsBunch>; 
         typeof<PCB_RandomPosChips>; 
         typeof<Maze>; 
         typeof<FlowingLeaves>; 
