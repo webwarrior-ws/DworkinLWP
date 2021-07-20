@@ -25,11 +25,9 @@ module DworkinAgentConfig =
             Speed=AgentSpeedThickness();
             Termination=TerminationSpawn(SpawnConfig=SpawnConfig.PCBTraceLengthLimited());
             TerminationConditions=
-                { Collision=Some(TerminationConditionCollision()
-                              |> Optic.set ignoreParent_ true
+                { Collision=Some(TerminationConditionCollision(IgnoreParent=true, SelfIntersection=false)
                               |> Optic.set primaryDetector_ { CollisionDetectorConfig.Default with Angle=45.0f; Distance=5.0f }
-                              |> Optic.set secondaryDetector_ { CollisionDetectorConfig.Default with Angle=180.0f; Distance=2.5f }
-                              |> Optic.set selfIntersection_ false);
+                              |> Optic.set secondaryDetector_ { CollisionDetectorConfig.Default with Angle=180.0f; Distance=2.5f } );
                 Curvature=None;
                 Distance=Some(TerminationConditionDistance()); };
             Thickness=ThicknessFormula.Constant(C=1.5f);
@@ -154,9 +152,10 @@ module SpawnConfig =
             (fun x -> x.LengthAlternation), (fun value x -> let y = x.Clone() in y.LengthAlternation <- value; y)
 
         override this.Evaluate(agent, pos) =
-            let mutable nextTD = null
             let angle = this.Angles.AtRandom(agent.Random)
-            let nextTD = agent.Random.NextInRange(this.LengthRange) * (((float32((agent.Generation + 1) % 2) * this.LengthAlternation) + 1.0f) / (this.LengthAlternation + 1.0f))
+            let nextTD = 
+                agent.Random.NextInRange(this.LengthRange) * (((float32((agent.Generation + 1) % 2) * this.LengthAlternation) + 1.0f) / (this.LengthAlternation + 1.0f))
+                |> max (agent.Speed * 4.0f)
             if (agent.S <= agent.Speed * 2.0f) || ((float32 this.LengthLimit - nextTD) <= 1.0f) then
                 this.TerminalConfig.Evaluate(agent)
             else
@@ -184,7 +183,7 @@ module SpawnConfig =
                     let spawnOptions = ProbeSpawnOptions(AngleDeg=angle)
                     let flip = (angle <> 0.0f) && (agent.Random.NextFloat() < this.FlipProbability) 
                     let agentBlock (a : DworkinAgent) = if flip then a.Flip()
-                    if angle <> 0.0f && agent.LaunchProbe(config |> Optic.set totalDistance_ 10.0f, spawnOptions, agentBlock).S > 0.0f then
+                    if angle <> 0.0f && agent.LaunchProbe(config |> Optic.set totalDistance_ 5.0f, spawnOptions, agentBlock).S > 0.0f then
                         let numSteps = int(agent.ThicknessFactor / agent.Speed) |> max 1
                         Util.drawJoint(agent, agent.Direction.Rotate(deg2rad(angle) * agent.FlipFactor), Util.JointType.Bevel, numSteps, 0)
                         spawnOptions.DelayBy(numSteps)
@@ -555,7 +554,7 @@ type PCB_RandomPosTraces() =
         |> Optic.set brush_ (BrushStrategySolid())
         |> Optic.set (terminarion_spawnConfig_ >-> lengthRange_) (NumberRange(35.0f, 75.0f))
         |> Optic.set (terminarion_spawnConfig_ >-> lengthLimit_) 400.0f
-        |> Optic.set (terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 7.5f with get, set
+        |> Optic.set (terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 7.5f  with get, set
     member val Angles = [| -45.0f |] with get, set
     member val InitialLengthRange = NumberRange(25.0f, 75.0f) with get, set
     member val ThicknessVariance = 0.5f with get, set
@@ -668,7 +667,8 @@ type PCB_GridTraces() =
             Brush=BrushStrategySolid();
             Speed=AgentSpeedThickness(Factor=0.25f);
             ColliderOptions=ColliderOptionsGeneral();
-            Termination=TerminationSpawn(SpawnConfig=SpawnConfig.PCBTraceLengthLimited(LengthLimit=150.0f));
+            Termination=
+                TerminationSpawn(SpawnConfig=SpawnConfig.PCBTraceLengthLimited(LengthRange=NumberRange(40.0f, 80.0f), LengthLimit=150.0f));
             Thickness=ThicknessFormula.Constant(C=2.0f);
             TerminationConditions={ 
                 Collision=
@@ -751,7 +751,7 @@ type PCB_GridTraces() =
             |> Seq.collect (fun x -> seq { 0.0f .. float32(abs x) .. 359.0f })
             |> Seq.distinct
             |> Seq.toArray
-        let thicknessRange = NumberRange(lerp 2.5f 1.5f this.ThicknessVariance, lerp 2.5f 3.5f this.ThicknessVariance)
+        let thicknessRange = NumberRange(lerp 1.25f 0.5f this.ThicknessVariance, lerp 1.25f 2.0f this.ThicknessVariance)
 
         for y in (height * float32(1 - ny)) / (float32(2 * ny) + 2.0f) .. height / float32(ny + 1) .. (height / 2.0f) - 1.0f do
             for x in (width * float32(1 - nx)) / (float32(2 * nx) + 2.0f) .. width / float32(nx + 1) .. (width / 2.0f) - 1.0f do

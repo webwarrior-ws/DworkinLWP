@@ -91,7 +91,7 @@ type PCB_Traces() =
     [<Enum([| PCBTracesKind.Random; PCBTracesKind.Grid; PCBTracesKind.GridWithBranches |], ItemType=typeof<PCBTracesKind>)>]
     member val Kind = Defined(PCBTracesKind.Random) with get, set
 
-    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A30_60_90; PCBAngles.A45_60_75_90 |], ItemType=typeof<PCBAngles>)>]
+    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A45_60_75_90 |], ItemType=typeof<PCBAngles>)>]
     member val Angles = Defined(PCBAngles.A45) with get, set
 
     [<FloatRange(0.0f, 1.0f, Step=0.05f)>]
@@ -100,8 +100,8 @@ type PCB_Traces() =
     [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>)>]
     member val Endpoints = Defined(PCB.Endpoints.Hollow) with get, set
     
-    [<FloatRange(0.75f, 1.5f)>]
-    member val Size = Defined(1.0f) with get, set
+    [<FloatRange(1.0f, 2.5f)>]
+    member val Size = Defined(1.75f) with get, set
         
     [<FloatRange(0.0f, 1.0f, Step=0.1f)>]
     member val ThicknessVariance = Defined(0.0f) with get, set
