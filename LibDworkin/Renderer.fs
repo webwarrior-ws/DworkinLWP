@@ -430,94 +430,93 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Distances are in range [-maxDistance; maxDistance]. 
         // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
         // B channel acts as a stencil buffer for negative distances calculation (pixels with B>0 are skipped)
-        if not (Array.isEmpty shapes) then
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                    TextureTarget.Texture2D, this.SDFTexture, 0) // needed for some reason
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                TextureTarget.Texture2D, this.SDFTexture, 0) // needed for some reason
             
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
-            this.ClearBlueChannel()
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+        this.ClearBlueChannel()
 
-            if this.Effect.UsesStencil then
-                stencil.Update(shapes, scale, this.MaxDistance)
+        if this.Effect.UsesStencil then
+            stencil.Update(shapes, scale, this.MaxDistance)
 
-            let polygons, circles = 
-                shapes 
-                |> Array.partition (function | struct (Polygon(_), _) -> true | struct (Circle(_), _) -> false)
-            // Step 0: build and draw shapes.            
-            for struct (Polygon(points), paint) in polygons do
-                if paint.Fill then this.BuildPolygon(points)
-                if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
+        let polygons, circles = 
+            shapes 
+            |> Array.partition (function | struct (Polygon(_), _) -> true | struct (Circle(_), _) -> false)
+        // Step 0: build and draw shapes.            
+        for struct (Polygon(points), paint) in polygons do
+            if paint.Fill then this.BuildPolygon(points)
+            if paint.StrokeWidth > 0.0f then this.BuildPolygonContour(points, paint.StrokeWidth)
                 
-            if polygonVertexIndices.Size > 0 then
-                // draw polygons
-                this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
-
-                polygonDrawingShader.Value.Use()
-                let aPos = polygonDrawingShader.Value.GetAttributeLocation("pos")
-                GL.EnableVertexAttribArray(aPos)
-                GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-
-                this.PerformDrawElements(polygonVertexIndices)
-            
-            shapeVertices.Reset()
-            polygonVertexIndices.Reset()
-
-            for struct (Circle(center, radius), paint) in circles do
-                if paint.Fill then this.BuildCircle(center, radius + paint.StrokeWidth * 0.5f)
-                elif paint.StrokeWidth > 0.0f then this.BuildCircleContour(center, radius, paint.StrokeWidth)
-
-            // Build outer shell and area of influence for each shape.
-            for struct (Polygon(points), paint) in polygons do
-                if paint.Fill then 
-                    this.BuildOuterShellForPolygon(points)
-                if paint.StrokeWidth > 0.0f then 
-                    // for now build  outer shell and aoi for each contour segment individually - not optimal, but works
-                    let contourSegmentQuads = this.GetQuadsForPolygonContour(points, paint.StrokeWidth)
-                    for quadPoints in contourSegmentQuads do
-                        this.BuildOuterShellForPolygon(quadPoints)
-            
+        if polygonVertexIndices.Size > 0 then
+            // draw polygons
             this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
 
-            GL.Enable(EnableCap.Blend)
-            // Min blend equation is not specified by OpenGL ES 2.0 standard - need OpenGL ES 3.0 or GL_EXT_blend_minmax extension
-            GL.BlendEquation(All.Min) 
+            polygonDrawingShader.Value.Use()
+            let aPos = polygonDrawingShader.Value.GetAttributeLocation("pos")
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
-            // Step 1(polygons): calculate [positive] distances outside of shapes.
-            if polygonVertexIndices.Size > 0 then
-                this.TransferBufferData(polygonSegmentsVertices, polygonSegmentsVBO, BufferTarget.ArrayBuffer)
-                this.CalcPositiveDistShader.Use()
-                let aSegment = this.CalcPositiveDistShader.GetAttributeLocation("pointOnSegment")
-                GL.EnableVertexAttribArray(aSegment)
-                GL.VertexAttribPointer(aSegment, 2, VertexAttribPointerType.Float, false, 0, 0)
+            this.PerformDrawElements(polygonVertexIndices)
+            
+        shapeVertices.Reset()
+        polygonVertexIndices.Reset()
+
+        for struct (Circle(center, radius), paint) in circles do
+            if paint.Fill then this.BuildCircle(center, radius + paint.StrokeWidth * 0.5f)
+            elif paint.StrokeWidth > 0.0f then this.BuildCircleContour(center, radius, paint.StrokeWidth)
+
+        // Build outer shell and area of influence for each shape.
+        for struct (Polygon(points), paint) in polygons do
+            if paint.Fill then 
+                this.BuildOuterShellForPolygon(points)
+            if paint.StrokeWidth > 0.0f then 
+                // for now build  outer shell and aoi for each contour segment individually - not optimal, but works
+                let contourSegmentQuads = this.GetQuadsForPolygonContour(points, paint.StrokeWidth)
+                for quadPoints in contourSegmentQuads do
+                    this.BuildOuterShellForPolygon(quadPoints)
+            
+        this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
+
+        GL.Enable(EnableCap.Blend)
+        // Min blend equation is not specified by OpenGL ES 2.0 standard - need OpenGL ES 3.0 or GL_EXT_blend_minmax extension
+        GL.BlendEquation(All.Min) 
+
+        // Step 1(polygons): calculate [positive] distances outside of shapes.
+        if polygonVertexIndices.Size > 0 then
+            this.TransferBufferData(polygonSegmentsVertices, polygonSegmentsVBO, BufferTarget.ArrayBuffer)
+            this.CalcPositiveDistShader.Use()
+            let aSegment = this.CalcPositiveDistShader.GetAttributeLocation("pointOnSegment")
+            GL.EnableVertexAttribArray(aSegment)
+            GL.VertexAttribPointer(aSegment, 2, VertexAttribPointerType.Float, false, 0, 0)
                 
-                GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
-                let aPos = this.CalcPositiveDistShader.GetAttributeLocation("pos")
-                GL.EnableVertexAttribArray(aPos)
-                GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+            GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
+            let aPos = this.CalcPositiveDistShader.GetAttributeLocation("pos")
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
-                this.PerformDrawElements(polygonVertexIndices)
+            this.PerformDrawElements(polygonVertexIndices)
             
-            // Step 1 (circles): calculate [positive] distances outside of circles and draw circles.
-            if circleVertexIndices.Size > 0 then
-                circleDrawingShader.Value.Use()
-                this.TransferBufferData(circleVertexData, circleDataVBO, BufferTarget.ArrayBuffer)
-                let aData = circleDrawingShader.Value.GetAttributeLocation("data")
-                GL.EnableVertexAttribArray(aData)
-                GL.VertexAttribPointer(aData, 4, VertexAttribPointerType.Float, false, 0, 0)
+        // Step 1 (circles): calculate [positive] distances outside of circles and draw circles.
+        if circleVertexIndices.Size > 0 then
+            circleDrawingShader.Value.Use()
+            this.TransferBufferData(circleVertexData, circleDataVBO, BufferTarget.ArrayBuffer)
+            let aData = circleDrawingShader.Value.GetAttributeLocation("data")
+            GL.EnableVertexAttribArray(aData)
+            GL.VertexAttribPointer(aData, 4, VertexAttribPointerType.Float, false, 0, 0)
 
-                this.TransferBufferData(circleVertices, circlesVBO, BufferTarget.ArrayBuffer)
-                let aPos = circleDrawingShader.Value.GetAttributeLocation("pos")
-                GL.EnableVertexAttribArray(aPos)
-                GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+            this.TransferBufferData(circleVertices, circlesVBO, BufferTarget.ArrayBuffer)
+            let aPos = circleDrawingShader.Value.GetAttributeLocation("pos")
+            GL.EnableVertexAttribArray(aPos)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
 
-                this.PerformDrawElements(circleVertexIndices)
+            this.PerformDrawElements(circleVertexIndices)
 
-            GL.BlendEquation(BlendEquationMode.FuncAdd)
-            GL.Disable(EnableCap.Blend)
+        GL.BlendEquation(BlendEquationMode.FuncAdd)
+        GL.Disable(EnableCap.Blend)
             
-            this.CalculateNegativeDistances()
-            // cleanup
-            this.ClearBuffers()
+        this.CalculateNegativeDistances()
+        // cleanup
+        this.ClearBuffers()
     
     member private this.CalculateNegativeDistances() =
             // Step 2: calculate [negative] distances inside of shapes in area of influence.
@@ -695,9 +694,12 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
         TimeSamplers.resetAll()
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let env = environmentConfig.GetEnvironment(dimensions)
+        let mutable shapesToDraw = [||]
         // skip steps when nothing happens
         while not env.HasActiveAgents && env.Age < 1000 do
-            env.Step() |> ignore
+            match env.Step() with
+            | [||] -> ()
+            | shapes -> shapesToDraw <- shapesToDraw |> Array.append shapes
         stopWatch.Stop()
         this.EnvironmentStepper.Environment <- env 
 #if __ANDROID__
@@ -706,6 +708,8 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
         this.StatsPrinted <- false
 #endif
         this.ResetStencil()
+        // call RenderShapes even if there is nothing to draw, beacuse otherwise first frame is missed due to double buffering
+        this.RenderShapes(shapesToDraw)
 
     override this.OnSurfaceChanged(width, height) =
         let contextLost =

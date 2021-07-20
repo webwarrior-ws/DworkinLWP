@@ -761,7 +761,6 @@ type PCB_GridTraces() =
                 let delay = int(floor(env.Random.NextFloat() * dist * this.DelayFactor / this.Speed))
                 let theta = spawnAngles.AtRandom(env.Random)
                 if env.Random.NextFloat() < this.Density then 
-                    env.SpawnShape(Shape.Circle(Point(), 10.0f), ShapeSpawnOptions(Position=p))
                     let trySpawnAgent _ =
                         let thickness = env.Random.NextInRange(thicknessRange)
                         let r = ((config.Termination :?> TerminationSpawn).SpawnConfig :?> SpawnConfig.PCBTraceLengthLimited).TerminalConfig.Radius
