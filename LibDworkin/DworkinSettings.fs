@@ -218,8 +218,8 @@ module Effects =
         [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
         member val Size = Defined(1.0f) with get, set
 
-        [<FloatRange(0.1f, 0.7f, Step=0.05f)>]
-        member val Intensity = Defined(0.4f) with get, set
+        [<FloatRange(0.1f, 0.3f, Step=0.025f)>]
+        member val Intensity = Defined(0.2f) with get, set
 
         [<Enum([| GlowInsideType.Empty; GlowInsideType.Glow; GlowInsideType.Foreground |], ItemType=typeof<GlowInsideType>)>]
         member val Inside = Defined(GlowInsideType.Empty) with get, set
