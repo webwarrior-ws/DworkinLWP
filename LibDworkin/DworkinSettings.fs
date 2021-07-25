@@ -144,7 +144,7 @@ module Effects =
         inherit EffectSettings()
         static do Settings.RegisterClass<Shadow>()
 
-        [<FloatRange(0.0f, 20.0f, Step=1.0f)>]
+        [<FloatRange(0.0f, 10.0f, Step=1.0f)>]
         member val Offset = Defined(5.0f) with get, set
 
         [<FloatRange(0.1f, 1.0f)>]
