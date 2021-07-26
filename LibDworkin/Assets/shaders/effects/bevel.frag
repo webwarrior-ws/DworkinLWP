@@ -11,8 +11,9 @@ uniform sampler2D reflectionMap;
 uniform vec3 toLight;
 uniform float contrast; 
 uniform float maxDistance;
-uniform int bevelProfile; // !combobox[0, "Linear", "Hyperbolic", "Parabola1", "Parabola2", "Exp"]
-uniform int mode; // !combobox[1, "Inner", "Outer", "Ridge", "Trench"]
+uniform float innerSlope; 
+uniform float outerSlope;
+uniform int bevelProfile;
 
 uniform float fgRoughness;
 uniform float bgRoughness;
@@ -98,20 +99,22 @@ vec3 getNormal(vec3 rawPixel, float mask) {
 	
 	vec3 inner = vec3(0.0, 0.0, 1.0), outer = vec3(0.0, 0.0, 1.0);
 	// outer
-	if(mode != 0 && mask > 0.0) {
+	if(outerSlope != 0.0 && mask > 0.0) {
 		vec4 tOuter = clamp(vec4(tx1.r, tx2.r, ty1.r, ty2.r), -maxDistance, maxDistance);
 		vec2 grad = gradient(tOuter);
 		float d = dist(rawPixel.rg, false) / maxDistance;
+		if(outerSlope == -1.0 || (outerSlope == 1.0 && innerSlope == 1.0)) d = 1.0 - d;
 		outer = normalAt(d, grad);
-		if (mode != 3) { outer.xy = -outer.xy; }
+		outer.xy *= -outerSlope;
 	}
 	// inner
-	if(mode != 1 && mask < 1.0) {
+	if(innerSlope != 0.0 && mask < 1.0) {
 		vec4 tInner = clamp(vec4(dInner(tx1), dInner(tx2), dInner(ty1), dInner(ty2)), -maxDistance, maxDistance);
 		vec2 grad = gradient(tInner);
 		float d = dist(rawPixel.rg, true) / maxDistance;
+		if(innerSlope == 1.0 || (outerSlope == -1.0 && innerSlope == -1.0)) d = 1.0 - d;
 		inner = normalAt(d, grad);
-		if (mode == 2) { inner.xy = -inner.xy; }
+		inner.xy *= innerSlope;
 	}
 	return mix(inner, outer, mask);
 }

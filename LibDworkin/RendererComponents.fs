@@ -600,10 +600,14 @@ type BevelProfile =
     | Exp = 4
 
 type BevelMode =
-    | Inner = 0
-    | Outer = 1
-    | Ridge = 2
-    | Trench = 3
+    | DownDown = 1
+    | DownLevel = 2
+    | DownUp = 3
+    | LevelDown = 4
+    | LevelUp = 5
+    | UpDown = 6
+    | UpLevel = 7
+    | UpUp = 8
 
 type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : float32, bevelProfile : BevelProfile, mode : BevelMode) =
     inherit Effect(platform.GetShader("effects/bevel.vert", "effects/bevel.frag"))
@@ -622,13 +626,24 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
     override this.UsesStencil = true
 
     override this.SetUniforms() =
+        let outerSlope = 
+            match mode with
+            | BevelMode.DownDown | BevelMode.DownLevel | BevelMode.DownUp -> -1.0f
+            | BevelMode.LevelDown | BevelMode.LevelUp -> 0.0f
+            | _ -> 1.0f
+        let innerSlope =
+            match mode with
+            | BevelMode.DownDown | BevelMode.LevelDown | BevelMode.UpDown -> -1.0f
+            | BevelMode.DownLevel | BevelMode.UpLevel -> 0.0f
+            | _ -> 1.0f
         let lightHeight = 0.6f
         let toLight = Vector3((Helpers.lightPosition.X - 0.5f) *2.0f, (0.5f - Helpers.lightPosition.Y) *2.0f, lightHeight)
         GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
         GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance)
         GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight)
         GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
-        GL.Uniform1(this.Shader.GetUniformLocation("mode"), int mode)
+        GL.Uniform1(this.Shader.GetUniformLocation("outerSlope"), outerSlope)
+        GL.Uniform1(this.Shader.GetUniformLocation("innerSlope"), innerSlope)
         this.SetRoughnessAndSpecularUniforms()
         this.SetTexture("reflectionMap", TextureUnit.Texture4, platform.GetTexture(Helpers.reflectionMapTextureName).Value)
 

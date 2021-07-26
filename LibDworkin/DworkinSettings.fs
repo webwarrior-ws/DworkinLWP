@@ -198,8 +198,10 @@ module Effects =
                Name="Bevel profile")>]
         member val Profile = Defined(BevelProfile.Linear) with get, set
 
-        [<Enum([| BevelMode.Inner; BevelMode.Outer; BevelMode.Ridge; BevelMode.Trench |], ItemType=typeof<BevelMode>)>]
-        member val Mode = Defined(BevelMode.Outer) with get, set
+        [<Enum([| BevelMode.DownDown; BevelMode.DownLevel; BevelMode.DownUp; BevelMode.LevelDown; BevelMode.LevelUp; 
+                  BevelMode.UpDown; BevelMode.UpLevel; BevelMode.UpUp |], 
+                  ItemType=typeof<BevelMode>)>]
+        member val Mode = Defined(BevelMode.UpLevel) with get, set
 
         override this.Build(platform, random) =
             let getValue expr = Randomizeable.getValue random expr
