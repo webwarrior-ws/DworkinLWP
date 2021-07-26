@@ -7,13 +7,14 @@ uniform sampler2D background;
 uniform sampler2D foreground;
 uniform sampler2D stencil;
 uniform sampler2D reflectionMap;
+uniform sampler2D profilesMap;
 
 uniform vec3 toLight;
 uniform float contrast; 
 uniform float maxDistance;
 uniform float innerSlope; 
 uniform float outerSlope;
-uniform int bevelProfile;
+uniform float bevelProfileY;
 
 uniform float fgRoughness;
 uniform float bgRoughness;
@@ -59,17 +60,9 @@ vec2 gradient(vec4 t) {
 
 vec3 normalAt(float d, vec2 grad) {
 	float z = 1.0/steepness;   
-	
-	if(bevelProfile == 1)
-		z = mix(z*0.5, z*1.5, 1.0/(steepness*d+0.001));
-	else if(bevelProfile == 2)
-		z = mix(z*0.75, z*3.5, squared(parabola(0.5*d)));
-	else if(bevelProfile == 3)
-		z = mix(z*0.75, z*3.5, 1.0-parabola(d));
-	else if(bevelProfile == 4)
-		z = mix(z*0.5, z*3.0, exp(-d)-0.367);
-	
-    return normalize(vec3(grad, z*sqrt(1.0-dot(grad, grad))));
+	vec2 n = texture2D(profilesMap, vec2(d, bevelProfileY)).gr;
+	// n coords are swapped because normal calculation was tuned for incorrect order 
+    return normalize(vec3(grad * n.x, z * n.y));
 }
 
 float shade_normal(vec3 toLight, vec3 normal) {
@@ -112,7 +105,7 @@ vec3 getNormal(vec3 rawPixel, float mask) {
 		vec4 tInner = clamp(vec4(dInner(tx1), dInner(tx2), dInner(ty1), dInner(ty2)), -maxDistance, maxDistance);
 		vec2 grad = gradient(tInner);
 		float d = dist(rawPixel.rg, true) / maxDistance;
-		if(innerSlope == 1.0 || (outerSlope == -1.0 && innerSlope == -1.0)) d = 1.0 - d;
+		if(innerSlope == 1.0 || innerSlope == -1.0) d = 1.0 - d;
 		inner = normalAt(d, grad);
 		inner.xy *= innerSlope;
 	}

@@ -594,10 +594,9 @@ type OutlineEffect(platform : AbstractPlatform, outlineWidth : float32) =
 
 type BevelProfile =
     | Linear = 0
-    | Hyperbolic = 1
-    | Parabola1 = 2
-    | Parabola2 = 3
-    | Exp = 4
+    | Circular = 1
+    | InverseCircular = 2
+    | Sigmoid = 3
 
 type BevelMode =
     | DownDown = 1
@@ -611,6 +610,35 @@ type BevelMode =
 
 type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : float32, bevelProfile : BevelProfile, mode : BevelMode) =
     inherit Effect(platform.GetShader("effects/bevel.vert", "effects/bevel.frag"))
+
+    static let profilesMap = ResettableLazy<int>(fun () ->
+        let almostIdentity(x, n) = sqrt(x*x+n)
+        let gain(x, k)  =
+            let a = 0.5 * (2.0*(if x<0.5 then x else 1.0-x)) ** k
+            if x<0.5 then a else 1.0-a
+        let profileFuncs = [| 
+            fun t -> Vector2(sqrt 2.0f, sqrt 2.0f);
+            fun t -> // Circular
+                let t = (1.0 - almostIdentity(1.0-t, 0.05)) * System.Math.PI / 2.0
+                Vector2(float32(cos(t)), float32(sin(t)));
+            fun t -> // InverseCircular
+                let t = almostIdentity(t, 0.05) * System.Math.PI / 2.0
+                Vector2(float32(sin(t)), float32(cos(t)));
+            fun t -> // Sigmoid
+                let k = 2.0
+                let dx = 0.001
+                let d = (gain(t+dx, k) - gain(t-dx, k)) / (2.0 * dx)
+                Vector2(1.0f, float32 d).Normalized();
+        |]
+        let width = 32
+        let textureData = Array2D.create profileFuncs.Length (width * 3) 0uy
+        for y=0 to profileFuncs.Length-1 do
+            for x=0 to width-1 do
+                let p = profileFuncs.[y] (float(x) / float(width))
+                textureData.[y, x*3] <- uint8(p.X * 255.0f)
+                textureData.[y, x*3 + 1] <- uint8(p.Y * 255.0f)
+        use ptr = fixed &textureData.[0,0]
+        Helpers.uploadTexture (ptr |> NativePtr.toNativeInt, width, profileFuncs.Length) )
 
     let mutable fgRoughness = 1.0f
     let mutable bgRoughness = 1.0f
@@ -636,16 +664,18 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
             | BevelMode.DownDown | BevelMode.LevelDown | BevelMode.UpDown -> -1.0f
             | BevelMode.DownLevel | BevelMode.UpLevel -> 0.0f
             | _ -> 1.0f
+        let numBevelProfiles = 4 // see BevelProfile
         let lightHeight = 0.6f
         let toLight = Vector3((Helpers.lightPosition.X - 0.5f) *2.0f, (0.5f - Helpers.lightPosition.Y) *2.0f, lightHeight)
         GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
         GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance)
         GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight)
-        GL.Uniform1(this.Shader.GetUniformLocation("bevelProfile"), int bevelProfile)
+        GL.Uniform1(this.Shader.GetUniformLocation("bevelProfileY"), float32(int(bevelProfile) + 1) / float32(numBevelProfiles + 1))
         GL.Uniform1(this.Shader.GetUniformLocation("outerSlope"), outerSlope)
         GL.Uniform1(this.Shader.GetUniformLocation("innerSlope"), innerSlope)
         this.SetRoughnessAndSpecularUniforms()
         this.SetTexture("reflectionMap", TextureUnit.Texture4, platform.GetTexture(Helpers.reflectionMapTextureName).Value)
+        this.SetTexture("profilesMap", TextureUnit.Texture5, profilesMap.Value)
 
     override this.SetMaterialProperties(fgProps, bgProps) =
         base.SetMaterialProperties(fgProps, bgProps)

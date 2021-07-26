@@ -193,7 +193,7 @@ module Effects =
         [<FloatRange(0.0f, 0.5f, Name="Max. distance")>]
         member val MaxDistance = Defined(0.5f) with get, set
 
-        [<Enum([| BevelProfile.Linear; BevelProfile.Hyperbolic; BevelProfile.Parabola1; BevelProfile.Parabola2; BevelProfile.Exp |], 
+        [<Enum([| BevelProfile.Linear; BevelProfile.Circular; BevelProfile.InverseCircular; BevelProfile.Sigmoid |], 
                ItemType=typeof<BevelProfile>, 
                Name="Bevel profile")>]
         member val Profile = Defined(BevelProfile.Linear) with get, set
