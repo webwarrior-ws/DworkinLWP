@@ -721,7 +721,8 @@ type FuzzyTextureEffect(platform : AbstractPlatform,
                         textureScale : float32, 
                         falloff : float32, 
                         absorbThreshold : float32, 
-                        fill : float32) =
+                        fill : float32,
+                        interiorFade : float32) =
     inherit Effect(platform.GetShader("effects/fuzzyTexture.vert", "effects/fuzzyTexture.frag"))
 
     override this.SetUniforms() =
@@ -729,6 +730,7 @@ type FuzzyTextureEffect(platform : AbstractPlatform,
         GL.Uniform1(this.Shader.GetUniformLocation("falloff"), falloff)
         GL.Uniform1(this.Shader.GetUniformLocation("absorbThreshold"), absorbThreshold)
         GL.Uniform1(this.Shader.GetUniformLocation("fill"), fill)
+        GL.Uniform1(this.Shader.GetUniformLocation("interiorFade"), interiorFade)
         this.SetTexture("noise", TextureUnit.Texture4, platform.GetTexture(noiseTexture).Value)
 
     

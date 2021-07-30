@@ -266,6 +266,9 @@ module Effects =
 
         [<FloatRange(0.25f, 0.75f, Step=0.05f)>]
         member val Fill = Defined(0.75f) with get, set
+
+        [<FloatRange(0.0f, 0.20f, Step=0.025f)>]
+        member val Washout = Defined(0.0f) with get, set
         
         [<FloatRange(0.05f, 0.25f, Step=0.025f)>]
         member val Distortion = Defined(0.1f) with get, set
@@ -285,7 +288,8 @@ module Effects =
                 textureScale,
                 getValue <@ this.Distortion @>,
                 getValue <@ this.Softness @>,
-                getValue <@ this.Fill @>)
+                getValue <@ this.Fill @>,
+                getValue <@ this.Washout @>)
             :> Effect
 
     let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<Highlight>; typeof<FuzzyTexture> |]

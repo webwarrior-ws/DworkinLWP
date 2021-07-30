@@ -11,6 +11,7 @@ uniform sampler2D noise;
 uniform float falloff;
 uniform float absorbThreshold;
 uniform float fill;
+uniform float interiorFade;
 
 
 float fuzzy(float d) {
@@ -24,6 +25,7 @@ void main() {
 	
 	float innerDRange = fill * (falloff + absorbThreshold);
 	float d = rawPixel.r > 0.0 ? rawPixel.r : max(-innerDRange, -rawPixel.g);
+	d += (rawPixel.r > 0.0) ? 0.0 : (rawPixel.g * interiorFade);
 	
 	float m = fuzzy(d);
 	
