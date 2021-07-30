@@ -243,13 +243,10 @@ module Effects =
         [<FloatRange(0.05f, 1.0f, Step=0.05f)>]
         member val LightIntensity = Defined(0.5f) with get, set
 
-        [<FloatRange(0.0f, 1.0f)>]
-        member val LightPosition = Defined(0.75f) with get, set
-
         override this.Build(platform, random) =
             HighlightEffect(
                 platform, 
-                Geometry.Point(0.0f, Randomizeable.getValue random <@ this.LightPosition @>), 
+                Geometry.Point(0.0f, 0.75f), 
                 Randomizeable.getValue random <@ this.LightIntensity @>)
             :> Effect
     
