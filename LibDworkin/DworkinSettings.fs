@@ -262,16 +262,16 @@ module Effects =
         member val TextureType = Defined(FuzzyTextureType.Ink) with get, set
 
         [<FloatRange(0.25f, 0.75f, Step=0.05f)>]
-        member val Fill = Defined(0.75f) with get, set
+        member val Fill = Defined(0.60f) with get, set
 
         [<FloatRange(0.0f, 0.20f, Step=0.025f)>]
         member val Washout = Defined(0.0f) with get, set
         
         [<FloatRange(0.05f, 0.25f, Step=0.025f)>]
-        member val Distortion = Defined(0.1f) with get, set
+        member val Distortion = Defined(0.15f) with get, set
 
         [<FloatRange(0.05f, 0.25f, Step=0.025f)>]
-        member val Softness = Defined(0.1f) with get, set
+        member val Softness = Defined(0.10f) with get, set
 
         override this.Build(platform, random) =
             let getValue expr = Randomizeable.getValue random expr
