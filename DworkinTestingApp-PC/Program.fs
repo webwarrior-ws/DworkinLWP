@@ -198,20 +198,8 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
     let mutable guis = 
         [
             makeEditor "Solid color" <| Materials.SolidColor();
-            (*Builders.makeShaderBasedComponentEditor<MetalMaterial> setter "metal"
-                [ 
-                    "color", box defaultColor, Builders.ShaderComponents.colorEditor;
-                    "highlight", box 0.2f, Builders.ShaderComponents.floatSliderEditor 0.0f 0.4f 0.05f;
-                    "scale", box 1.0f, Builders.ShaderComponents.floatSliderEditor 0.2f 3.0f 0.1f;
-                    "offset", box (Geometry.Point(1.0f, 0.0f)), Builders.ShaderComponents.vec2Editor -1.0f 1.0f 0.1f;
-                    "angle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
-                    "stretch", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 20.0f 1.0f;
-                    "strokeFreq", box 500.0f, Builders.ShaderComponents.floatSliderEditor 200.0f 1000.0f 50.0f;
-                    "strokeLength", box 0.5f, Builders.ShaderComponents.floatSliderEditor 0.1f 1.0f 0.05f;
-                    "strokeIntensity", box 0.35f, Builders.ShaderComponents.floatSliderEditor 0.0f 1.0f 0.05f;
-                    "strokeAngle", box 0.0f, Builders.ShaderComponents.floatSliderEditor 0.0f 180.0f 5.0f;
-                ];*)
             makeEditor "Wood" <| Materials.Wood();
+            makeEditor "Fabric" <| Materials.Fabric();
             makeEditor "Paper" <| Materials.Paper();
             makeEditor "Metal" <| Materials.Metal();
         ]

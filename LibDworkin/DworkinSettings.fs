@@ -52,6 +52,13 @@ module Materials =
                 1.5f,
                 1.5f) :> Material
     
+    type Fabric() = 
+        inherit MaterialSettings()
+        static do Settings.RegisterClass<Fabric>()
+
+        override this.Build(platform, random, color) =
+            UniversalMaterial(platform, color, None, Some("fabric/Fabric_01_normal.png"), (None, 0.92f), 2.0f, 1.5f) :> Material
+    
     type MetalType =
         | Smooth = 0
         | Brushed = 1
@@ -91,9 +98,6 @@ module Materials =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Wood>()
         
-        //[<FloatRange(0.0f, 0.5f, Step=0.05f)>]
-        //member val Contrast = Defined(0.25f) with get, set
-
         [<Bool>]
         member val Painted = Defined(false) with get, set
 
@@ -121,7 +125,7 @@ module Materials =
                     1.0f) 
                 :> Material
     
-    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Wood>; typeof<Metal>; |]
+    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Fabric>; typeof<Wood>; typeof<Metal>; |]
 
 
 module Effects =
