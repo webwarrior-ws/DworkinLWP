@@ -92,6 +92,11 @@
     <AndroidAsset Include="Assets\textures\metal\Metal_normal_fineBumps.png" />
     <AndroidAsset Include="Assets\textures\metal\Metal_roughness_brushed.png" />
     <AndroidAsset Include="Assets\textures\fabric\Fabric_01_normal.png" />
+    <AndroidAsset Include="Assets\textures\stucco\Stucco_1_ao.png" />
+    <AndroidAsset Include="Assets\textures\stucco\Stucco_1_normal.png" />
+    <AndroidAsset Include="Assets\textures\stucco\Stucco_1_roughness.png" />
+    <AndroidAsset Include="Assets\textures\stucco\Stucco_3_roughness.png" />
+    <AndroidAsset Include="Assets\textures\stucco\TexturesCom_Plaster_StuccoCombed_1K_normal.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />

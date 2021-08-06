@@ -59,6 +59,32 @@ module Materials =
         override this.Build(platform, random, color) =
             UniversalMaterial(platform, color, None, Some("fabric/Fabric_01_normal.png"), (None, 0.92f), 2.0f, 1.5f) :> Material
     
+    type StuccoType =
+        | Rough = 1
+        | Combed = 2
+
+    type Stucco() =
+        inherit MaterialSettings()
+        static do Settings.RegisterClass<Stucco>()
+
+        [<Enum([| StuccoType.Combed; StuccoType.Rough |], ItemType=typeof<StuccoType>)>]
+        member val Type = Defined(StuccoType.Combed) with get, set
+
+        override this.Build(platform, random, color) =
+            match Randomizeable.getValue random <@ this.Type @> with
+            | StuccoType.Rough -> 
+                UniversalMaterial(platform, color, 
+                                  Some("stucco/Stucco_1_ao.png"), 
+                                  Some("stucco/Stucco_1_normal.png"), 
+                                  (Some("stucco/Stucco_1_roughness.png"), 0.86f), 
+                                  1.5f, 1.0f) :> Material
+            | StuccoType.Combed -> 
+                UniversalMaterial(platform, color, 
+                                  None, 
+                                  Some("stucco/TexturesCom_Plaster_StuccoCombed_1K_normal.png"), 
+                                  (Some("stucco/Stucco_3_roughness.png"), 0.89f), 
+                                  1.5f, 1.0f) :> Material
+
     type MetalType =
         | Smooth = 0
         | Brushed = 1
@@ -125,7 +151,7 @@ module Materials =
                     1.0f) 
                 :> Material
     
-    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Fabric>; typeof<Wood>; typeof<Metal>; |]
+    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Fabric>; typeof<Stucco>; typeof<Wood>; typeof<Metal>; |]
 
 
 module Effects =
