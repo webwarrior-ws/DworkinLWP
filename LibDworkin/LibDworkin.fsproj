@@ -81,6 +81,8 @@
     <AndroidAsset Include="Assets\textures\Pmetal_003_mod.png" />
     <AndroidAsset Include="Assets\textures\paper\Watercolor_Paper_001_NORM.jpg" />
     <AndroidAsset Include="Assets\textures\paper\Watercolor_Paper_001_OCC.jpg" />
+    <AndroidAsset Include="Assets\textures\paper\Paper_Texture_1_ambientOcclusion.png" />
+    <AndroidAsset Include="Assets\textures\paper\Paper_Texture_1_normal.png" />
     <AndroidAsset Include="Assets\textures\wood\TexturesCom_Wood_Worn2_1K_ao.png" />
     <AndroidAsset Include="Assets\textures\wood\TexturesCom_Wood_Worn2_1K_colordiff.png" />
     <AndroidAsset Include="Assets\textures\wood\TexturesCom_Wood_Worn2_1K_normal.png" />

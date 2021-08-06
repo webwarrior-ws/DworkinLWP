@@ -39,19 +39,31 @@ module Materials =
             SolidColorMaterial(platform, color) :> Material
     
     
+    type PaperType =
+        | Smooth = 1
+        | Watercolor = 2
+
     type Paper() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Paper>()
 
+        [<Enum([| PaperType.Smooth; PaperType.Watercolor |], ItemType=typeof<PaperType>)>]
+        member val Type = Defined(PaperType.Smooth) with get, set
+
         override this.Build(platform, random, color) =
-            UniversalMaterial(
-                platform, 
-                color, 
-                Some("paper/Watercolor_Paper_001_OCC.jpg"), 
-                Some("paper/Watercolor_Paper_001_NORM.jpg"),
-                (None, 0.92f),
-                1.5f,
-                1.5f) :> Material
+            match Randomizeable.getValue random <@ this.Type @> with
+            | PaperType.Smooth ->
+                UniversalMaterial(platform, color, 
+                                  Some("paper/Paper_Texture_1_ambientOcclusion.png"), 
+                                  Some("paper/Paper_Texture_1_normal.png"),
+                                  (None, 0.92f),
+                                  1.0f, 1.0f) :> Material
+            | PaperType.Watercolor ->
+                UniversalMaterial(platform, color, 
+                                  Some("paper/Watercolor_Paper_001_OCC.jpg"), 
+                                  Some("paper/Watercolor_Paper_001_NORM.jpg"),
+                                  (None, 0.92f),
+                                  1.5f, 1.5f) :> Material
     
     
     type Fabric() = 
