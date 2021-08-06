@@ -200,6 +200,7 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
             makeEditor "Solid color" <| Materials.SolidColor();
             makeEditor "Wood" <| Materials.Wood();
             makeEditor "Fabric" <| Materials.Fabric();
+            makeEditor "Leather" <| Materials.Leather();
             makeEditor "Stucco" <| Materials.Stucco();
             makeEditor "Paper" <| Materials.Paper();
             makeEditor "Metal" <| Materials.Metal();

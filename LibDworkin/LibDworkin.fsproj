@@ -97,6 +97,8 @@
     <AndroidAsset Include="Assets\textures\stucco\Stucco_1_roughness.png" />
     <AndroidAsset Include="Assets\textures\stucco\Stucco_3_roughness.png" />
     <AndroidAsset Include="Assets\textures\stucco\TexturesCom_Plaster_StuccoCombed_1K_normal.png" />
+    <AndroidAsset Include="Assets\textures\leather\Leather_roughness.png" />
+    <AndroidAsset Include="Assets\textures\leather\TexturesCom_Leather_Plain11_008x008_512_normal.png" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />

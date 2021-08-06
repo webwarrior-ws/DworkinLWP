@@ -38,6 +38,7 @@ module Materials =
         override this.Build(platform, random, color) =
             SolidColorMaterial(platform, color) :> Material
     
+    
     type Paper() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Paper>()
@@ -52,12 +53,26 @@ module Materials =
                 1.5f,
                 1.5f) :> Material
     
+    
     type Fabric() = 
         inherit MaterialSettings()
         static do Settings.RegisterClass<Fabric>()
 
         override this.Build(platform, random, color) =
             UniversalMaterial(platform, color, None, Some("fabric/Fabric_01_normal.png"), (None, 0.92f), 2.0f, 1.5f) :> Material
+    
+
+    type Leather() =
+        inherit MaterialSettings()
+        static do Settings.RegisterClass<Leather>()
+
+        override this.Build(platform, random, color) =
+            UniversalMaterial(platform, color, 
+                              None, 
+                              Some("leather/TexturesCom_Leather_Plain11_008x008_512_normal.png"), 
+                              (Some("leather/Leather_roughness.png"), 0.92f), 
+                              0.5f, 2.0f) :> Material
+
     
     type StuccoType =
         | Rough = 1
@@ -120,6 +135,7 @@ module Materials =
                 UniversalMaterial(platform, color, None, Some("metal/Metal_normal_fineBumps.png"), (None, 0.65f), h, 5.0f, m) 
                     :> Material
     
+    
     type Wood() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Wood>()
@@ -151,7 +167,8 @@ module Materials =
                     1.0f) 
                 :> Material
     
-    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Fabric>; typeof<Stucco>; typeof<Wood>; typeof<Metal>; |]
+    
+    let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Leather>; typeof<Fabric>; typeof<Stucco>; typeof<Wood>; typeof<Metal>; |]
 
 
 module Effects =
