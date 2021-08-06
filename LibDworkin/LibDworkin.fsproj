@@ -89,7 +89,6 @@
     <AndroidAsset Include="Assets\textures\fuzzy_texture\FuzzyTexture__grain.png" />
     <AndroidAsset Include="Assets\textures\metal\Metal_normal_brushed.png" />
     <AndroidAsset Include="Assets\textures\metal\Metal_normal_bumpy.png" />
-    <AndroidAsset Include="Assets\textures\metal\Metal_normal_fineBumps.png" />
     <AndroidAsset Include="Assets\textures\metal\Metal_roughness_brushed.png" />
     <AndroidAsset Include="Assets\textures\fabric\Fabric_01_normal.png" />
     <AndroidAsset Include="Assets\textures\stucco\Stucco_1_ao.png" />
