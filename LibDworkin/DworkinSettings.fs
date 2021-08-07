@@ -175,6 +175,13 @@ module Materials =
                     1.0f) 
                 :> Material
     
+    /// Special class for foreground material that indicates that foreground should use the same material as background
+    [<Name("Same as background")>]
+    type SameAsBackground() =
+        inherit MaterialSettings()
+        static do Settings.RegisterClass<SameAsBackground>()
+        override this.Build(platform, random, color) = failwith "should not be reached"
+
     
     let allTypes = [| typeof<SolidColor>; typeof<Paper>; typeof<Leather>; typeof<Fabric>; typeof<Stucco>; typeof<Wood>; typeof<Metal>; |]
 

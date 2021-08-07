@@ -675,8 +675,11 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
             if backgroundChanged then
                 this.Background <- currentSettings.Background.Build(platform, getRandom(), bgColor)
             
-            if foregroundChanged then
-                this.Foreground <- currentSettings.Foreground.Build(platform, getRandom(), fgColor)
+            if foregroundChanged || (backgroundChanged && (currentSettings.Foreground :? Materials.SameAsBackground)) then
+                this.Foreground <- 
+                    match currentSettings.Foreground with
+                    | :? Materials.SameAsBackground -> currentSettings.Background.Build(platform, getRandom(), fgColor)
+                    | material -> material.Build(platform, getRandom(), fgColor)
                 
             if effectChanged || backgroundChanged || foregroundChanged then
                 this.Effect.SetMaterialProperties(

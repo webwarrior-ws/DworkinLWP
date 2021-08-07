@@ -207,9 +207,7 @@ let private makeMaterialGui (setter : DworkinRenderer -> Material -> unit) (kind
         ]
     match kind with 
         | Foreground(bgChooser) -> 
-            //guis <- guis @ [ ColorChangeMaterialEditor(platform, bgChooser, setter) ]
-            // Color change editor doesn't work anymore
-            ()
+            guis <- guis @ [ makeEditor "Same as background" <| Materials.SameAsBackground() ]
         | Background -> ()
     Builders.chooser
         (match kind with | Foreground(_) -> "Foreground" | Background -> "Background")

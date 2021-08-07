@@ -97,7 +97,8 @@ type AppearanceSettingsFragment() =
         editor
     
     member private this.GetForegroundEditor() =
-        let editor = SettingsClassChooser<MaterialSettings>.Create(this.Context, Materials.allTypes)
+        let allTypes = Materials.allTypes |> Array.append [| typeof<Materials.SameAsBackground> |]
+        let editor = SettingsClassChooser<MaterialSettings>.Create(this.Context, allTypes)
         editor.Title <- "Foreground"
         editor.Accessor <- 
             Views.Accessor(
