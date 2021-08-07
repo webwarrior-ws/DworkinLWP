@@ -614,11 +614,14 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
     let mutable framesAfterStop = 0
     // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
     let initialSetupRoutine = lazy(
-        let random = System.Random(currentSettings.Seed)
-        let fgColor, bgColor = currentSettings.GetColors(System.Random(currentSettings.Seed)) // use independent PRNG for colors
-        this.Effect <- currentSettings.Effect.Build(platform, random)
-        this.Foreground <- currentSettings.Foreground.Build(platform, random, fgColor)
-        this.Background <- currentSettings.Background.Build(platform, random, bgColor)
+        let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
+        let fgColor, bgColor = currentSettings.GetColors(getRandom())
+        this.Effect <- currentSettings.Effect.Build(platform, getRandom())
+        this.Foreground <- 
+            match currentSettings.Foreground with
+            | :? Materials.SameAsBackground -> currentSettings.Background.Build(platform, getRandom(), fgColor)
+            | material -> material.Build(platform, getRandom(), fgColor) 
+        this.Background <- currentSettings.Background.Build(platform, getRandom(), bgColor)
         this.Effect.SetMaterialProperties(
             { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
             { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
