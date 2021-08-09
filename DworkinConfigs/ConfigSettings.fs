@@ -49,7 +49,7 @@ type PCB_RandomPosChips() =
     [<Bool>]
     member val Vias = Defined(false) with get, set
 
-    [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>)>]
+    [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>, Representation=EnumRepresentation.PCBEndpoints)>]
     member val Endpoints = Defined(PCB.Endpoints.Hollow) with get, set
     
     [<FloatRange(0.75f, 1.5f)>]

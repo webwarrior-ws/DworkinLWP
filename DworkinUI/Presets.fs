@@ -63,13 +63,14 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
 
         let getRandom() = System.Random(42)
         let fgColor, bgColor = getColors (getRandom()) fgColor bgColor
+        let background = this.Background.Build(platform, getRandom(), bgColor)
+        let foreground =
+            match this.Foreground with
+            | :? Materials.SameAsBackground -> this.Background.Build(platform, getRandom(), fgColor)
+            | foreground -> foreground.Build(platform, getRandom(), fgColor)
+        let effect = this.Effect.Build(platform, getRandom())
 
-        renderer.RenderPreview(
-            bgColor,
-            fgColor,
-            this.Background.Build(platform, getRandom(), bgColor), 
-            this.Foreground.Build(platform, getRandom(), fgColor), 
-            this.Effect.Build(platform, getRandom()))
+        renderer.RenderPreview(bgColor, fgColor, background, foreground, effect)
 
     /// Return true if provided settings have same effect, materials and colors as receiver
     member this.IsUsedInSettings(settings : SettingsHolder) : bool =

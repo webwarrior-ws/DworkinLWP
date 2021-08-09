@@ -408,8 +408,12 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
             let random = System.Random(settings.Seed)
             let fgColor, bgColor = settings.GetColors(System.Random(settings.Seed)) // use independent PRNG for colors
             this.Effect <- settings.Effect.Build(platform, random)
-            this.Foreground <- settings.Foreground.Build(platform, random, fgColor)
             this.Background <- settings.Background.Build(platform, random, bgColor)
+            this.Foreground <- 
+                match settings.Foreground with
+                | :? LibDworkin.DworkinSettings.Materials.SameAsBackground -> settings.Background.Build(platform, random, fgColor)
+                | foreground -> foreground.Build(platform, random, fgColor)
+            
             this.Effect.SetMaterialProperties(
                 { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
                 { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
