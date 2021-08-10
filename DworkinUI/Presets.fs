@@ -62,7 +62,7 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
         let renderer = PreviewRenderers.AppearancePresetRenderer.RequestInstance(platform, w, h)
 
         let getRandom() = System.Random(42)
-        let fgColor, bgColor = getColors (getRandom()) fgColor bgColor
+        let fgColor, bgColor = Colors.getColors (getRandom()) fgColor bgColor
         let background = this.Background.Build(platform, getRandom(), bgColor)
         let foreground =
             match this.Foreground with

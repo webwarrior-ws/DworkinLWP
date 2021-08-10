@@ -355,15 +355,93 @@ module Effects =
     let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<Highlight>; typeof<FuzzyTexture> |]
 
 
-/// Get colors given color settings and RNG. Return (foregroundColor, backgroundColor)
-let getColors (random : System.Random) fgColorSetting bgColorSetting : OpenTK.Graphics.Color4 * OpenTK.Graphics.Color4 =
-    //TODO: generate random colors using some kind of strategy and taking into account defined color, if any
-    let getColor(value : Randomizeable<float32*float32*float32>) = 
-        match value with
-        | Defined(x) -> x
-        | Randomized -> ColorAttribute().RandomValue(random) |> unbox<float32*float32*float32>
-        |> OpenTK.Graphics.Color4.FromRGBTriple
-    getColor fgColorSetting, getColor bgColorSetting
+module Colors =
+    open LibDworkin.PharoCompatibility
+    type HSL = 
+        {
+            Hue : float32
+            Saturation : float32
+            Lightness : float32
+        }
+        member this.AsColor4 =
+            // from http://en.wikipedia.org/wiki/HSV_color_space
+            let C = float(this.Lightness * this.Saturation)
+            let H' = ((float(this.Hue)*360.0 + 360.0) % 360.0) / 60.0
+            let X = C * (1.0 - abs(H' % 2.0 - 1.0))
+            let R1, G1, B1 = match H' with
+                             | _ when H'  < 0.0 -> (0.0, 0.0, 0.0)
+                             | _ when H'  < 1.0 -> (C, X, 0.0)
+                             | _ when H' <= 2.0 -> (X, C, 0.0)
+                             | _ when H' <= 3.0 -> (0.0, C, X)
+                             | _ when H' <= 4.0 -> (0.0, X, C)
+                             | _ when H' <= 5.0 -> (X, 0.0, C)
+                             | _ when H'  < 6.0 -> (C, 0.0, X)
+                             | _ -> (0.0, 0.0, 0.0)
+            let m = float(this.Lightness) - C
+            OpenTK.Graphics.Color4(float32(R1+m), float32(G1+m), float32(B1+m), 1.0f)
+
+        static member FromRGBTriple(r, g, b) =
+            OpenTK.Graphics.Color4.FromRGBTriple(r, g, b).AsHSL
+    
+    and OpenTK.Graphics.Color4 with
+        member this.AsHSL =
+            let xMax = max this.R (max this.G this.B)
+            let xMin = min this.R (min this.G this.B)
+            let c = xMax - xMin
+            let l = (xMax + xMin) / 2.0f
+            let h =
+                if c = 0.0f then 0.0f
+                elif xMax = this.R then (this.G - this.B) / c / 6.0f
+                elif xMax = this.G then (2.0f + (this.B - this.R) / c) / 6.0f
+                else (4.0f + (this.R - this.G) / c) / 6.0f
+            let s = if l = 0.0f || l = 1.0f then 0.0f else (xMax - l) / (min l (1.0f - l))
+            { Hue=h; Saturation=s; Lightness=l }
+    
+    let getHarmonicColor (random : System.Random) (color : HSL) : HSL =
+        let typ = random.Next(3)
+        let newLightness =
+            let minContrast = 
+                if typ = 0 then 0.3f 
+                elif color.Lightness < 0.1f || color.Lightness > 0.9f then // lightness at extremes
+                    0.2f
+                else 0.15f
+            let mutable l = random.NextFloat()
+            while abs(color.Lightness - l) < minContrast do 
+                l <- random.NextFloat()
+            l
+        let newHue =
+            if typ <> 0 && color.Saturation < 0.05f then // random hue
+                random.NextFloat()
+            else
+                if typ = 0 then // Monochromatic
+                    color.Hue
+                elif typ = 1 then // Diad
+                    (color.Hue + random.NextInRange(0.100f, 0.233f)) % 1.0f
+                else // Complementary
+                    (color.Hue + random.NextInRange(0.417f, 0.583f)) % 1.0f
+        let newSaturation =
+            if typ = 0 && color.Saturation < 0.05f then
+                color.Saturation
+            elif abs(color.Lightness - newLightness) < 0.3f && color.Saturation > 0.75f then // low contrast && high saturation
+                random.NextFloat() * 0.25f
+            elif typ = 0 && color.Saturation > 0.55f then // Monochromatic && high saturation
+                random.NextInRange(0.0f, color.Saturation - 0.5f)
+            else
+                abs(random.NextGaussian()) % 1.0f
+        { Hue=newHue; Saturation=newSaturation; Lightness=newLightness }
+
+    /// Get colors given color settings and RNG. Return (foregroundColor, backgroundColor)
+    let getColors (random : System.Random) fgColorSetting bgColorSetting : OpenTK.Graphics.Color4 * OpenTK.Graphics.Color4 =
+        match fgColorSetting, bgColorSetting with
+        | Defined(fg), Defined(bg) -> OpenTK.Graphics.Color4.FromRGBTriple(fg), OpenTK.Graphics.Color4.FromRGBTriple(bg)
+        | Randomized, Randomized ->
+            let fgHsl = { Hue=random.NextFloat(); Saturation=random.NextFloat(); Lightness=random.NextFloat() }
+            fgHsl.AsColor4, (getHarmonicColor random fgHsl).AsColor4
+        | Defined(fgColor), Randomized ->
+            OpenTK.Graphics.Color4.FromRGBTriple(fgColor), (getHarmonicColor random (HSL.FromRGBTriple fgColor)).AsColor4
+        | Randomized, Defined(bgColor) ->
+            (getHarmonicColor random (HSL.FromRGBTriple bgColor)).AsColor4, OpenTK.Graphics.Color4.FromRGBTriple(bgColor)
+
 
 
 type SettingsHolder =
@@ -377,7 +455,7 @@ type SettingsHolder =
         Seed : int
     }
     member this.GetColors(random) =
-        getColors random this.ForegroundColor this.BackgroundColor
+        Colors.getColors random this.ForegroundColor this.BackgroundColor
 
 
 /// Module that holds current application settings.

@@ -304,11 +304,13 @@ type FloatRangeAttribute(minVal: float32, maxVal: float32) =
 type ColorAttribute() =
     inherit SettingAttribute()
 
-    override this.RandomValue(random) =
+    static member RandomValue(random : System.Random) =
         let r = float32(random.NextDouble())
         let g = float32(random.NextDouble())
         let b = float32(random.NextDouble())
-        (r, g, b) |> box
+        (r, g, b)
+
+    override this.RandomValue(random) = ColorAttribute.RandomValue(random) |> box
 
     override this.BuildUIControl(builder) = builder.BuildColorControl()
 
