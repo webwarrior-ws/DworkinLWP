@@ -121,7 +121,8 @@ namespace DworkinLWP
                 
                 glSurfaceView = WallpaperGLSurfaceView.Create(enclosingInstance, this);
 
-                var renderer = new LibDworkin.Renderer.DworkinRenderer(enclosingInstance.Platform, null);
+                var isPreview = Microsoft.FSharp.Core.FSharpOption<bool>.Some(this.IsPreview);
+                var renderer = new LibDworkin.Renderer.DworkinRenderer(enclosingInstance.Platform, null, isPreview);
 
                 glSurfaceView.SetEGLContextClientVersion(2);
                 glSurfaceView.SetEGLContextFactory(LibDworkin.RendererComponents.EGLContextFactory.Instance);

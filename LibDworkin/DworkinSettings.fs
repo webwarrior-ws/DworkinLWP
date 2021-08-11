@@ -443,6 +443,17 @@ module Colors =
             (getHarmonicColor random (HSL.FromRGBTriple bgColor)).AsColor4, OpenTK.Graphics.Color4.FromRGBTriple(bgColor)
 
 
+/// Interval between random seed cahnges in seconds
+type RandomizationInterval =
+    | Never = -1
+    | FiveSeconds = 5
+    | FifteenSeconds = 15
+    | Minute = 60
+    | FiveMinutes = 300
+    | ThirtyMinutes = 1800
+    | Hour = 3600
+    | Day = 86400
+
 
 type SettingsHolder =
     {
@@ -473,6 +484,7 @@ module CurrentSettings =
     let isSet() = currSettings.IsSome
 
     let mutable speedFactor = 1.0f
+    let mutable randomizationInterval = RandomizationInterval.FiveSeconds
     
 #if __ANDROID__
     // save/load
@@ -486,6 +498,7 @@ module CurrentSettings =
             let json = JsonObject()
             json.["settingsHolder"] <- Serialization.toJsonValue(settings)
             json.["speedFactor"] <- Serialization.(!>) speedFactor
+            json.["randomizationInterval"] <- Serialization.(!>) (int randomizationInterval)
             for action in saveHooks do action context json
             use ostream = new System.IO.FileStream(filePath, System.IO.FileMode.Create)
             json.Save(ostream)
@@ -502,6 +515,7 @@ module CurrentSettings =
                 for action in loadHooks do action context json
                 currSettings <- Some(settings)
                 speedFactor <- Serialization.(!>) json.["speedFactor"]
+                randomizationInterval <- enum<RandomizationInterval>(Serialization.(!>) json.["randomizationInterval"])
             with | e ->
 #if DEBUG
                 raise e

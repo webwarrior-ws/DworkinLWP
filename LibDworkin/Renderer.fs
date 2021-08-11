@@ -604,14 +604,21 @@ type BaseRenderer(platform : AbstractPlatform) =
         Point(float32(width) / multiple, float32(height) / multiple)
 
 
+type DworkinRendererState =
+    | Uninitialized
+    | Idling of System.DateTime
+    | Drawing
+    | PostDrawing of int
+    | Erasing of int
 
-type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
+
+type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreviewMode : bool) as this =
     inherit BaseRenderer(platform)
 
     let mutable stepsPerFrame = 1
     let mutable currentSettings = CurrentSettings.get() |> Settings.Serialization.copy
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
-    let mutable framesAfterStop = 0
+    let mutable state = Uninitialized
     // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
     let initialSetupRoutine = lazy(
         let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
@@ -649,10 +656,18 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
     member this.ApplyChangesInSettings() =
-        framesAfterStop <- 0
+        match state with
+        | Idling(sinceWhen) when not (defaultArg inPreviewMode false) ->
+            match CurrentSettings.randomizationInterval with
+            | RandomizationInterval.Never -> ()
+            | seconds when (System.DateTime.UtcNow - sinceWhen).TotalSeconds >= float(seconds) ->
+                CurrentSettings.set({ CurrentSettings.get() with Seed=System.Random().Next() })
+            | _ -> ()
+        | _ -> ()
         let previousSettings = currentSettings
         currentSettings <- CurrentSettings.get() |> Settings.Serialization.copy
         if previousSettings <> currentSettings then
+            state <- Drawing
             let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
             let fgColor, bgColor = currentSettings.GetColors(getRandom()) 
 
@@ -695,7 +710,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
             this.EnvironmentStepper.SpeedFactor <- CurrentSettings.speedFactor
 
     override this.ResetEnvironment(dimensions : Point) =
-        framesAfterStop <- 0
+        state <- Drawing
         this.ClearSDF()
         TimeSamplers.resetAll()
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
@@ -727,37 +742,57 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
         if this.WallpaperSize <> (width, height) || (contextLost && width > 0 && height > 0) then
             initialSetupRoutine.Force()
             base.OnSurfaceChanged(width, height)
-        elif framesAfterStop > 0 then
-            // Fixes issue of black screen after pause (e.g. waking after sleep). 
-            // Value of -1 was determined experimentally
-            framesAfterStop <- -1
+        else
+            match state with 
+            | PostDrawing(framesAfterStop) when framesAfterStop > 0 -> 
+                // Fixes issue of black screen after pause (e.g. waking after sleep). 
+                // Value of -1 was determined experimentally
+                state <- PostDrawing(-1)
+            | _ -> ()
     
     override this.OnDrawFrame() =
         let delay = 1000.0 / float(this.FPS)
 
         this.ApplyChangesInSettings()
-
-        let mutable shapes = [||]
-        let mutable steps = 0
+        
         let mutable dt = 0.0
         let stopwatch = System.Diagnostics.Stopwatch.StartNew()
+        let mutable steps = 0
 
-        while this.EnvironmentStepper.HasMore && steps < this.StepsPerFrame do
-            shapes <- 
-                match shapes with
-                | [||] -> this.EnvironmentStepper.FetchShapesForNextStep() 
-                | _ -> Array.append shapes (this.EnvironmentStepper.FetchShapesForNextStep() )
-            steps <- steps + 1
-        stopwatch.Stop()
-        dt <- stopwatch.Elapsed.TotalMilliseconds
+        match state with
+        | Drawing ->
+            let mutable shapes = [||]
+            
+            while this.EnvironmentStepper.HasMore && steps < this.StepsPerFrame do
+                shapes <- 
+                    match shapes with
+                    | [||] -> this.EnvironmentStepper.FetchShapesForNextStep() 
+                    | _ -> Array.append shapes (this.EnvironmentStepper.FetchShapesForNextStep() )
+                steps <- steps + 1
+            stopwatch.Stop()
+            dt <- stopwatch.Elapsed.TotalMilliseconds
         
-        if not (Array.isEmpty shapes) then
-            for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
-            for _ in TimeSamplers.Image.Measure() do this.DrawImage()
-            dt <- dt + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
-        elif framesAfterStop < 3 then // avoid flicker from triple buffering
-            this.DrawImage()
-            framesAfterStop <- framesAfterStop + 1
+            if not (Array.isEmpty shapes) then
+                for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
+                for _ in TimeSamplers.Image.Measure() do this.DrawImage()
+                dt <- dt + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
+            elif not this.EnvironmentStepper.HasMore then
+                this.DrawImage()
+                state <- PostDrawing(0)
+        | PostDrawing(framesAfterStop) ->
+#if !__ANDROID__
+            this.DrawImage() // always do redraw on PC
+#else
+            if framesAfterStop < 3 then // avoid flicker from triple buffering
+                this.DrawImage()
+                state <- PostDrawing(framesAfterStop + 1)
+            else
+                // TODO: Erasing
+                state <- Idling(System.DateTime.UtcNow)
+#endif
+        | Erasing(numFrames) ->
+            () // TODO: implement
+        | _ -> ()
         
         if dt < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
@@ -780,6 +815,4 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper) as this =
                     (TimeStats.stdev TimeSamplers.Shapes.Samples)
                     (TimeStats.stdev TimeSamplers.Image.Samples) ) |> ignore
             this.StatsPrinted <- true
-#else
-        framesAfterStop <- 0 // always do redraw on PC
 #endif
