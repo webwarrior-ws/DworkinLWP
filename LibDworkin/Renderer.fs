@@ -292,11 +292,11 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
         GL.DrawArrays(BeginMode.Triangles, 0, 6)
         stopWatch.Stop()
-#if __ANDROID__
-        let materialKind = if texture = this.ForegroundTexture then "foreground" else "background"
-        let materialName = material.GetType().Name
-        Android.Util.Log.Debug("frameTime", sprintf "Rendering %s (%s): %gms" materialKind materialName stopWatch.Elapsed.TotalMilliseconds) |> ignore
-#endif
+
+        if platform.IsAndroid then
+            let materialKind = if texture = this.ForegroundTexture then "foreground" else "background"
+            let materialName = material.GetType().Name
+            platform.Log("frameTime", sprintf "Rendering %s (%s): %gms" materialKind materialName stopWatch.Elapsed.TotalMilliseconds)
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
@@ -311,10 +311,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.InitializeMaterialTextures()
         this.InitializeStencilTexture()
         stopWatch.Stop()
-#if __ANDROID__
-        Android.Util.Log.Debug("frameTime", sprintf "(re-)creating textures: %gms" stopWatch.Elapsed.TotalMilliseconds) |> ignore
-#endif
-        
+
+        platform.Log("frameTime", sprintf "(re-)creating textures: %gms" stopWatch.Elapsed.TotalMilliseconds) |> ignore
+
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
 
@@ -641,9 +640,8 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         match stepper with
         | Some(value) -> value
         | None -> AsyncEnvironmentStepper() :> AbstractEnvironmentStepper
-#if __ANDROID__    
-    member val StatsPrinted = false with get, set
-#endif
+  
+    member val private StatsPrinted = false with get, set
 
     member this.StepsPerFrame 
         with get() : int = stepsPerFrame
@@ -734,11 +732,12 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | shapes -> shapesToDraw <- shapesToDraw |> Array.append shapes
         stopWatch.Stop()
         this.EnvironmentStepper.Environment <- env 
-#if __ANDROID__
-        let dt = stopWatch.Elapsed
-        Android.Util.Log.Debug("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds) |> ignore
-        this.StatsPrinted <- false
-#endif
+        
+        if platform.IsAndroid then
+            let dt = stopWatch.Elapsed
+            platform.Log("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds)
+            this.StatsPrinted <- false
+        
         this.ResetStencil()
         // call RenderShapes even if there is nothing to draw, beacuse otherwise first frame is missed due to double buffering
         this.RenderShapes(shapesToDraw)
@@ -791,15 +790,14 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
                 this.DrawImage()
                 state <- PostDrawing(0)
         | PostDrawing(framesAfterStop) ->
-#if !__ANDROID__
-            this.DrawImage() // always do redraw on PC
-#else
-            if framesAfterStop < 3 then // avoid flicker from triple buffering
-                this.DrawImage()
-                state <- PostDrawing(framesAfterStop + 1)
+            if not platform.IsAndroid then
+                this.DrawImage() // always do redraw on PC
             else
-                state <- Idling(System.DateTime.UtcNow)
-#endif
+                if framesAfterStop < 3 then // avoid flicker from triple buffering
+                    this.DrawImage()
+                    state <- PostDrawing(framesAfterStop + 1)
+                else
+                    state <- Idling(System.DateTime.UtcNow)
         | Transitioning(strategy, numFrames) ->
             this.DrawTransition(strategy, numFrames)
             state <- 
@@ -809,28 +807,28 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         
         if dt < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
-#if __ANDROID__
-        if steps > 0 then
-            Android.Util.Log.Debug("frameTime", 
-                sprintf "env.: %7.6g; shapes: %7.6g; img: %7.6g"
-                    (Array.sum <| TimeSamplers.Environment.GetLast(steps)) 
-                    TimeSamplers.Shapes.Last
-                    TimeSamplers.Image.Last ) |> ignore
-        elif not this.StatsPrinted then
-            Android.Util.Log.Debug("avgTimes", 
-                sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
-                    (TimeStats.average TimeSamplers.Environment.Samples)
-                    (TimeStats.average TimeSamplers.Shapes.Samples)
-                    (TimeStats.average TimeSamplers.Image.Samples) ) |> ignore
-            Android.Util.Log.Debug("avgTimes", 
-                sprintf "(stdev) env.: %7.6g; shapes: %7.6g; img: %7.6g"
-                    (TimeStats.stdev TimeSamplers.Environment.Samples)
-                    (TimeStats.stdev TimeSamplers.Shapes.Samples)
-                    (TimeStats.stdev TimeSamplers.Image.Samples) ) |> ignore
-            this.StatsPrinted <- true
-#endif
+
+        if platform.IsAndroid then
+            if steps > 0 then
+                platform.Log("frameTime", 
+                    sprintf "env.: %7.6g; shapes: %7.6g; img: %7.6g"
+                        (Array.sum <| TimeSamplers.Environment.GetLast(steps)) 
+                        TimeSamplers.Shapes.Last
+                        TimeSamplers.Image.Last )
+            elif not this.StatsPrinted then
+                platform.Log("avgTimes", 
+                    sprintf "(mean)  env.: %7.6g; shapes: %7.6g; img: %7.6g"
+                        (TimeStats.average TimeSamplers.Environment.Samples)
+                        (TimeStats.average TimeSamplers.Shapes.Samples)
+                        (TimeStats.average TimeSamplers.Image.Samples) )
+                platform.Log("avgTimes", 
+                    sprintf "(stdev) env.: %7.6g; shapes: %7.6g; img: %7.6g"
+                        (TimeStats.stdev TimeSamplers.Environment.Samples)
+                        (TimeStats.stdev TimeSamplers.Shapes.Samples)
+                        (TimeStats.stdev TimeSamplers.Image.Samples) )
+                this.StatsPrinted <- true
     
-    member this.DrawTransition(strategy : TransitionStrategy,frameCount : int) =
+    member this.DrawTransition(strategy : TransitionStrategy, frameCount : int) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
 
         let shader = fadeTransitionShader.Value // TODO: dissolve

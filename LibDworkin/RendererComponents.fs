@@ -202,6 +202,9 @@ type AbstractPlatform() =
     abstract member TextFromAsset : string -> string
     abstract member LoadTextureFromAsset : string -> int
 
+    abstract member IsAndroid : bool
+    abstract member Log : string * string -> unit
+
     member this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
         getOrSetIfAbsent 
             shaders
@@ -209,12 +212,9 @@ type AbstractPlatform() =
             (fun () -> 
                 let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
                 ResettableLazy(fun () -> 
-#if __ANDROID__
-                    Android.Util.Log.Debug(
+                    this.Log(
                         "preview-render", 
-                        sprintf "Load shader %s on thread#%A" fragmentShaderName System.Threading.Thread.CurrentThread.ManagedThreadId) 
-                    |> ignore
-#endif    
+                        sprintf "Load shader %s on thread#%A" fragmentShaderName System.Threading.Thread.CurrentThread.ManagedThreadId)  
                     let s = new Shader(readSource vertexShaderName, readSource fragmentShaderName)          
                     s))        
     
@@ -245,6 +245,11 @@ type AbstractPlatform() =
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
         texture
+    
+    override this.IsAndroid = true
+    
+    override this.Log(tag, text) = 
+        Android.Util.Log.Debug(tag, text) |> ignore
 #else
 type DotNETPlatform() =
     inherit AbstractPlatform()
@@ -269,6 +274,10 @@ type DotNETPlatform() =
         let texture = Helpers.uploadTexture(pixels, imgData.Width, imgData.Height)
         bmp.UnlockBits(imgData)
         texture
+
+    override this.IsAndroid = false
+
+    override this.Log(tag, text) = System.Console.WriteLine(text)
 #endif
 
 
