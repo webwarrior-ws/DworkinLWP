@@ -455,6 +455,12 @@ type RandomizationInterval =
     | Day = 86400
 
 
+type TransitionStrategy =
+    | None = 0
+    | Fade = 1
+    | Dissolve = 2
+
+
 type SettingsHolder =
     {
         Environment : EnvironmentSettings
@@ -485,6 +491,7 @@ module CurrentSettings =
 
     let mutable speedFactor = 1.0f
     let mutable randomizationInterval = RandomizationInterval.FiveSeconds
+    let mutable transitionStrategy = TransitionStrategy.Fade
     
 #if __ANDROID__
     // save/load
@@ -499,6 +506,7 @@ module CurrentSettings =
             json.["settingsHolder"] <- Serialization.toJsonValue(settings)
             json.["speedFactor"] <- Serialization.(!>) speedFactor
             json.["randomizationInterval"] <- Serialization.(!>) (int randomizationInterval)
+            json.["transitionStrategy"] <- Serialization.(!>) (int transitionStrategy)
             for action in saveHooks do action context json
             use ostream = new System.IO.FileStream(filePath, System.IO.FileMode.Create)
             json.Save(ostream)
@@ -516,6 +524,7 @@ module CurrentSettings =
                 currSettings <- Some(settings)
                 speedFactor <- Serialization.(!>) json.["speedFactor"]
                 randomizationInterval <- enum<RandomizationInterval>(Serialization.(!>) json.["randomizationInterval"])
+                transitionStrategy <- enum<TransitionStrategy>(Serialization.(!>) json.["transitionStrategy"])
             with | e ->
 #if DEBUG
                 raise e

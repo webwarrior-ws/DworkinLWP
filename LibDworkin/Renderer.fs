@@ -609,7 +609,7 @@ type DworkinRendererState =
     | Idling of System.DateTime
     | Drawing
     | PostDrawing of int
-    | Erasing of int
+    | Transitioning of TransitionStrategy * int
 
 
 type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreviewMode : bool) as this =
@@ -633,6 +633,9 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
             { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
         )
+
+    let transitionDuration = 60 // in frames
+    let fadeTransitionShader = platform.GetShader("fullScreenQuad.vert", "transitionFade.frag")
     
     member val EnvironmentStepper : AbstractEnvironmentStepper = 
         match stepper with
@@ -662,12 +665,17 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | RandomizationInterval.Never -> ()
             | seconds when (System.DateTime.UtcNow - sinceWhen).TotalSeconds >= float(seconds) ->
                 CurrentSettings.set({ CurrentSettings.get() with Seed=System.Random().Next() })
+                if CurrentSettings.transitionStrategy <> TransitionStrategy.None then 
+                    state <- Transitioning(CurrentSettings.transitionStrategy, 0)
             | _ -> ()
         | _ -> ()
         let previousSettings = currentSettings
         currentSettings <- CurrentSettings.get() |> Settings.Serialization.copy
         if previousSettings <> currentSettings then
-            state <- Drawing
+            match state with
+            | Transitioning(_, 0) -> ()
+            | _ -> state <- Drawing
+
             let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
             let fgColor, bgColor = currentSettings.GetColors(getRandom()) 
 
@@ -710,7 +718,10 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             this.EnvironmentStepper.SpeedFactor <- CurrentSettings.speedFactor
 
     override this.ResetEnvironment(dimensions : Point) =
-        state <- Drawing
+        match state with
+        | Transitioning(_, 0) -> ()
+        | _ -> state <- Drawing
+
         this.ClearSDF()
         TimeSamplers.resetAll()
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
@@ -787,11 +798,13 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
                 this.DrawImage()
                 state <- PostDrawing(framesAfterStop + 1)
             else
-                // TODO: Erasing
                 state <- Idling(System.DateTime.UtcNow)
 #endif
-        | Erasing(numFrames) ->
-            () // TODO: implement
+        | Transitioning(strategy, numFrames) ->
+            this.DrawTransition(strategy, numFrames)
+            state <- 
+                if numFrames <= transitionDuration then Transitioning(strategy, numFrames + 1)
+                else Drawing
         | _ -> ()
         
         if dt < delay then
@@ -816,3 +829,28 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
                     (TimeStats.stdev TimeSamplers.Image.Samples) ) |> ignore
             this.StatsPrinted <- true
 #endif
+    
+    member this.DrawTransition(strategy : TransitionStrategy,frameCount : int) =
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+
+        let shader = fadeTransitionShader.Value // TODO: dissolve
+
+        shader.Use()
+
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture)
+        GL.Uniform1(shader.GetUniformLocation("background"), 0)
+
+        GL.Uniform1(shader.GetUniformLocation("t"), float32(frameCount) / float32(transitionDuration))
+        
+        let aTexCoords = shader.GetAttributeLocation("texCoords")
+        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
+        GL.EnableVertexAttribArray(aTexCoords)
+        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
+
+        GL.Enable(EnableCap.Blend)
+        GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        GL.Disable(EnableCap.Blend)
+    
+        GL.DisableVertexAttribArray(aTexCoords)
