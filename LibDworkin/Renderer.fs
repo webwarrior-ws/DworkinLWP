@@ -781,12 +781,12 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
                 steps <- steps + 1
             stopwatch.Stop()
             dt <- stopwatch.Elapsed.TotalMilliseconds
-        
-            if not (Array.isEmpty shapes) then
-                for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
-                for _ in TimeSamplers.Image.Measure() do this.DrawImage()
-                dt <- dt + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
-            elif not this.EnvironmentStepper.HasMore then
+            
+            for _ in TimeSamplers.Shapes.Measure() do this.RenderShapes(shapes)
+            for _ in TimeSamplers.Image.Measure() do this.DrawImage()
+            dt <- dt + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
+            
+            if not this.EnvironmentStepper.HasMore then
                 this.DrawImage()
                 state <- Idling(System.DateTime.UtcNow)
                 framesAfterStop <- 0
