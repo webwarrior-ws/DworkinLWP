@@ -607,7 +607,6 @@ type DworkinRendererState =
     | Uninitialized
     | Idling of System.DateTime
     | Drawing
-    | PostDrawing of int
     | Transitioning of TransitionStrategy * int
 
 
@@ -618,6 +617,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
     let mutable currentSettings = CurrentSettings.get() |> Settings.Serialization.copy
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
     let mutable state = Uninitialized
+    let mutable framesAfterStop = 0
     // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
     let initialSetupRoutine = lazy(
         let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
@@ -641,7 +641,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         | Some(value) -> value
         | None -> AsyncEnvironmentStepper() :> AbstractEnvironmentStepper
   
-    member val private StatsPrinted = false with get, set
+    member val StatsPrinted = false with get, set
 
     member this.StepsPerFrame 
         with get() : int = stepsPerFrame
@@ -754,10 +754,10 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             base.OnSurfaceChanged(width, height)
         else
             match state with 
-            | PostDrawing(framesAfterStop) when framesAfterStop > 0 -> 
+            | Idling(_) when framesAfterStop > 0 -> 
                 // Fixes issue of black screen after pause (e.g. waking after sleep). 
                 // Value of -1 was determined experimentally
-                state <- PostDrawing(-1)
+                framesAfterStop <- -1
             | _ -> ()
     
     override this.OnDrawFrame() =
@@ -788,16 +788,15 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
                 dt <- dt + TimeSamplers.Shapes.Last + TimeSamplers.Image.Last
             elif not this.EnvironmentStepper.HasMore then
                 this.DrawImage()
-                state <- PostDrawing(0)
-        | PostDrawing(framesAfterStop) ->
+                state <- Idling(System.DateTime.UtcNow)
+                framesAfterStop <- 0
+        | Idling(_) ->
             if not platform.IsAndroid then
                 this.DrawImage() // always do redraw on PC
             else
                 if framesAfterStop < 3 then // avoid flicker from triple buffering
                     this.DrawImage()
-                    state <- PostDrawing(framesAfterStop + 1)
-                else
-                    state <- Idling(System.DateTime.UtcNow)
+                    framesAfterStop <- framesAfterStop + 1
         | Transitioning(strategy, numFrames) ->
             this.DrawTransition(strategy, numFrames)
             state <- 
