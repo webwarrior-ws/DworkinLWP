@@ -635,6 +635,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
 
     let transitionDuration = 60 // in frames
     let fadeTransitionShader = platform.GetShader("fullScreenQuad.vert", "transitionFade.frag")
+    let dissolveTransitionShader = platform.GetShader("fullScreenQuad.vert", "transitionDissolve.frag")
     
     member val EnvironmentStepper : AbstractEnvironmentStepper = 
         match stepper with
@@ -830,7 +831,10 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
     member this.DrawTransition(strategy : TransitionStrategy, frameCount : int) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
 
-        let shader = fadeTransitionShader.Value // TODO: dissolve
+        let shader = 
+            match strategy with
+            | TransitionStrategy.Fade -> fadeTransitionShader.Value
+            | TransitionStrategy.Dissolve -> dissolveTransitionShader.Value
 
         shader.Use()
 
@@ -838,7 +842,17 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture)
         GL.Uniform1(shader.GetUniformLocation("background"), 0)
 
-        GL.Uniform1(shader.GetUniformLocation("t"), float32(frameCount) / float32(transitionDuration))
+        match strategy with
+        | TransitionStrategy.Fade -> 
+            let dt = 1.0f/float32(transitionDuration)
+            let t = exp((float32(frameCount)*dt - 1.0f - dt) * 10.0f) + dt
+            GL.Uniform1(shader.GetUniformLocation("t"), t)
+        | TransitionStrategy.Dissolve -> 
+            GL.Uniform1(shader.GetUniformLocation("t"), float32(frameCount)/float32(transitionDuration))
+            GL.Uniform1(shader.GetUniformLocation("ratio"), float32(fst this.WallpaperSize) / float32(snd this.WallpaperSize))
+            GL.ActiveTexture(TextureUnit.Texture1)
+            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value)
+            GL.Uniform1(shader.GetUniformLocation("noise"), 1)
         
         let aTexCoords = shader.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)

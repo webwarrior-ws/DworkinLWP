@@ -64,6 +64,7 @@
     <AndroidAsset Include="Assets\shaders\negativeDistHorizontal.frag" />
     <AndroidAsset Include="Assets\shaders\negativeDistVertical.frag" />
     <AndroidAsset Include="Assets\shaders\transitionFade.frag" />
+    <AndroidAsset Include="Assets\shaders\transitionDissolve.frag" />
     <AndroidAsset Include="Assets\shaders\materials\solidColor.frag" />
     <AndroidAsset Include="Assets\shaders\materials\metal.frag" />
     <AndroidAsset Include="Assets\shaders\materials\universalMaterial.vert" />
