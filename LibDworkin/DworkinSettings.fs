@@ -450,9 +450,19 @@ type RandomizationInterval =
     | FifteenSeconds = 15
     | Minute = 60
     | FiveMinutes = 300
-    | ThirtyMinutes = 1800
     | Hour = 3600
     | Day = 86400
+
+module RandomizationInterval =
+    let DisplayString(interval : RandomizationInterval) =
+        match interval with
+        | RandomizationInterval.Never -> "Never"
+        | RandomizationInterval.Day -> "Daily"
+        | seconds -> 
+            let s = int seconds
+            if s < 60 then sprintf "After %d seconds" s
+            elif s < 3600 then sprintf "After %d minutes" (s / 60)
+            else sprintf "After %d hours" (s / 3600)
 
 
 type TransitionStrategy =

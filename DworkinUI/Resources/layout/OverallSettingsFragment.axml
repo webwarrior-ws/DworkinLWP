@@ -87,40 +87,10 @@
 			</LinearLayout>
 			
 			<LinearLayout
-				android:orientation="horizontal"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:paddingHorizontal="@dimen/editor_padding_h"
-				android:focusableInTouchMode="true"
-				android:focusable="true">
-				<TextView
-					android:text="Seed"
-					android:textAppearance="@style/SettingTitle"
-					android:padding="6dp"
-					android:layout_width="wrap_content"
-					android:layout_height="match_parent"
-					android:gravity="center_vertical"/>
-				<EditText
-					android:id="@+id/seed_display"
-					android:layout_width="match_parent"
-					android:layout_height="match_parent"
-					android:layout_marginHorizontal="6dp"
-					android:layout_weight="1"
-					android:inputType="number"
-					android:text="0"/>
-				<Button
-					android:id="@+id/next_seed_button"
-					android:text="Next"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:layout_marginBottom="6dp"
-					android:layout_weight="1"/>
-			</LinearLayout>
-
-			<LinearLayout
 				android:orientation="vertical"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
+				android:paddingVertical="@dimen/editor_padding_v"
 				android:paddingHorizontal="@dimen/editor_padding_h">
 				<TextView
 					android:text="Speed"
@@ -136,6 +106,96 @@
 					android:layout_marginHorizontal="12dp"
 					android:inputType="number"
 					android:layout_marginVertical="6dp" />
+			</LinearLayout>
+
+			<LinearLayout
+				android:orientation="vertical"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:paddingHorizontal="@dimen/editor_padding_h"
+				android:paddingVertical="@dimen/editor_padding_v">
+				
+				<TextView 
+					android:text="Randomization"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingBottom="@dimen/editor_title_padding_bottom"
+					android:textAppearance="@style/SettingsGroupTitle" />
+				
+				<LinearLayout
+					android:orientation="horizontal"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingHorizontal="@dimen/editor_padding_h"
+					android:paddingVertical="@dimen/editor_padding_v"
+					android:focusableInTouchMode="true"
+					android:focusable="true">
+					<TextView
+						android:text="Seed"
+						android:textAppearance="@style/SettingTitle"
+						android:paddingRight="6dp"
+						android:layout_width="wrap_content"
+						android:layout_height="match_parent"
+						android:gravity="center_vertical"/>
+					<EditText
+						android:id="@+id/seed_display"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginHorizontal="6dp"
+						android:layout_weight="1"
+						android:inputType="number"
+						android:text="0"/>
+					<Button
+						android:id="@+id/next_seed_button"
+						android:text="Next"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:layout_marginBottom="6dp"
+						android:layout_weight="1"/>
+				</LinearLayout>
+
+				<LinearLayout
+					android:id="@+id/interval_control"
+					android:orientation="vertical"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingVertical="@dimen/editor_padding_v"
+					android:paddingHorizontal="@dimen/editor_padding_h">
+					<TextView
+						android:text="Interval"
+						android:textAppearance="@style/SettingTitle"
+						android:layout_width="wrap_content"
+						android:layout_height="match_parent"
+						android:gravity="center_vertical"/>
+					<TextView
+						android:id="@+id/interval_text"
+						android:paddingVertical="@dimen/editor_padding_v"
+						android:text="How often new pattern is drawn"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content" />
+				</LinearLayout>
+				
+				<LinearLayout
+					android:id="@+id/transition_control"
+					android:orientation="vertical"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingVertical="@dimen/editor_padding_v"
+					android:paddingHorizontal="@dimen/editor_padding_h">
+					<TextView
+						android:text="Transition"
+						android:textAppearance="@style/SettingTitle"
+						android:layout_width="wrap_content"
+						android:layout_height="match_parent"
+						android:gravity="center_vertical"/>
+					<TextView
+						android:id="@+id/transition_text"
+						android:paddingVertical="@dimen/editor_padding_v"
+						android:text="None"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content" />
+				</LinearLayout>
+
 			</LinearLayout>
 
 		</LinearLayout>

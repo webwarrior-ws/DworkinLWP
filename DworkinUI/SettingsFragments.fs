@@ -4,6 +4,7 @@
 open Android.Widget
 open Android.Views
 open Android.Content
+open Android.Support.V7.App
 
 open Settings
 open LibDworkin.DworkinSettings
@@ -16,6 +17,8 @@ type OverallSettingsFragment() =
     
     let mutable seedDisplay : EditText = null
     let mutable speedFactorSlider : SeekBar = null
+    let mutable intervalDisplay : TextView = null
+    let mutable transitionDisplay : TextView = null
 
     static let minSpeedFactor = 0.25f
     static let maxSpeedFactor = 1.0f
@@ -31,8 +34,13 @@ type OverallSettingsFragment() =
         speedFactorSlider.Progress <- 
             (CurrentSettings.speedFactor - minSpeedFactor) / (maxSpeedFactor - minSpeedFactor) * 100.0f |> round |> int
 
+    member private this.UpdateRandomizationControls() =
+        intervalDisplay.Text <- RandomizationInterval.DisplayString(CurrentSettings.randomizationInterval)
+        transitionDisplay.Text <- CurrentSettings.transitionStrategy.ToString()
+
     override this.OnCreateView(inflater, container, bundle) = 
         let view = inflater.Inflate(Resources.Layout.OverallSettingsFragment, container)
+        
         seedDisplay <- view.FindViewById<EditText>(Resources.Id.seed_display)
         let nextSeedButton = view.FindViewById<Button>(Resources.Id.next_seed_button)
         seedDisplay.Text <- CurrentSettings.get().Seed |> string
@@ -41,9 +49,43 @@ type OverallSettingsFragment() =
             let nextSeed : int = System.Random().Next()
             seedDisplay.Text <- string nextSeed //this.SetRandomSeed() is called here beacuse text is changed 
         )
+        
         speedFactorSlider <- view.FindViewById<SeekBar>(Resources.Id.speed_display)
         this.UpdateSpeedFactorSlider()
         speedFactorSlider.ProgressChanged.Add(fun args -> this.SetSpeedFactor(args.Progress))
+        
+        intervalDisplay <- view.FindViewById<TextView>(Resources.Id.interval_text)
+        transitionDisplay <- view.FindViewById<TextView>(Resources.Id.transition_text)
+        this.UpdateRandomizationControls()
+
+        view.FindViewById<View>(Resources.Id.interval_control).Click.Add(fun _ -> 
+            use builder = new AlertDialog.Builder(this.Context)
+            let items = 
+                [| for each in RandomizationInterval.GetValues(typeof<RandomizationInterval>) -> unbox<RandomizationInterval> each |]
+                |> Array.sortBy (fun each -> int each)
+            let callback _ (args : DialogClickEventArgs) =
+                CurrentSettings.randomizationInterval <- items.[args.Which]
+                this.UpdateRandomizationControls()
+            builder
+                .SetTitle("Randomization interval")
+                .SetItems(items |> Array.map RandomizationInterval.DisplayString, callback)
+                .Show()
+                |> ignore
+        )
+        view.FindViewById<View>(Resources.Id.transition_control).Click.Add(fun _ -> 
+            use builder = new AlertDialog.Builder(this.Context)
+            let items = 
+                [| for each in TransitionStrategy.GetValues(typeof<TransitionStrategy>) -> unbox<TransitionStrategy> each |]
+            let callback _ (args : DialogClickEventArgs) =
+                CurrentSettings.transitionStrategy <- items.[args.Which]
+                this.UpdateRandomizationControls()
+            builder
+                .SetTitle("Transition")
+                .SetItems(items |> Array.map string, callback)
+                .Show()
+                |> ignore
+        )
+
         view
         
     override this.OnResume() =
@@ -52,6 +94,7 @@ type OverallSettingsFragment() =
         if seedDisplay.Text <> seedString then
             seedDisplay.Text <- seedString
         this.UpdateSpeedFactorSlider()
+        this.UpdateRandomizationControls()
 
 
 type PatternSettingsFragment() =
