@@ -4,6 +4,7 @@ open Android.Content
 open Android.Util
 open Android.Widget
 open Android.Views
+open Android.Support.V7.App
 
 open Cheesebaron.ColorPickers
 
@@ -406,6 +407,107 @@ type RandomizedSpinnerWithImages<'TItem when 'TItem : equality>(context : Contex
     static member GetFactoryForMapping(mapping : 'TItem -> SpinnerItem) =
         fun context options ->
             let view = new RandomizedSpinnerWithImages<'TItem>(context, mapping)
+            view.Initialize()
+            view.SetItems(options |> Array.map unbox<'TItem>)
+            view :> ISettingEditor
+
+
+type GridImageAdapter(context : Context, itemsArray : SpinnerItem[]) =
+    inherit ArrayAdapter<SpinnerItem>(context, Resources.Layout.SpinnerItemWithImage, itemsArray)
+
+    override this.GetView(position, convertView, parent) = 
+        let view = new ImageView(context)
+        view.SetImageResource(itemsArray.[position].ImageID)
+        let wrapContent = int ViewGroup.LayoutParams.WrapContent
+        view.LayoutParameters <- new ViewGroup.LayoutParams(wrapContent, wrapContent)
+        view :> View
+
+
+/// Editor for choosing items from list of options. If NumColumns = 1 (default), then show list of options (picture & label), 
+/// otherwise - grid of pictures
+type RandomizedItemChooser<'TItem when 'TItem : equality>(context : Context, mapping : 'TItem -> SpinnerItem) as this =
+    inherit LinearLayout(context, null, 0)
+
+    let randomizedEditorComponent = RandomizedEditorComponent<RandomizedItemChooser<'TItem>, 'TItem>(this)
+    let mutable items : 'TItem[] = [||]
+    let mutable selectedIndex = 0
+
+    member val NumColumns = 1 with get, set
+
+    interface IRandomizedEditor<'TItem> with
+        member this.CurrentValue 
+            with get() = items.[selectedIndex]
+            and set(value) = 
+                selectedIndex <- Array.findIndex ((=) value) items
+                this.UpdateDisplay(value)
+        
+        member this.IsEnabled
+            with get() = this.Enabled
+            and set(value) = 
+                this.Enabled <- value
+                if not value then
+                    this.ImageView.SetColorFilter(Android.Graphics.Color.Argb(127, 127, 127, 127))
+                else
+                    this.ImageView.SetColorFilter(null)
+
+    interface ISettingEditor with
+        member this.Changed = randomizedEditorComponent.Changed
+        member this.Title 
+            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+        member this.Accessor 
+            with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
+
+    member private this.ImageView = this.FindViewById<ImageView>(Resources.Id.imageView)
+
+    member private this.UpdateDisplay(value : 'TItem) =
+        let mappedValue = mapping value
+        this.ImageView.SetImageResource(mappedValue.ImageID)
+        this.FindViewById<TextView>(Resources.Id.item_name).Text <- mappedValue.Label
+
+    member this.SetItems(newItems : 'TItem[]) =
+        items <- newItems
+
+    member this.Initialize() =
+        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedItemChooser, this)
+        randomizedEditorComponent.Initialize()
+        this.Click.Add(fun args ->
+            use builder = new AlertDialog.Builder(context, Resources.Style.AlertDialogTheme)
+            let titleView = this.FindViewById<TextView>(Resources.Id.title)
+            
+            builder.SetTitle("Select " + titleView.Text.ToLower()) |> ignore
+            let dialog : AlertDialog = 
+                if this.NumColumns > 1 then
+                    let grid = GridView.Inflate(context, Resources.Layout.ItemChooserGrid, null) :?> GridView
+                    grid.NumColumns <- this.NumColumns
+                    builder.SetView(grid) |> ignore
+                    grid.Adapter <- new GridImageAdapter(context, items |> Array.map mapping)
+                    let dialog = builder.Create()
+
+                    let callback (args : AdapterView.ItemClickEventArgs) =
+                        selectedIndex <- args.Position
+                        this.UpdateDisplay(items.[selectedIndex])
+                        randomizedEditorComponent.FireChangedEvent()
+                        dialog.Dismiss()
+
+                    grid.ItemClick.Add(callback)
+                    dialog
+                else
+                    let imageAdapter = new ImageSpinnerAdapter(context, items |> Array.map mapping)
+                    let callback _ (args : DialogClickEventArgs) =
+                        selectedIndex <- args.Which
+                        this.UpdateDisplay(items.[selectedIndex])
+                        randomizedEditorComponent.FireChangedEvent()
+                    builder.SetAdapter(imageAdapter, callback) |> ignore
+                    builder.Create()
+            dialog.Show() |> ignore)
+
+    override this.OnFinishInflate() =
+        this.Initialize()
+        base.OnFinishInflate()    
+
+    static member GetFactoryForMapping(mapping : 'TItem -> SpinnerItem, ?numColumns : int) =
+        fun context options ->
+            let view = new RandomizedItemChooser<'TItem>(context, mapping, NumColumns=defaultArg numColumns 1)
             view.Initialize()
             view.SetItems(options |> Array.map unbox<'TItem>)
             view :> ISettingEditor

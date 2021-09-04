@@ -37,7 +37,7 @@ type OverallSettingsFragment() =
     member private this.UpdateRandomizationControls() =
         intervalDisplay.Text <- RandomizationInterval.DisplayString(CurrentSettings.randomizationInterval)
         transitionDisplay.Text <- CurrentSettings.transitionStrategy.ToString()
-
+    
     override this.OnCreateView(inflater, container, bundle) = 
         let view = inflater.Inflate(Resources.Layout.OverallSettingsFragment, container)
         
