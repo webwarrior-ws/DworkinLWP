@@ -209,16 +209,16 @@ module Effects =
         [<FloatRange(0.0f, 10.0f, Step=1.0f)>]
         member val Offset = Defined(5.0f) with get, set
 
-        [<FloatRange(0.1f, 1.0f)>]
+        [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
         member val Size = Defined(0.5f) with get, set
 
-        [<FloatRange(0.005f, 1.0f, Step=0.05f)>]
+        [<FloatRange(0.005f, 1.0f, Step=0.005f)>]
         member val Softness = Defined(1.0f) with get, set
 
         [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
         member val Strength = Defined(1.0f) with get, set
 
-        [<Bool(Name="Is inner")>]
+        [<Bool(Name="Inner shadow")>]
         member val Inner = Defined(false) with get, set
         
         override this.Build(platform, random) = 
@@ -252,7 +252,7 @@ module Effects =
         [<FloatRange(1.0f, 3.0f, Step=0.25f)>]
         member val Contrast = Defined(1.5f) with get, set
 
-        [<FloatRange(0.0f, 0.5f, Name="Max. distance")>]
+        [<FloatRange(0.0f, 0.5f, Step=0.05f, Name="Max. distance")>]
         member val MaxDistance = Defined(0.5f) with get, set
 
         [<Enum([| BevelProfile.Linear; BevelProfile.Circular; BevelProfile.InverseCircular; BevelProfile.Sigmoid |], 
@@ -282,7 +282,7 @@ module Effects =
         [<FloatRange(0.1f, 1.0f, Step=0.05f)>]
         member val Size = Defined(1.0f) with get, set
 
-        [<FloatRange(0.1f, 0.3f, Step=0.025f)>]
+        [<FloatRange(0.1f, 0.3f, Step=0.01f)>]
         member val Intensity = Defined(0.2f) with get, set
 
         [<Enum([| GlowInsideType.Empty; GlowInsideType.Glow; GlowInsideType.Foreground |], ItemType=typeof<GlowInsideType>)>]
@@ -302,7 +302,7 @@ module Effects =
         inherit EffectSettings()
         static do Settings.RegisterClass<Highlight>()
 
-        [<FloatRange(0.05f, 1.0f, Step=0.05f)>]
+        [<FloatRange(0.05f, 1.0f, Step=0.05f, Name="Light intensity")>]
         member val LightIntensity = Defined(0.5f) with get, set
 
         override this.Build(platform, random) =
@@ -324,16 +324,16 @@ module Effects =
         [<Enum([| FuzzyTextureType.Ink; FuzzyTextureType.Chalk |], ItemType=typeof<FuzzyTextureType>, Name="Type")>]
         member val TextureType = Defined(FuzzyTextureType.Ink) with get, set
         
-        [<FloatRange(0.05f, 0.25f, Step=0.025f, Name="Strength")>]
+        [<FloatRange(0.05f, 0.25f, Step=0.01f, Name="Strength")>]
         member val Distortion = Defined(0.15f) with get, set
 
-        [<FloatRange(0.05f, 0.25f, Step=0.025f)>]
+        [<FloatRange(0.05f, 0.25f, Step=0.01f)>]
         member val Softness = Defined(0.10f) with get, set
         
         [<FloatRange(0.25f, 0.75f, Step=0.05f)>]
         member val Fill = Defined(0.60f) with get, set
 
-        [<FloatRange(0.0f, 0.20f, Step=0.025f)>]
+        [<FloatRange(0.0f, 0.20f, Step=0.01f)>]
         member val Washout = Defined(0.0f) with get, set
 
         override this.Build(platform, random) =
