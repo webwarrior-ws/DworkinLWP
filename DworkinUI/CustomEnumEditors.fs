@@ -34,4 +34,14 @@ module CustomEnumEditors =
                  | x -> failwithf "bevel profile %A not supported" x ),
                 numColumns=2) 
         )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.GlowInsideType, 
+            Views.RandomizedSpinnerWithImages<GlowInsideType>.GetFactoryForMapping(
+                function 
+                | GlowInsideType.Empty -> { ImageID=Resources.Drawable.glow_empty; Label="Empty" }
+                | GlowInsideType.Glow -> { ImageID=Resources.Drawable.glow_glow; Label="Glow" }
+                | GlowInsideType.Foreground -> { ImageID=Resources.Drawable.glow_foreground; Label="Foreground" }
+                | x -> failwithf "bevel profile %A not supported" x ) 
+        )
     )
