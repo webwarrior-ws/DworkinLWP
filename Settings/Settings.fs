@@ -7,6 +7,9 @@
 type EnumRepresentation =
    | Simple = 0 // dropdown with text entries
    | PCBEndpoints = 1
+   | BevelType = 2
+   | BevelProfile = 3
+   | GlowInsideType = 4
 
 
 type ISettingsUIBuilder<'TControl> =

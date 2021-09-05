@@ -256,13 +256,13 @@ module Effects =
         member val MaxDistance = Defined(0.5f) with get, set
 
         [<Enum([| BevelProfile.Linear; BevelProfile.Circular; BevelProfile.InverseCircular; BevelProfile.Sigmoid |], 
-               ItemType=typeof<BevelProfile>, 
+               ItemType=typeof<BevelProfile>, Representation=EnumRepresentation.BevelProfile, 
                Name="Bevel profile")>]
         member val Profile = Defined(BevelProfile.Linear) with get, set
 
-        [<Enum([| BevelMode.DownDown; BevelMode.DownLevel; BevelMode.DownUp; BevelMode.LevelDown; BevelMode.LevelUp; 
-                  BevelMode.UpDown; BevelMode.UpLevel; BevelMode.UpUp |], 
-                  ItemType=typeof<BevelMode>)>]
+        [<Enum([| BevelMode.DownLevel; BevelMode.DownUp; BevelMode.LevelDown; BevelMode.LevelUp; 
+                  BevelMode.UpDown; BevelMode.UpLevel; |], 
+                  ItemType=typeof<BevelMode>, Representation=EnumRepresentation.BevelType)>]
         member val Mode = Defined(BevelMode.UpLevel) with get, set
 
         override this.Build(platform, random) =
@@ -285,7 +285,8 @@ module Effects =
         [<FloatRange(0.1f, 0.3f, Step=0.01f)>]
         member val Intensity = Defined(0.2f) with get, set
 
-        [<Enum([| GlowInsideType.Empty; GlowInsideType.Glow; GlowInsideType.Foreground |], ItemType=typeof<GlowInsideType>)>]
+        [<Enum([| GlowInsideType.Empty; GlowInsideType.Glow; GlowInsideType.Foreground |], 
+               ItemType=typeof<GlowInsideType>, Representation=EnumRepresentation.GlowInsideType)>]
         member val Inside = Defined(GlowInsideType.Empty) with get, set
 
         override this.Build(platform, random) =

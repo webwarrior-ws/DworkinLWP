@@ -55,6 +55,8 @@ type MainActivity() =
             // TODO: see if this is no longer needed
             XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<DworkinUI.Resources>
             XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
+        
+        ignore DworkinUI.CustomEnumEditors.RegisterCustomEditors.Value;
 
         // Create our OpenGL view, and display it
         view <- new GLSurfaceView(this)

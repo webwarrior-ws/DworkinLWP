@@ -53,6 +53,15 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
   <ItemGroup>
     <AndroidAsset Include="Assets\textures\preview_sdf.png" />
+    <AndroidResource Include="Resources\drawable\bevelmode_down_up.xml" />
+    <AndroidResource Include="Resources\drawable\bevelmode_level_up.xml" />
+    <AndroidResource Include="Resources\drawable\bevelmode_up_down.xml" />
+    <AndroidResource Include="Resources\drawable\bevelmode_up_level.xml" />
+    <AndroidResource Include="Resources\drawable\bevelmode_down_level.xml" />
+    <AndroidResource Include="Resources\drawable\bevelprofile_inverse_circular.xml" />
+    <AndroidResource Include="Resources\drawable\bevelprofile_linear.xml" />
+    <AndroidResource Include="Resources\drawable\bevelprofile_sigmoid.xml" />
+    <AndroidResource Include="Resources\drawable\bevelprofile_circular.xml" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\values\attrs.xml" />
@@ -82,6 +91,7 @@
       <SubType>Designer</SubType>
     </AndroidResource>
     <AndroidResource Include="Resources\values-sw600dp\attrs.xml" />
+    <AndroidResource Include="Resources\drawable\bevelmode_level_down.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="PreviewRenderers.fs" />
@@ -89,6 +99,7 @@
     <Compile Include="SettingsFragments.fs" />
     <Compile Include="Dialogs.fs" />
     <Compile Include="SettingsActivity.fs" />
+    <Compile Include="CustomEnumEditors.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
