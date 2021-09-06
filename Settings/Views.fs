@@ -180,6 +180,14 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
         this.Initialize()
         base.OnFinishInflate()
 
+    static member GetFactoryForLabelingFunction(labelingFunction : 'TItem -> string) =
+        fun context options ->
+            let view = new RandomizedSpinner<'TItem>(context)
+            view.LabelingFunction <- labelingFunction
+            view.Initialize()
+            view.SetItems(options |> Array.map unbox<'TItem>)
+            view :> ISettingEditor
+
 
 [<AbstractClass>]
 type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defStyle : int) as this =

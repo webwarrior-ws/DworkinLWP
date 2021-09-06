@@ -10,6 +10,16 @@ type EnumRepresentation =
    | BevelType = 2
    | BevelProfile = 3
    | GlowInsideType = 4
+   | Angle = 5
+   | PCBTraceAngles = 6
+   | PCBTracesKind = 7
+   | MazeAngles = 8
+   | VineStartPos = 9
+   | VineType = 10
+   | VineLeafType = 11
+   | FloralSwirlsPrimary = 12
+   | FloralSwirlsSecondary = 13
+   | FloralSwirlsLeaves = 14
 
 
 type ISettingsUIBuilder<'TControl> =

@@ -4,6 +4,7 @@
 open Settings
 open LibDworkin.DworkinSettings
 open LibDworkin.RendererComponents
+open DworkinConfigs
 
 
 
@@ -43,5 +44,18 @@ module CustomEnumEditors =
                 | GlowInsideType.Glow -> { ImageID=Resources.Drawable.glow_glow; Label="Glow" }
                 | GlowInsideType.Foreground -> { ImageID=Resources.Drawable.glow_foreground; Label="Foreground" }
                 | x -> failwithf "bevel profile %A not supported" x ) 
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.Angle, 
+            Views.RandomizedSpinner<int>.GetFactoryForLabelingFunction(sprintf "%d°")
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.PCBTraceAngles, 
+            Views.RandomizedSpinner<ConfigSettings.PCBAngles>.GetFactoryForLabelingFunction(
+                fun item ->
+                    let anglesString = ConfigSettings.PCBAngles.GetAngles item |> Array.map (int >> sprintf "%d°")
+                    System.String.Join(", ", anglesString))
         )
     )

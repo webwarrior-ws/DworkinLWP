@@ -37,16 +37,17 @@ type PCB_RandomPosChips() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<PCB_RandomPosChips>()
 
-    [<FloatRange(0.0f, 90.0f, Step=45.0f)>]
-    member val Angle = Defined(0.0f) with get, set
+    [<Enum([| 0; 45 |], ItemType=typeof<int>, Representation=EnumRepresentation.Angle, Name="Chips angle")>]
+    member val Angle = Defined(0) with get, set
 
-    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A30_45_90 |], ItemType=typeof<PCBAngles>)>]
+    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A30_45_90 |], 
+           ItemType=typeof<PCBAngles>, Representation=EnumRepresentation.PCBTraceAngles, Name="Trace angles")>]
     member val Angles = Defined(PCBAngles.A45) with get, set
 
-    [<Enum([| PCBChipShape.Octagonal; PCBChipShape.Rectangular |], ItemType=typeof<PCBChipShape>)>]
+    [<Enum([| PCBChipShape.Octagonal; PCBChipShape.Rectangular |], ItemType=typeof<PCBChipShape>, Name="Chips shape")>]
     member val ChipsShape = Defined(PCBChipShape.Octagonal) with get, set
     
-    [<Bool>]
+    [<Bool(Name="Start with vias")>]
     member val Vias = Defined(false) with get, set
 
     [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>, Representation=EnumRepresentation.PCBEndpoints)>]
@@ -58,7 +59,7 @@ type PCB_RandomPosChips() =
     [<FloatRange(0.2f, 0.8f, Step=0.05f)>]
     member val Density = Defined(0.5f) with get, set
 
-    [<FloatRange(0.0f, 1.0f, Step=0.1f)>]
+    [<FloatRange(0.0f, 1.0f, Step=0.1f, Name="Trace thickness variance")>]
     member val ThicknessVariance = Defined(0.0f) with get, set
 
     override this.Build(seed) =
@@ -67,7 +68,7 @@ type PCB_RandomPosChips() =
         let isOctagonal = match getValue<@ this.ChipsShape @> with | PCBChipShape.Octagonal -> true | _ -> false
         PCB.PCB_RandomPosChips(
             RandomSeed=seed,
-            Angle=getValue <@ this.Angle @>,
+            Angle=float32(getValue <@ this.Angle @>),
             Angles=PCBAngles.GetAngles(getValue<@ this.Angles @>),
             Octagonal=isOctagonal,
             Size=getValue <@ this.Size @>,
@@ -88,22 +89,24 @@ type PCB_Traces() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<PCB_Traces>()
 
-    [<Enum([| PCBTracesKind.Random; PCBTracesKind.Grid; PCBTracesKind.GridWithBranches |], ItemType=typeof<PCBTracesKind>)>]
+    [<Enum([| PCBTracesKind.Random; PCBTracesKind.Grid; PCBTracesKind.GridWithBranches |], 
+           ItemType=typeof<PCBTracesKind>, Representation=EnumRepresentation.PCBTracesKind, Name="Type")>]
     member val Kind = Defined(PCBTracesKind.Random) with get, set
 
-    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A45_60_75_90 |], ItemType=typeof<PCBAngles>)>]
+    [<Enum([| PCBAngles.A45; PCBAngles.A60; PCBAngles.A45_90; PCBAngles.A45_60_75_90 |], 
+           ItemType=typeof<PCBAngles>, Representation=EnumRepresentation.PCBTraceAngles, Name="Trace angles")>]
     member val Angles = Defined(PCBAngles.A45) with get, set
 
     [<FloatRange(0.0f, 1.0f, Step=0.05f)>]
     member val Density = Defined(0.5f) with get, set
 
-    [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>)>]
+    [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>, Representation=EnumRepresentation.PCBEndpoints)>]
     member val Endpoints = Defined(PCB.Endpoints.Hollow) with get, set
     
     [<FloatRange(1.0f, 2.5f)>]
     member val Size = Defined(1.75f) with get, set
         
-    [<FloatRange(0.0f, 1.0f, Step=0.1f)>]
+    [<FloatRange(0.0f, 1.0f, Step=0.1f, Name="Trace thickness variance")>]
     member val ThicknessVariance = Defined(0.0f) with get, set
 
     override this.Build(seed) =
@@ -159,19 +162,19 @@ type Maze() =
     static do Settings.RegisterClass<Maze>()
 
     [<Enum([| MazeAngles.Square; MazeAngles.FortyFive; MazeAngles.FortyFiveSharp; MazeAngles.Hexagonal; MazeAngles.Qbert; MazeAngles.Arbitrary; MazeAngles.Arbitrary2 |], 
-           ItemType=typeof<MazeAngles>)>]
+           ItemType=typeof<MazeAngles>, Representation=EnumRepresentation.MazeAngles)>]
     member val Angles = Defined(MazeAngles.Square) with get, set
 
-    [<FloatRange(0.5f, 2.0f)>]
+    [<FloatRange(0.5f, 2.0f, Name="Wall thickness")>]
     member val WallThickness = Defined(1.0f) with get, set
 
-    [<FloatRange(0.0f, 0.5f)>]
+    [<FloatRange(0.0f, 0.5f, Name="Wall thickness variance")>]
     member val ThicknessVariance = Defined(0.0f) with get, set
 
     [<Bool>]
     member val Curvy = Defined(false) with get, set
 
-    [<Enum([| 0; 45 |])>]
+    [<Enum([| 0; 45 |], ItemType=typeof<int>, Representation=EnumRepresentation.Angle)>]
     member val Orientation = Defined(0) with get, set
 
     [<FloatRange(0.5f, 1.5f)>]
@@ -286,16 +289,16 @@ type Vine() =
 
     [<Enum([| VineStartPos.Bottom; VineStartPos.Top; VineStartPos.Left; VineStartPos.Right; 
               VineStartPos.BottomLeft; VineStartPos.TopRight; VineStartPos.LeftAndRight; VineStartPos.BottomAndTop |],
-           ItemType=typeof<VineStartPos>)>]
+           ItemType=typeof<VineStartPos>, Representation=EnumRepresentation.VineStartPos, Name="Starting positions")>]
     member val StartingPositions = Defined(VineStartPos.Bottom) with get, set
 
     [<Enum([| VineType.Single; VineType.Curly1; VineType.Curly2; VineType.Curly3; VineType.Splitting |], 
-           ItemType=typeof<VineType>)>]
+           ItemType=typeof<VineType>, Representation=EnumRepresentation.VineType, Name="Vine type")>]
     member val VineType = Defined(VineType.Single) with get, set
 
     [<Enum([| VineLeafType.None; VineLeafType.IndAlt; VineLeafType.IndByScale; VineLeafType.WithStem; 
               VineLeafType.SlightlyCurved; VineLeafType.Rounded; VineLeafType.Straight1; VineLeafType.Curved1 |],
-           ItemType=typeof<VineLeafType>)>]
+           ItemType=typeof<VineLeafType>, Representation=EnumRepresentation.VineLeafType)>]
     member val Leaves = Defined(VineLeafType.None) with get, set
     
     [<FloatRange(1.5f, 2.5f, Step=0.1f)>]
@@ -429,20 +432,20 @@ type FloralSwirls() =
 
     [<Enum([| FloralSwirlsPrimary.WavySingle; FloralSwirlsPrimary.WavyDouble; FloralSwirlsPrimary.SShapedSingle; 
               FloralSwirlsPrimary.SShapedSpacefill; FloralSwirlsPrimary.MagneticSingle; FloralSwirlsPrimary.MagneticBunch |], 
-           ItemType=typeof<FloralSwirlsPrimary>)>]
+           ItemType=typeof<FloralSwirlsPrimary>, Representation=EnumRepresentation.FloralSwirlsPrimary, Name="Primary swirls")>]
     member val PrimarySwirls = Defined(FloralSwirlsPrimary.WavySingle) with get, set
 
     [<Enum([| FloralSwirlsSecondary.ShiftedSwirls; FloralSwirlsSecondary.RecursiveSpirals; 
               FloralSwirlsSecondary.MagneticSpiralsDense; FloralSwirlsSecondary.PlantLike |],
-           ItemType=typeof<FloralSwirlsSecondary>)>]
+           ItemType=typeof<FloralSwirlsSecondary>, Representation=EnumRepresentation.FloralSwirlsSecondary, Name="Secondary swirls")>]
     member val SecondarySwirls = Defined(FloralSwirlsSecondary.ShiftedSwirls) with get, set
 
     [<Enum([| FloralSwirlsLeaves.NoLeaves; FloralSwirlsLeaves.Straight; FloralSwirlsLeaves.SlightlyCurved; FloralSwirlsLeaves.Curved;
               FloralSwirlsLeaves.Teardrop; FloralSwirlsLeaves.WithStem; FloralSwirlsLeaves.ScaledToBranchThickness |],
-           ItemType=typeof<FloralSwirlsLeaves>)>]
+           ItemType=typeof<FloralSwirlsLeaves>, Representation=EnumRepresentation.FloralSwirlsLeaves)>]
     member val Leaves = Defined(FloralSwirlsLeaves.NoLeaves) with get, set
 
-    [<Bool>]
+    [<Bool(Name="Leaves on stem")>]
     member val LeavesOnStem = Defined(false) with get, set
 
     [<FloatRange(1.0f, 2.0f)>]
