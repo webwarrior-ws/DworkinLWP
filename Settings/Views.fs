@@ -140,6 +140,8 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
     new(context, attrs) = new RandomizedSpinner<'TItem>(context, attrs, 0)
     new(context) = new RandomizedSpinner<'TItem>(context, null)
 
+    member val LabelingFunction : 'TItem -> string = fun x -> x.ToString() with get, set
+
     interface IRandomizedEditor<'TItem> with
         member this.CurrentValue 
             with get() = items.[this.Spinner.SelectedItemPosition]
@@ -162,7 +164,7 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
 
     abstract GetAdapterForSpinner : 'TItem[] -> ArrayAdapter
     default this.GetAdapterForSpinner(itemsArray) =
-        let labels = itemsArray |> Array.map (fun each -> each.ToString())
+        let labels = itemsArray |> Array.map this.LabelingFunction
         new ArrayAdapter(context, Android.Resource.Layout.SimpleSpinnerDropDownItem, labels)
 
     member this.SetItems(newItems : 'TItem[]) =
