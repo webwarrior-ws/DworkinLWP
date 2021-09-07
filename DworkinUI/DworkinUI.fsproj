@@ -55,6 +55,7 @@
     <AndroidAsset Include="Assets\textures\preview_sdf.png" />
     <AndroidResource Include="Resources\drawable\bevelmode_down_up.xml" />
     <AndroidResource Include="Resources\drawable\bevelmode_level_up.xml" />
+    <AndroidResource Include="Resources\drawable\bevelmode_level_down.xml" />
     <AndroidResource Include="Resources\drawable\bevelmode_up_down.xml" />
     <AndroidResource Include="Resources\drawable\bevelmode_up_level.xml" />
     <AndroidResource Include="Resources\drawable\bevelmode_down_level.xml" />
@@ -62,6 +63,16 @@
     <AndroidResource Include="Resources\drawable\bevelprofile_linear.xml" />
     <AndroidResource Include="Resources\drawable\bevelprofile_sigmoid.xml" />
     <AndroidResource Include="Resources\drawable\bevelprofile_circular.xml" />
+    <AndroidResource Include="Resources\drawable\glow_foreground.png" />
+    <AndroidResource Include="Resources\drawable\glow_glow.png" />
+    <AndroidResource Include="Resources\drawable\glow_empty.png" />
+    <AndroidResource Include="Resources\drawable\maze_arbitrary1.xml" />
+    <AndroidResource Include="Resources\drawable\maze_arbitrary2.xml" />
+    <AndroidResource Include="Resources\drawable\maze_fortyfive.xml" />
+    <AndroidResource Include="Resources\drawable\maze_fortyfive_sharp.xml" />
+    <AndroidResource Include="Resources\drawable\maze_qbert.xml" />
+    <AndroidResource Include="Resources\drawable\maze_square.xml" />
+    <AndroidResource Include="Resources\drawable\maze_hexagonal.xml" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\values\attrs.xml" />
@@ -91,7 +102,6 @@
       <SubType>Designer</SubType>
     </AndroidResource>
     <AndroidResource Include="Resources\values-sw600dp\attrs.xml" />
-    <AndroidResource Include="Resources\drawable\bevelmode_level_down.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="PreviewRenderers.fs" />
@@ -100,9 +110,6 @@
     <Compile Include="Dialogs.fs" />
     <Compile Include="SettingsActivity.fs" />
     <Compile Include="CustomEnumEditors.fs" />
-    <AndroidResource Include="Resources\drawable\glow_foreground.png" />
-    <AndroidResource Include="Resources\drawable\glow_glow.png" />
-    <AndroidResource Include="Resources\drawable\glow_empty.png" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">

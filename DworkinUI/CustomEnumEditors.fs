@@ -58,4 +58,27 @@ module CustomEnumEditors =
                     let anglesString = ConfigSettings.PCBAngles.GetAngles item |> Array.map (int >> sprintf "%d°")
                     System.String.Join(", ", anglesString))
         )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.PCBTracesKind, 
+            Views.RandomizedSpinner<ConfigSettings.PCBTracesKind>.GetFactoryForLabelingFunction(
+                function
+                | ConfigSettings.PCBTracesKind.GridWithBranches -> "Grid (with branches)"
+                | x -> x.ToString() )
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.MazeAngles, 
+            Views.RandomizedItemChooser<ConfigSettings.MazeAngles>.GetFactoryForMapping(
+                (function 
+                 | ConfigSettings.MazeAngles.Square -> { ImageID=Resources.Drawable.maze_square; Label="" }
+                 | ConfigSettings.MazeAngles.FortyFive -> { ImageID=Resources.Drawable.maze_fortyfive; Label="" }
+                 | ConfigSettings.MazeAngles.FortyFiveSharp -> { ImageID=Resources.Drawable.maze_fortyfive_sharp; Label="" }
+                 | ConfigSettings.MazeAngles.Hexagonal -> { ImageID=Resources.Drawable.maze_hexagonal; Label="" }
+                 | ConfigSettings.MazeAngles.Qbert -> { ImageID=Resources.Drawable.maze_qbert; Label="" }
+                 | ConfigSettings.MazeAngles.Arbitrary -> { ImageID=Resources.Drawable.maze_arbitrary1; Label="" }
+                 | ConfigSettings.MazeAngles.Arbitrary2 -> { ImageID=Resources.Drawable.maze_arbitrary2; Label="" }
+                 | x -> failwithf "bevel profile %A not supported" x),
+                numColumns=2) 
+        )
     )
