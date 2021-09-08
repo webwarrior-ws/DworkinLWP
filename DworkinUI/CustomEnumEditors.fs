@@ -78,7 +78,66 @@ module CustomEnumEditors =
                  | ConfigSettings.MazeAngles.Qbert -> { ImageID=Resources.Drawable.maze_qbert; Label="" }
                  | ConfigSettings.MazeAngles.Arbitrary -> { ImageID=Resources.Drawable.maze_arbitrary1; Label="" }
                  | ConfigSettings.MazeAngles.Arbitrary2 -> { ImageID=Resources.Drawable.maze_arbitrary2; Label="" }
-                 | x -> failwithf "bevel profile %A not supported" x),
+                 | x -> failwithf "maze angles %A not supported" x),
                 numColumns=2) 
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.VineStartPos, 
+            Views.RandomizedItemChooser<ConfigSettings.VineStartPos>.GetFactoryForMapping(
+                (function 
+                 | ConfigSettings.VineStartPos.Left -> { ImageID=Resources.Drawable.vinestartpos_left; Label="Left" }
+                 | ConfigSettings.VineStartPos.Right -> { ImageID=Resources.Drawable.vinestartpos_right; Label="Right" }
+                 | ConfigSettings.VineStartPos.Bottom -> { ImageID=Resources.Drawable.vinestartpos_bottom; Label="Bottom" }
+                 | ConfigSettings.VineStartPos.Top -> { ImageID=Resources.Drawable.vinestartpos_top; Label="Top" }
+                 | ConfigSettings.VineStartPos.BottomAndTop -> { ImageID=Resources.Drawable.vinestartpos_bottom_top; Label="Bottom & top" }
+                 | ConfigSettings.VineStartPos.LeftAndRight -> { ImageID=Resources.Drawable.vinestartpos_left_right; Label="Left & right" }
+                 | ConfigSettings.VineStartPos.BottomLeft -> { ImageID=Resources.Drawable.vinestartpos_bottom_left; Label="Bottom & left" }
+                 | ConfigSettings.VineStartPos.TopRight -> { ImageID=Resources.Drawable.vinestartpos_top_right; Label="Top & right" }
+                 | x -> failwithf "vine start position %A not supported" x),
+                numColumns=4) 
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.VineType, 
+            Views.RandomizedItemChooser<ConfigSettings.VineType>.GetFactoryForMapping(
+                function 
+                | ConfigSettings.VineType.Single -> { ImageID=Resources.Drawable.vinetype_single; Label="" }
+                | ConfigSettings.VineType.Curly1 -> { ImageID=Resources.Drawable.vinetype_curly1; Label="" }
+                | ConfigSettings.VineType.Curly2 -> { ImageID=Resources.Drawable.vinetype_curly2; Label="" }
+                | ConfigSettings.VineType.Curly3 -> { ImageID=Resources.Drawable.vinetype_curly3; Label="" }
+                | ConfigSettings.VineType.Splitting -> { ImageID=Resources.Drawable.vinetype_splitting; Label="" }
+                | x -> failwithf "vine type %A not supported" x) 
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.VineLeafType, 
+            Views.RandomizedItemChooser<ConfigSettings.VineLeafType>.GetFactoryForMapping(
+                (function 
+                 | ConfigSettings.VineLeafType.None -> { ImageID=Resources.Drawable.leaf_noleaf; Label="" }
+                 | ConfigSettings.VineLeafType.Curved1 -> { ImageID=Resources.Drawable.leaf_curved; Label="" }
+                 | ConfigSettings.VineLeafType.IndAlt -> { ImageID=Resources.Drawable.leaf_indalt; Label="" }
+                 | ConfigSettings.VineLeafType.IndByScale -> { ImageID=Resources.Drawable.leaf_indbyscale; Label="" }
+                 | ConfigSettings.VineLeafType.Rounded -> { ImageID=Resources.Drawable.leaf_rounded; Label="" }
+                 | ConfigSettings.VineLeafType.SlightlyCurved -> { ImageID=Resources.Drawable.leaf_slightlycurved; Label="" }
+                 | ConfigSettings.VineLeafType.WithStem -> { ImageID=Resources.Drawable.leaf_withstem; Label="" }
+                 | ConfigSettings.VineLeafType.Straight1 -> { ImageID=Resources.Drawable.leaf_straight; Label="" }
+                 | x -> failwithf "vine leaf type %A not supported" x),
+                numColumns=4) 
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.FloralSwirlsLeaves, 
+            Views.RandomizedItemChooser<ConfigSettings.FloralSwirlsLeaves>.GetFactoryForMapping(
+                (function 
+                 | ConfigSettings.FloralSwirlsLeaves.NoLeaves -> { ImageID=Resources.Drawable.leaf_noleaf; Label="" }
+                 | ConfigSettings.FloralSwirlsLeaves.Curved -> { ImageID=Resources.Drawable.leaf_curved; Label="" }
+                 | ConfigSettings.FloralSwirlsLeaves.ScaledToBranchThickness -> { ImageID=Resources.Drawable.leaf_indbyscale; Label="" }
+                 | ConfigSettings.FloralSwirlsLeaves.SlightlyCurved -> { ImageID=Resources.Drawable.leaf_slightlycurved; Label="" }
+                 | ConfigSettings.FloralSwirlsLeaves.WithStem -> { ImageID=Resources.Drawable.leaf_withstem; Label="" }
+                 | ConfigSettings.FloralSwirlsLeaves.Straight -> { ImageID=Resources.Drawable.leaf_straight; Label="" }
+                 | ConfigSettings.FloralSwirlsLeaves.Teardrop -> { ImageID=Resources.Drawable.leaf_teardrop; Label="" }
+                 | x -> failwithf "vine leaf type %A not supported" x),
+                numColumns=4) 
         )
     )
