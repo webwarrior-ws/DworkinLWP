@@ -137,7 +137,21 @@ module CustomEnumEditors =
                  | ConfigSettings.FloralSwirlsLeaves.WithStem -> { ImageID=Resources.Drawable.leaf_withstem; Label="" }
                  | ConfigSettings.FloralSwirlsLeaves.Straight -> { ImageID=Resources.Drawable.leaf_straight; Label="" }
                  | ConfigSettings.FloralSwirlsLeaves.Teardrop -> { ImageID=Resources.Drawable.leaf_teardrop; Label="" }
-                 | x -> failwithf "vine leaf type %A not supported" x),
+                 | x -> failwithf "leaf type %A not supported" x),
                 numColumns=4) 
+        )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.FloralSwirlsPrimary, 
+            Views.RandomizedItemChooser<ConfigSettings.FloralSwirlsPrimary>.GetFactoryForMapping(
+                (function 
+                 | ConfigSettings.FloralSwirlsPrimary.WavySingle -> { ImageID=Resources.Drawable.fsprimary_wavysingle; Label="" }
+                 | ConfigSettings.FloralSwirlsPrimary.WavyDouble -> { ImageID=Resources.Drawable.fsprimary_wavydouble; Label="" }
+                 | ConfigSettings.FloralSwirlsPrimary.MagneticSingle -> { ImageID=Resources.Drawable.fsprimary_magnetic_single; Label="" }
+                 | ConfigSettings.FloralSwirlsPrimary.MagneticBunch -> { ImageID=Resources.Drawable.fsprimary_magnetic_bunch; Label="" }
+                 | ConfigSettings.FloralSwirlsPrimary.SShapedSingle -> { ImageID=Resources.Drawable.fsprimary_s_single; Label="" }
+                 | ConfigSettings.FloralSwirlsPrimary.SShapedSpacefill -> { ImageID=Resources.Drawable.fsprimary_s_spacefill; Label="" }
+                 | x -> failwithf "floral swirls primary %A not supported" x),
+                 numColumns=2) 
         )
     )

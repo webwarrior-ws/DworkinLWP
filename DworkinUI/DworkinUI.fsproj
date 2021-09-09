@@ -95,6 +95,12 @@
     <AndroidResource Include="Resources\drawable\leaf_straight.xml" />
     <AndroidResource Include="Resources\drawable\leaf_teardrop.xml" />
     <AndroidResource Include="Resources\drawable\leaf_withstem.xml" />
+    <AndroidResource Include="Resources\drawable\fsprimary_magnetic_bunch.xml" />
+    <AndroidResource Include="Resources\drawable\fsprimary_magnetic_single.xml" />
+    <AndroidResource Include="Resources\drawable\fsprimary_s_single.xml" />
+    <AndroidResource Include="Resources\drawable\fsprimary_s_spacefill.xml" />
+    <AndroidResource Include="Resources\drawable\fsprimary_wavydouble.xml" />
+    <AndroidResource Include="Resources\drawable\fsprimary_wavysingle.xml" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\values\attrs.xml" />
