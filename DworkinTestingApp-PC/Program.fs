@@ -31,6 +31,7 @@ let settingsHolder =
        Seed=42;
    }
 CurrentSettings.set(!settingsHolder)
+CurrentSettings.randomizationInterval <- RandomizationInterval.Never
 let platform = DotNETPlatform()
 let renderer = DworkinRenderer(platform)
 
