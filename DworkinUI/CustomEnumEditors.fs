@@ -55,7 +55,7 @@ module CustomEnumEditors =
             EnumRepresentation.PCBTraceAngles, 
             Views.RandomizedSpinner<ConfigSettings.PCBAngles>.GetFactoryForLabelingFunction(
                 fun item ->
-                    let anglesString = ConfigSettings.PCBAngles.GetAngles item |> Array.map (int >> sprintf "%d°")
+                    let anglesString = ConfigSettings.PCBAngles.GetAngles item |> Array.map (int >> abs >> sprintf "%d°")
                     System.String.Join(", ", anglesString))
         )
 
