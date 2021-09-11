@@ -698,6 +698,12 @@ type Vines() =
         (fun x -> x.Speed), (fun value x -> let y = x.Clone() in y.Speed <- value; y)
     
     override this.Evaluate(env) =
+        let offset = this.Scale
+        let margins = 
+            let getMargin b = if b then offset * 2.0f else 0.0f
+            Margins(getMargin this.Sides.Left, getMargin this.Sides.Right, getMargin this.Sides.Top, getMargin this.Sides.Bottom)
+        env.Margins <- margins
+            
         let width = env.Bounds.Width
         let height = env.Bounds.Height
 
@@ -752,22 +758,22 @@ type Vines() =
         
         let spawns = [|
             for x in xs do
-                if this.Sides.Top then yield spawnAgent (Point(x, 0.5f - (height / 2.0f))) (180 + xAngle)
-                if this.Sides.Bottom then yield spawnAgent (Point(x, (height / 2.0f) - 0.5f)) (0 + xAngle) 
+                if this.Sides.Top then yield spawnAgent (Point(x, 0.5f - offset - (height / 2.0f))) (180 + xAngle)
+                if this.Sides.Bottom then yield spawnAgent (Point(x, (height / 2.0f) - 0.5f + offset)) (0 + xAngle) 
             for y in ys do
-                if this.Sides.Left then yield spawnAgent (Point(0.5f - (width / 2.0f), y)) (-90 + yAngle)
-                if this.Sides.Right then yield spawnAgent (Point((width / 2.0f) - 0.5f, y)) (90 + yAngle) 
+                if this.Sides.Left then yield spawnAgent (Point(0.5f - offset - (width / 2.0f), y)) (-90 + yAngle)
+                if this.Sides.Right then yield spawnAgent (Point((width / 2.0f) - 0.5f + offset, y)) (90 + yAngle) 
             if this.Corners then 
                 if this.Angle > 0 then 
                     if this.Sides.Left || this.Sides.Bottom then 
-                        yield spawnAgent (Point(0.5f - (width / 2.0f), (height / 2.0f) - 0.5f)) (0 + xAngle)
+                        yield spawnAgent (Point(0.5f - offset - (width / 2.0f), (height / 2.0f) - 0.5f + offset)) (0 + xAngle)
                     if this.Sides.Right || this.Sides.Top then 
-                        yield spawnAgent (Point((width / 2.0f) - 0.5f, 0.5f - (height / 2.0f))) (90 + yAngle)
+                        yield spawnAgent (Point((width / 2.0f) - 0.5f + offset, 0.5f - offset - (height / 2.0f))) (90 + yAngle)
                 else 
                     if this.Sides.Left || this.Sides.Top then 
-                        yield spawnAgent (Point(0.5f - (width / 2.0f), 0.5f - (height / 2.0f))) (180 + xAngle)
+                        yield spawnAgent (Point(0.5f - offset - (width / 2.0f), 0.5f - offset - (height / 2.0f))) (180 + xAngle)
                     if this.Sides.Right || this.Sides.Bottom then 
-                        yield spawnAgent (Point((width / 2.0f) - 0.5f, (height / 2.0f) - 0.5f)) (90 + yAngle)
+                        yield spawnAgent (Point((width / 2.0f) - 0.5f + offset, (height / 2.0f) - 0.5f + offset)) (90 + yAngle)
             |]
 
         let delays = Array.init spawns.Length (fun i -> (this.Delay / (i+1)) - (this.Delay / spawns.Length))

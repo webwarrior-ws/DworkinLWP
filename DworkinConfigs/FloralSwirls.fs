@@ -1242,10 +1242,13 @@ type MagneticSpiralsBunchFromEdge() =
         Util.buildWalls env
 
         let pos = 
+            let offset = this.Thickness * 2.0f
             if env.Bounds.Width > env.Bounds.Height then 
-                env.Bounds.LeftCenter + Point(1.0f, 0.0f)
+                env.Margins <- Margins(offset, 0.0f, 0.0f, 0.0f)
+                env.Bounds.LeftCenter + Point(1.0f - offset, 0.0f)
             else 
-                env.Bounds.BottomCenter - Point(0.0f, 1.0f)
+                env.Margins <- Margins(0.0f, 0.0f, 0.0f, offset)
+                env.Bounds.BottomCenter - Point(0.0f, 1.0f - offset)
         let angleShift = if env.Bounds.Width > env.Bounds.Height then -90 else 0
         let scale = (max env.Bounds.Extent.X env.Bounds.Extent.Y) / 640.0f
         

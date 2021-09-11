@@ -81,7 +81,7 @@ and DworkinProbeAgent(config, randomSeed, speedFactor : float32, stepsBetweenCol
     member this.StepsBetweenCollisionCheck = stepsBetweenCollisionCheck
     
     member this.HasToTerminate =
-        if not <| this.LiesWithinBounds(this.DworkinEnvironment.Bounds) then
+        if not <| this.LiesWithinBounds(this.DworkinEnvironment.ExtendedBounds) then
             true
         else
             (match this.Config.TerminationConditions.Distance with 

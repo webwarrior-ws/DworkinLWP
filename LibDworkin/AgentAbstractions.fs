@@ -186,10 +186,15 @@ type Environment(bounds : Rectangle) =
     let agentsToRemove = Collections.Generic.HashSet<Agent>()
     let agentsToAdd = ResizeArray<Agent>()
 
+    let mutable extendedBounds = bounds
+
     member this.Age = age
     member this.Bounds = bounds
+    member this.ExtendedBounds = extendedBounds
 
     member val SpeedFactor = 1.0f with get, set
+    member this.Margins with set(margins : Margins) =
+        extendedBounds <- bounds.Expand(margins)
 
     abstract member Random : System.Random
 
@@ -204,7 +209,7 @@ type Environment(bounds : Rectangle) =
             agent.Step()
         age <- age + 1
 
-        agents.RemoveAll(fun agent -> (agent.LiesWithinBounds(bounds) |> not) || agentsToRemove.Contains(agent)) 
+        agents.RemoveAll(fun agent -> (agent.LiesWithinBounds(this.ExtendedBounds) |> not) || agentsToRemove.Contains(agent)) 
             |> ignore
         agentsToRemove.Clear()
 

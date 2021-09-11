@@ -7,6 +7,13 @@ type Point = OpenTK.Vector2
 type Rectangle = OpenTK.Box2
 
 
+type Margins(left : float32, right : float32, top : float32, bottom: float32) =
+    member this.Left = left
+    member this.Right = right
+    member this.Top = top
+    member this.Bottom = bottom
+
+
 /// Constants for single-precision float (float32)
 module Single = 
     let Pi = float32 System.Math.PI
@@ -150,6 +157,9 @@ type OpenTK.Box2 with
     member this.InsetBy(delta : float32) =
         Rectangle.FromTLRB(this.Top + delta, this.Left + delta, this.Right - delta, this.Bottom - delta)
     
+    member this.Expand(margin : Margins) =
+        Rectangle.FromTLRB(this.Top - margin.Top, this.Left - margin.Left, this.Right + margin.Right, this.Bottom + margin.Bottom)
+
     static member Encompassing(points: #IList<Point>) =
         let mutable result = Rectangle(points.[0], points.[0])
         for i=1 to points.Count-1 do
