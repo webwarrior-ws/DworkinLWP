@@ -101,6 +101,10 @@
     <AndroidResource Include="Resources\drawable\fsprimary_s_spacefill.xml" />
     <AndroidResource Include="Resources\drawable\fsprimary_wavydouble.xml" />
     <AndroidResource Include="Resources\drawable\fsprimary_wavysingle.xml" />
+    <AndroidResource Include="Resources\drawable\fssecondary_magneticspirals.xml" />
+    <AndroidResource Include="Resources\drawable\fssecondary_plantlike.xml" />
+    <AndroidResource Include="Resources\drawable\fssecondary_recursivespirals.xml" />
+    <AndroidResource Include="Resources\drawable\fssecondary_shiftedswirls.xml" />
     <None Include="Resources\AboutResources.txt" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\values\attrs.xml" />

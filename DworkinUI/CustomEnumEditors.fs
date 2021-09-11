@@ -154,4 +154,16 @@ module CustomEnumEditors =
                  | x -> failwithf "floral swirls primary %A not supported" x),
                  numColumns=2) 
         )
+
+        AndroidSettingsUIBuilder.RegisterEnumEditorFactory(
+            EnumRepresentation.FloralSwirlsSecondary, 
+            Views.RandomizedItemChooser<ConfigSettings.FloralSwirlsSecondary>.GetFactoryForMapping(
+                (function 
+                 | ConfigSettings.FloralSwirlsSecondary.ShiftedSwirls -> { ImageID=Resources.Drawable.fssecondary_shiftedswirls; Label="" }
+                 | ConfigSettings.FloralSwirlsSecondary.MagneticSpiralsDense -> { ImageID=Resources.Drawable.fssecondary_magneticspirals; Label="" }
+                 | ConfigSettings.FloralSwirlsSecondary.PlantLike -> { ImageID=Resources.Drawable.fssecondary_plantlike; Label="" }
+                 | ConfigSettings.FloralSwirlsSecondary.RecursiveSpirals -> { ImageID=Resources.Drawable.fssecondary_recursivespirals; Label="" }
+                 | x -> failwithf "floral swirls secondary %A not supported" x),
+                 numColumns=2) 
+        )
     )
