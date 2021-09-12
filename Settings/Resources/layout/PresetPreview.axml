@@ -13,19 +13,19 @@
         android:id="@+id/nameDisplay"
         android:text="Preset Name"
         android:layout_width="wrap_content"
-        android:layout_height="32dp"
+        android:layout_height="28sp"
         android:layout_gravity="center_horizontal|bottom"
         android:textColor="@android:color/white"
         android:shadowColor="#000000"
-        android:shadowRadius="2.0"
+        android:shadowRadius="3.0"
         android:textSize="18sp"
         android:textAlignment="center">
     </TextView>
     <TextView
         android:id="@+id/statusDisplay"
         android:text="Loading preview..."
-        android:layout_width="wrap_content"
-        android:layout_height="32dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:textColor="@android:color/white"
         android:textAllCaps="true"
