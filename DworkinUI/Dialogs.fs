@@ -68,6 +68,7 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
         
         let preview = new PresetPreview(this.Context, currentPreset, ImageSize=previewSize)
         preview.Initialize()
+        preview.NameVisible <- false
         dialogView.FindViewById<ViewGroup>(Resources.Id.preview_display).AddView(preview)
         
         let dialog = 

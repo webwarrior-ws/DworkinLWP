@@ -107,6 +107,12 @@ type PresetPreview(context : Context, preset : Preset) =
     member this.State = state
     
     member internal this.StatusDisplay = this.FindViewById<TextView>(Resources.Id.statusDisplay)
+    member private this.NameDisplay = this.FindViewById<TextView>(Resources.Id.nameDisplay)
+
+    member this.NameVisible
+        with get() : bool = this.NameDisplay.Visibility = ViewStates.Visible
+        and set(isVisible : bool) = 
+            this.NameDisplay.Visibility <- if isVisible then ViewStates.Visible else ViewStates.Invisible
 
     override this.Dispose(disposing) =
         cancellationSource.Dispose()
@@ -122,7 +128,7 @@ type PresetPreview(context : Context, preset : Preset) =
         this.UpdateName()
     
     member this.UpdateName() =
-        this.FindViewById<TextView>(Resources.Id.nameDisplay).Text <- preset.Name
+        this.NameDisplay.Text <- preset.Name
 
     // previews cache management
     member this.CacheFilePath =
