@@ -18,6 +18,7 @@ let buildWalls (env : DworkinEnvironment) =
 type JointType =
     | Bevel
     | Miter
+    | BevelForLargeAngles
 
 let drawJoint (parent: DworkinAgent, newDirection: Point, jointType: JointType, numSteps: int, delay: int) =
     let p = parent.Position
@@ -30,6 +31,14 @@ let drawJoint (parent: DworkinAgent, newDirection: Point, jointType: JointType, 
         match jointType with
         | Bevel -> 
             parent.DworkinEnvironment.AddAgent(GradualTriangleDrawingAgent(p, a, b, numSteps, delay))
+        | BevelForLargeAngles ->
+            let t1NumSteps = numSteps / 2
+            let t2NumSteps = numSteps - t1NumSteps
+            let a2 = p - parentPerp
+            let cosAplha = Point.Dot(parent.Direction, newDirection)
+            let c = p + parent.Direction * sqrt(1.0f - (cosAplha*cosAplha)) * parent.Thickness * 0.5f
+            parent.DworkinEnvironment.AddAgent(GradualTriangleDrawingAgent(a2, a, c, t1NumSteps, delay))
+            parent.DworkinEnvironment.AddAgent(GradualTriangleDrawingAgent(a2, c, b, t2NumSteps, t1NumSteps+delay))
         | Miter ->
             let c =
                 // find intersection between lines on which point c lies

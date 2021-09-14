@@ -64,7 +64,7 @@ module SpawnConfig =
                     let spawnOptions = AgentSpawnOptions(AngleDeg=float32 phi)
                     let numSteps = int(agent.Thickness / agent.Speed) |> max 2
                     if phi <> 0 then
-                        let jointType = if this.Angle <= 90 then Util.JointType.Miter else Util.JointType.Bevel
+                        let jointType = if this.Angle <= 90 then Util.JointType.Miter else Util.JointType.BevelForLargeAngles
                         Util.drawJoint(agent, agent.Direction.Rotate(deg2rad(float32 phi) * agent.FlipFactor), jointType, numSteps, delay)
                     spawnOptions.DelayBy(if phi <> 0 then delay + numSteps else delay)
                     probeData.SpawnColliders()
