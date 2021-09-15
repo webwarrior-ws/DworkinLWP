@@ -9,6 +9,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:scaleY="-1" />
+    <ImageView
+        android:id="@+id/random_indicator"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:padding="2dp"
+        android:layout_gravity="top|right"
+        android:src="@drawable/dice_preview"
+        android:visibility="invisible" />
     <TextView
         android:id="@+id/nameDisplay"
         android:text="Preset Name"

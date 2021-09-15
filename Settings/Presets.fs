@@ -23,6 +23,8 @@ type Preset() =
     /// Name used to define sub-directories for storage of presets and preview cache. 
     /// Has to be unique for each type of preset.
     abstract DirName : string
+    
+    abstract HasRandomizedValues : bool
 
 
 /// Functions and classes used to manage presets (save/load/etc.)
@@ -126,6 +128,8 @@ type PresetPreview(context : Context, preset : Preset) =
         FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
         this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
         this.UpdateName()
+        if preset.HasRandomizedValues then 
+            this.FindViewById<ImageView>(Resources.Id.random_indicator).Visibility <- ViewStates.Visible
     
     member this.UpdateName() =
         this.NameDisplay.Text <- preset.Name

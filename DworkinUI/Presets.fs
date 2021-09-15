@@ -57,6 +57,10 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
     static member DirectoryName = "appearance"
     override this.DirName = AppearancePreset.DirectoryName
 
+    override this.HasRandomizedValues =
+        effect.HasRandomizedValues || fgMaterial.HasRandomizedValues || bgMaterial.HasRandomizedValues
+         || fgColor.IsRandomized || bgColor.IsRandomized
+
     override this.GeneratePreview(context, w, h) =
         let platform = LibDworkin.RendererComponents.AndroidPlatform(context)
         let renderer = PreviewRenderers.AppearancePresetRenderer.RequestInstance(platform, w, h)
@@ -94,6 +98,11 @@ type OverallPreset(settings : SettingsHolder) =
 
     static member DirectoryName = "overall"
     override this.DirName = OverallPreset.DirectoryName
+
+    override this.HasRandomizedValues =
+        settings.Background.HasRandomizedValues || settings.Foreground.HasRandomizedValues 
+         || settings.Effect.HasRandomizedValues || settings.Environment.HasRandomizedValues
+         || settings.BackgroundColor.IsRandomized || settings.ForegroundColor.IsRandomized
 
     member this.Settings = settings
 
