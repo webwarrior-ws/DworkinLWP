@@ -85,6 +85,25 @@
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content" />
 			</LinearLayout>
+
+			<LinearLayout
+				android:id="@+id/purchases_link"
+				android:orientation="vertical"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:paddingHorizontal="@dimen/editor_padding_h"
+				android:paddingVertical="@dimen/editor_padding_v">
+				<TextView 
+					android:text="Premium content"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingBottom="@dimen/editor_title_padding_bottom"
+					android:textAppearance="@style/SettingsGroupTitle" />
+				<TextView
+					android:text="Buy paid content"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content" />
+			</LinearLayout>
 			
 			<LinearLayout
 				android:orientation="vertical"

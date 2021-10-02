@@ -4,6 +4,9 @@ open RendererComponents
 open Geometry
 
 open Settings
+#if __ANDROID__
+open Settings.InAppPurchases
+#endif
 
 
 type OpenTK.Graphics.Color4 with
@@ -43,6 +46,9 @@ module Materials =
         | Smooth = 1
         | Watercolor = 2
 
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type Paper() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Paper>()
@@ -64,16 +70,22 @@ module Materials =
                                   Some("paper/Watercolor_Paper_001_NORM.jpg"),
                                   (None, 0.92f),
                                   1.5f, 1.5f) :> Material
-    
-    
+
+   
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif    
     type Fabric() = 
         inherit MaterialSettings()
         static do Settings.RegisterClass<Fabric>()
 
         override this.Build(platform, random, color) =
             UniversalMaterial(platform, color, None, Some("fabric/Fabric_01_normal.png"), (None, 0.92f), 2.0f, 1.5f) :> Material
-    
+ 
 
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type Leather() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Leather>()
@@ -90,6 +102,9 @@ module Materials =
         | Rough = 1
         | Combed = 2
 
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type Stucco() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Stucco>()
@@ -117,6 +132,9 @@ module Materials =
         | Brushed = 1
         | Bumpy = 2
 
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type Metal() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Metal>()
@@ -143,7 +161,10 @@ module Materials =
                 UniversalMaterial(platform, color, None, Some("metal/Metal_normal_bumpy.png"), (None, 0.6f), h, 2.0f, m) 
                     :> Material
     
-    
+
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif    
     type Wood() =
         inherit MaterialSettings()
         static do Settings.RegisterClass<Wood>()
@@ -192,6 +213,9 @@ module Effects =
         static do Settings.RegisterClass<Plain>()
         override this.Build(platform, random) = PlainEffect(platform) :> Effect
 
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type Outline() =
         inherit EffectSettings()
         static do Settings.RegisterClass<Outline>()
@@ -201,7 +225,10 @@ module Effects =
 
         override this.Build(platform, random) = 
             OutlineEffect(platform, Randomizeable.getValue random <@ this.OutlineWidth @>) :> Effect
-    
+ 
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif 
     type Shadow() =
         inherit EffectSettings()
         static do Settings.RegisterClass<Shadow>()
@@ -244,7 +271,10 @@ module Effects =
                 getValue <@ this.Strength @>,
                 getValue <@ this.Inner @>) 
             :> Effect
-    
+ 
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif 
     type Bevel() =
         inherit EffectSettings()
         static do Settings.RegisterClass<Bevel>()
@@ -275,6 +305,9 @@ module Effects =
                 getValue <@ this.Mode @>)
             :> Effect
     
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type Glow() =
         inherit EffectSettings()
         static do Settings.RegisterClass<Glow>()
@@ -299,6 +332,9 @@ module Effects =
                 getValue <@ this.Inside @>)
             :> Effect
     
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type Highlight() =
         inherit EffectSettings()
         static do Settings.RegisterClass<Highlight>()
@@ -318,6 +354,9 @@ module Effects =
         | Chalk = 1
 
     [<Name("Ink/chalk")>]
+#if __ANDROID__
+    [<InAppPurchase(IAPItem.EffectsAndMaterials)>]
+#endif
     type FuzzyTexture() = 
         inherit EffectSettings()
         static do Settings.RegisterClass<FuzzyTexture>()

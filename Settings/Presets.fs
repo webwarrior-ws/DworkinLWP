@@ -26,6 +26,15 @@ type Preset() =
     
     abstract HasRandomizedValues : bool
 
+    abstract UsedClasses : System.Type[]
+
+    member this.InAppPurchases : Set<string> =
+        this.UsedClasses
+        |> Array.choose InAppPurchases.getSKUForClass
+        |> Array.filter (fun sku -> not <| InAppPurchases.isPurchased sku)
+        |> Set.ofArray
+        
+
 
 /// Functions and classes used to manage presets (save/load/etc.)
 module PresetManagement =
@@ -130,6 +139,8 @@ type PresetPreview(context : Context, preset : Preset) =
         this.UpdateName()
         if preset.HasRandomizedValues then 
             this.FindViewById<ImageView>(Resources.Id.random_indicator).Visibility <- ViewStates.Visible
+        if not preset.InAppPurchases.IsEmpty then
+            this.FindViewById<View>(Resources.Id.premium_indicator).Visibility <- ViewStates.Visible
     
     member this.UpdateName() =
         this.NameDisplay.Text <- preset.Name
@@ -263,6 +274,13 @@ type PresetSelectionFragment() =
     member this.Update() =
         adapter.NotifyDataSetChanged()
 
+    member private this.OnPresetClicked(eventArgs, preview : PresetPreview) =
+        let skus = preview.Preset.InAppPurchases
+        if not skus.IsEmpty then
+            () //TODO: open dialog with buy option
+        else
+            presetSelectedEvent.Trigger(preview.Preset)
+
     override this.OnCreateView(inflater, container, bundle) = 
          // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
         let view = inflater.Inflate(Resources.Layout.PresetSelectionFragment, container, false)
@@ -271,7 +289,7 @@ type PresetSelectionFragment() =
             gridView.SetColumnWidth(fst this.Previews.[0].ImageSize)
         for each in this.Previews do
             each.Initialize()
-            each.Click.Add(fun _ -> presetSelectedEvent.Trigger(each.Preset))
+            each.Click.Add(fun args -> this.OnPresetClicked(args, each))
         gridView.Adapter <- adapter
         this.Activity.RegisterForContextMenu(gridView)
         view         

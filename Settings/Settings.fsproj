@@ -63,6 +63,7 @@
     <AndroidResource Include="Resources\drawable\divider_thick.xml" />
     <AndroidResource Include="Resources\drawable\dice.xml" />
     <AndroidResource Include="Resources\drawable\dice_preview.xml" />
+    <AndroidResource Include="Resources\drawable\dollar_sign.xml" />
     <AndroidResource Include="Resources\layout\RandomizedSpinner.axml" />
     <AndroidResource Include="Resources\layout\RandomizedSeekbar.axml" />
     <AndroidResource Include="Resources\layout\RandomizedColorPicker.axml">
@@ -95,6 +96,7 @@
     <Compile Include="ToggleImageButton.fs" />
     <Compile Include="Views.fs" />
     <Compile Include="Settings.fs" />
+    <Compile Include="InAppPurchases.fs" />
     <Compile Include="SettingsClassChooser.fs" />
     <Compile Include="Presets.fs" />
     <Content Include="packages.config" />

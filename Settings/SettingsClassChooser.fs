@@ -99,6 +99,41 @@ module SettingsExtensions =
                 this.SettingProperties
 
 
+type SettingsClassChooserAdapter(context : Context, classes: System.Type[]) = 
+    inherit ArrayAdapter<System.Type>(context, Android.Resource.Layout.SimpleSpinnerDropDownItem, classes)
+
+    member private this.GetClassName(cls : System.Type) =
+        let name = 
+            cls.GetCustomAttributes(false)
+            |> Array.tryPick (fun attr -> match attr with | :? NameAttribute as na -> Some(na.Name) | _ -> None)
+        match name with
+        | Some(x) -> x
+        | None -> cls.Name
+
+    member private this.CustomizeView(view: View, position: int) =
+        let view = view :?> TextView
+        let cls = classes.[position]
+        let name = this.GetClassName(cls)
+        match InAppPurchases.getSKUForClass(cls) with
+        | Some(sku) when not (InAppPurchases.isPurchased sku) ->
+            view.Text <- sprintf "%s [paid content]" name
+            view.Enabled <- false
+        | _ -> 
+            view.Text <- name
+        view :> View
+
+    override this.GetView(position, convertView, parent) = 
+        this.CustomizeView(base.GetView(position, convertView, parent), position)
+
+    override this.GetDropDownView(position, convertView, parent) = 
+        this.CustomizeView(base.GetDropDownView(position, convertView, parent), position)
+
+    override this.IsEnabled(position) : bool =
+        let cls = classes.[position]
+        match InAppPurchases.getSKUForClass(cls) with
+        | Some(sku) -> InAppPurchases.isPurchased sku
+        | None -> true
+
 
 [<AllowNullLiteral>]
 type SettingsClassChooser<'T when 'T :> Settings>(context : Context, attrs : IAttributeSet, defStyle : int) =
@@ -157,24 +192,18 @@ type SettingsClassChooser<'T when 'T :> Settings>(context : Context, attrs : IAt
     member val Changed = changedEvent.Publish
 
     member this.SetClasses(newClasses : System.Type[]) = 
+#if DEBUG
         if not (newClasses |> Array.forall (fun cls -> cls.IsSubclassOf(typeof<'T>))) then
             failwithf "all classes must be subclass of %A" (typeof<'T>)
-        let labels = 
-            newClasses 
-            |> Array.map (fun cls -> 
-                let name = 
-                    cls.GetCustomAttributes(false)
-                    |> Array.tryPick (fun attr -> match attr with | :? NameAttribute as na -> Some(na.Name) | _ -> None)
-                match name with
-                | Some(x) -> x
-                | None -> cls.Name )
-        this.Spinner.Adapter <- new ArrayAdapter(context, Android.Resource.Layout.SimpleSpinnerDropDownItem, labels)
+#endif
+        this.Spinner.Adapter <- new SettingsClassChooserAdapter(context, newClasses)
         classes <- newClasses
 
     member this.Initialize() =
         let view = LinearLayout.Inflate(context, Resources.Layout.SettingsClassChooser, this)
         view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
         (view :?> LinearLayout).Orientation <- Orientation.Vertical
+        //this.Spinner.ItemClick
         this.Spinner.ItemSelected.Add(fun args ->
             let newClass = classes.[this.Spinner.SelectedItemPosition]
             if newClass <> itemView.Value.SettingsClass then

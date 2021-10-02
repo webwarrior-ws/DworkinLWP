@@ -24,6 +24,8 @@ type TestPreset(settingsObject : AllKindsOfSettings) =
         bmp
 
     override this.DirName = "test"
+
+    override this.HasRandomizedValues = settingsObject.HasRandomizedValues
  
 
 [<Activity>] 

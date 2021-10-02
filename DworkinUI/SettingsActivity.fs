@@ -126,7 +126,8 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
             let menuInfo = menuInfo :?> AdapterView.AdapterContextMenuInfo
             let preview = gridView.GetChildAt(menuInfo.Position) :?> PresetPreview
             menu.SetHeaderTitle(preview.Preset.Name) |> ignore
-            menu.Add(menuInfo.Position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
+            if preview.Preset.InAppPurchases.IsEmpty then
+                menu.Add(menuInfo.Position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
             if not preview.Preset.IsBuiltin then
                 menu.Add(menuInfo.Position, int PresetContextMenuChoice.Rename, 1, "Rename") |> ignore
                 menu.Add(menuInfo.Position, int PresetContextMenuChoice.Delete, 2, "Delete") |> ignore
@@ -301,7 +302,23 @@ type SettingsActivity() =
         this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
             this.StartActivity(typeof<AppearanceSettingsActivity>) )
 
+        this.FindViewById<View>(Resources.Id.purchases_link).Click.Add(fun _ ->
+            let skus = Settings.InAppPurchases.getAvailablePurchases()
+            let dialog = InAppPurchases.getPurchasesDialog(this.ApplicationContext, skus)
+            dialog.Show() )
+
         this.UpdatePresetName()
         // open presets manager
         this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
             this.StartActivity(typeof<OverallPresetSelectionActivity>))
+
+    override this.OnResume() =
+        base.OnResume()
+        Settings.InAppPurchases.refreshPurchasesInfo(this.ApplicationContext)
+        let availablePurchases = Settings.InAppPurchases.getAvailablePurchases()
+        let purchasesLink = this.FindViewById<View>(Resources.Id.purchases_link)
+        if Array.isEmpty availablePurchases then
+            purchasesLink.Visibility <- ViewStates.Gone
+        else
+            purchasesLink.Visibility <- ViewStates.Visible
+

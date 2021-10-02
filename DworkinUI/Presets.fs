@@ -84,6 +84,9 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
         this.Background = settings.Background &&
         this.Foreground = settings.Foreground
 
+    override this.UsedClasses =
+        [| effect.GetType(); fgMaterial.GetType(); bgMaterial.GetType() |]
+
 
 type OverallPreset(settings : SettingsHolder) =
     inherit Preset()
@@ -131,6 +134,9 @@ type OverallPreset(settings : SettingsHolder) =
         let platform = LibDworkin.RendererComponents.AndroidPlatform(context)
         let renderer = PreviewRenderers.OverallPresetRenderer.RequestInstance(platform, w, h)
         renderer.RenderPreview(settings)
+
+    override this.UsedClasses =
+        [| settings.Effect.GetType(); settings.Foreground.GetType(); settings.Background.GetType(); settings.Environment.GetType() |]
 
 
 /// This module contains references to built-in presets.

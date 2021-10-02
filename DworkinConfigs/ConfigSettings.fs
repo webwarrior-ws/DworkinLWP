@@ -5,6 +5,9 @@ open LibDworkin.Aether.Operators
 open LibDworkin.Lenses
 
 open Settings
+#if __ANDROID__
+open Settings.InAppPurchases
+#endif
 
 type EnvironmentConfig = LibDworkin.Configs.DworkinEnvironmentConfig
 
@@ -33,6 +36,10 @@ type PCBChipShape =
     | Octagonal = 2
 
 
+#if __ANDROID__
+[<InAppPurchase(IAPItem.PatternPCB)>]
+#endif
+[<Name("Circuits (chips)")>]
 type PCB_RandomPosChips() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<PCB_RandomPosChips>()
@@ -84,7 +91,10 @@ type PCBTracesKind =
     | Grid = 2
     | GridWithBranches = 3
 
-
+#if __ANDROID__
+[<InAppPurchase(IAPItem.PatternPCB)>]
+#endif
+[<Name("Circuits (traces)")>]
 type PCB_Traces() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<PCB_Traces>()
@@ -214,6 +224,7 @@ type Maze() =
         config :> EnvironmentConfig
 
 
+[<Name("Flowing leaves")>]
 type FlowingLeaves() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<FlowingLeaves>()
@@ -283,6 +294,9 @@ type VineLeafType =
     | Straight1 = 9
     | Curved1 = 10
 
+#if __ANDROID__
+[<InAppPurchase(IAPItem.PatternVine)>]
+#endif
 type Vine() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<Vine>()
@@ -426,6 +440,10 @@ let (|FloralSwirlsWavy|FloralSwirlsSShaped|FloralSwirlsMagnetic|) floralSwirlsTy
 let inline thickness_< ^U , ^V when ^U : (static member Thickness_ : Lens< ^U, ^V>)> : Lens< ^U, ^V> = 
     makeGenericLens (fun (_ : ^U) -> (^U : (static member Thickness_ : Lens< ^U, ^V>) ())) 
 
+#if __ANDROID__
+[<InAppPurchase(IAPItem.PatternFloralSwirls)>]
+#endif
+[<Name("Floral swirls")>]
 type FloralSwirls() =
     inherit LibDworkin.DworkinSettings.EnvironmentSettings()
     static do Settings.RegisterClass<FloralSwirls>()
@@ -542,10 +560,10 @@ type FloralSwirls() =
 
 let allEnvironmentSettingsTypes = 
     [| 
-        typeof<PCB_RandomPosChips>; 
-        typeof<PCB_Traces>;
         typeof<Maze>; 
         typeof<FlowingLeaves>; 
+        typeof<PCB_RandomPosChips>; 
+        typeof<PCB_Traces>;
         typeof<Vine>;
         typeof<FloralSwirls>;
     |]
