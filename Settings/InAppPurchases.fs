@@ -21,11 +21,7 @@ module IAPItem =
     let all = [| EffectsAndMaterials; PatternPCB; PatternVine; PatternFloralSwirls; |]
 
 
-type IAPItemInfo =
-    {
-        Descrption : string
-        Price : string
-    }
+type IAPItemInfo = class end //TODO: replace by InAppBillingProduct
 
 
 let mutable private purchasedItems = Set.empty<string>
