@@ -4,7 +4,7 @@
 open Android.Widget
 open Android.Views
 open Android.Content
-open Android.Support.V7.App
+open AndroidX.AppCompat.App
 
 open Settings
 open LibDworkin.DworkinSettings
@@ -13,7 +13,7 @@ open LibDworkin.DworkinSettings
 
 
 type OverallSettingsFragment() =
-    inherit Android.Support.V4.App.Fragment()
+    inherit AndroidX.Fragment.App.Fragment()
     
     let mutable seedDisplay : EditText = null
     let mutable speedFactorSlider : SeekBar = null
@@ -98,7 +98,7 @@ type OverallSettingsFragment() =
 
 
 type PatternSettingsFragment() =
-    inherit Android.Support.V4.App.Fragment()
+    inherit AndroidX.Fragment.App.Fragment()
     
     member private this.GetEnvironmentEditor() =
         let editor = SettingsClassChooser<EnvironmentSettings>.Create(this.Context, ConfigSettings.allEnvironmentSettingsTypes)
@@ -117,7 +117,7 @@ type PatternSettingsFragment() =
 
 
 type AppearanceSettingsFragment() =
-    inherit Android.Support.V4.App.Fragment()
+    inherit AndroidX.Fragment.App.Fragment()
 
     let updateEditorsEvent = Event<unit>()
     let updateEditors = updateEditorsEvent.Publish

@@ -14,7 +14,7 @@ open Settings.Views
 
 
 type SettingsFragment() =
-    inherit Android.Support.V4.App.Fragment()
+    inherit AndroidX.Fragment.App.Fragment()
 
     override this.OnCreateView(inflater, container, bundle) = 
         let view = inflater.Inflate(Resources.Layout.SettingsFragment, container)
@@ -23,7 +23,7 @@ type SettingsFragment() =
 
 [<Activity (Label = "UITestingApp", MainLauncher = true, Icon = "@mipmap/icon")>]
 type MainActivity () =
-    inherit Android.Support.V4.App.FragmentActivity()
+    inherit AndroidX.Fragment.App.FragmentActivity()
 
     let mutable settings = AllKindsOfSettings()
 

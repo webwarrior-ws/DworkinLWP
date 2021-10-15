@@ -45,7 +45,7 @@ type PresetNameCollisionWarning(context : Context, attrs : Android.Util.IAttribu
 
 
 type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset, previewSize : (int*int), allPresets : 'TPreset[]) =
-    inherit Android.Support.V4.App.DialogFragment()
+    inherit AndroidX.Fragment.App.DialogFragment()
 
     let presetSavedEvent = Event<Preset>()
     member this.PresetSaved = presetSavedEvent.Publish
@@ -95,7 +95,7 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
         
 
 type RenamePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset, allPresets : 'TPreset[]) =
-    inherit Android.Support.V4.App.DialogFragment()
+    inherit AndroidX.Fragment.App.DialogFragment()
     
     let presetRenamedEvent = Event<string * string>()
     member this.PresetRenamed = presetRenamedEvent.Publish

@@ -258,7 +258,7 @@ type PresetPreviewAdapter(previews : System.Collections.Generic.IList<PresetPrev
 
 [<AllowNullLiteral>]
 type PresetSelectionFragment() =
-    inherit Android.Support.V4.App.Fragment()
+    inherit AndroidX.Fragment.App.Fragment()
     
     let adapter = new PresetPreviewAdapter([||])
 

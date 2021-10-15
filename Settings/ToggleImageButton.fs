@@ -14,7 +14,7 @@ type AndroidColor = Android.Graphics.Color
 
 
 type ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int) =
-    inherit Android.Support.V7.Widget.AppCompatImageButton(context, attrs, defStyle)
+    inherit AndroidX.AppCompat.Widget.AppCompatImageButton(context, attrs, defStyle)
     
     static let CHECKED_STATE_SET = [| Android.Resource.Attribute.StateChecked |]
 

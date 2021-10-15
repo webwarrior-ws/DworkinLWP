@@ -14,9 +14,9 @@ open LibDworkin.DworkinSettings
 
 [<AbstractClass>]
 type ActivityWithBackButton() =
-    inherit Android.Support.V7.App.AppCompatActivity()
+    inherit AndroidX.AppCompat.App.AppCompatActivity()
     
-    member this.Toolbar = this.FindViewById<Android.Support.V7.Widget.Toolbar>(Resources.Id.app_toolbar)
+    member this.Toolbar = this.FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resources.Id.app_toolbar)
 
     member this.SetupToolbar() =
         this.SetSupportActionBar(this.Toolbar)

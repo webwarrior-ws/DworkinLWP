@@ -26,6 +26,7 @@ namespace DworkinLWP
                 Settings.XamarinCrutch.updateLibraryResourceIds(typeof(Resource), typeof(DworkinUI.Resources));
                 Settings.XamarinCrutch.updateLibraryResourceIds(typeof(Resource), typeof(Settings.Resources));
             }
+            Xamarin.Essentials.Platform.Init(this, bundle);
             base.OnCreate(bundle);
         }
 

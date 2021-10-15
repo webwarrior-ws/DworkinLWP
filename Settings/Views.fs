@@ -4,7 +4,7 @@ open Android.Content
 open Android.Util
 open Android.Widget
 open Android.Views
-open Android.Support.V7.App
+open AndroidX.AppCompat.App
 
 open Cheesebaron.ColorPickers
 

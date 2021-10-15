@@ -20,7 +20,7 @@ type Resources = DworkinTestingApp.Resource
            Icon = "@mipmap/icon", 
            MainLauncher = true)>]
 type MainActivity() =
-    inherit Android.Support.V7.App.AppCompatActivity()
+    inherit AndroidX.AppCompat.App.AppCompatActivity()
     
     let mutable view : GLSurfaceView = null
     let initialSettings = 
@@ -56,6 +56,8 @@ type MainActivity() =
             XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<DworkinUI.Resources>
             XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
         
+        Xamarin.Essentials.Platform.Init(this, bundle)
+
         ignore DworkinUI.CustomEnumEditors.RegisterCustomEditors.Value;
 
         // Create our OpenGL view, and display it
@@ -101,7 +103,7 @@ type MainActivity() =
         //this.SetContentView(view)
         this.SetContentView(Resources.Layout.Main)
         this.FindViewById<ViewGroup>(Resources.Id.app_root).AddView(view, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent))
-        let toolbar = this.FindViewById<Android.Support.V7.Widget.Toolbar>(Resources.Id.app_toolbar)
+        let toolbar = this.FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resources.Id.app_toolbar)
         toolbar.Title <- "Dworkin"
         this.SetSupportActionBar(toolbar)
     

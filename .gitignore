@@ -23,3 +23,4 @@ TestResult.xml
 ## Xamarin Android Designer File
 
 Resource.[Dd]esigner.cs
+*.log

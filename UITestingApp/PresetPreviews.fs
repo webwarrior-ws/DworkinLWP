@@ -26,11 +26,13 @@ type TestPreset(settingsObject : AllKindsOfSettings) =
     override this.DirName = "test"
 
     override this.HasRandomizedValues = settingsObject.HasRandomizedValues
+
+    override this.UsedClasses = [||]
  
 
 [<Activity>] 
 type PresetSelectionActivity() =
-    inherit Android.Support.V4.App.FragmentActivity()
+    inherit AndroidX.Fragment.App.FragmentActivity()
 
     member this.OnPresetSelected(preset : Preset) =
         Toast.MakeText(this, sprintf "%s selected" preset.Name, ToastLength.Short).Show()
