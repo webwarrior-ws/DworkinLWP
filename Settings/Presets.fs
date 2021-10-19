@@ -277,7 +277,10 @@ type PresetSelectionFragment() =
     member private this.OnPresetClicked(eventArgs, preview : PresetPreview) =
         let skus = preview.Preset.InAppPurchases
         if not skus.IsEmpty then
-            () //TODO: open dialog with buy option
+            // inform user that he needs to purchase items
+            let dialog = InAppPurchases.getPurchasesDialog(this.Context, skus |> Set.toArray)
+            dialog.SetTitle("In order to use preset, you need to buy following items:")
+            dialog.Show()
         else
             presetSelectedEvent.Trigger(preview.Preset)
 

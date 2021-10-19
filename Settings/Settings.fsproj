@@ -97,6 +97,7 @@
     <Compile Include="ToggleImageButton.fs" />
     <Compile Include="Views.fs" />
     <Compile Include="Settings.fs" />
+    <Compile Include="Atom.fs" />
     <Compile Include="InAppPurchases.fs" />
     <Compile Include="SettingsClassChooser.fs" />
     <Compile Include="Presets.fs" />
