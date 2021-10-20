@@ -278,9 +278,17 @@ type PresetSelectionFragment() =
         let skus = preview.Preset.InAppPurchases
         if not skus.IsEmpty then
             // inform user that he needs to purchase items
-            let dialog = InAppPurchases.getPurchasesDialog(this.Context, skus |> Set.toArray)
-            dialog.SetTitle("In order to use preset, you need to buy following items:")
-            dialog.Show()
+            use builder = new Android.App.AlertDialog.Builder(this.Context)
+            builder
+                .SetTitle("Preset with premium content")
+                .SetView(Resources.Layout.PremiumPresetDialog)
+                .SetNegativeButton("Cancel", (fun _ _ -> ()))
+                .SetPositiveButton(
+                    "Buy", 
+                    (fun _ _ ->
+                        InAppPurchases.getPurchasesDialog(this.Context, skus |> Set.toArray).Show()
+                    )) |> ignore
+            builder.Show() |> ignore
         else
             presetSelectedEvent.Trigger(preview.Preset)
 

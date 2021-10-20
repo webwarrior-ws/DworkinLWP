@@ -305,7 +305,6 @@ type SettingsActivity() =
         this.FindViewById<View>(Resources.Id.purchases_link).Click.Add(fun _ ->
             let skus = Settings.InAppPurchases.getAvailablePurchases()
             let dialog = InAppPurchases.getPurchasesDialog(this, skus)
-            dialog.SetTitle("Buy premium content")
             dialog.Show() )
 
         this.UpdatePresetName()

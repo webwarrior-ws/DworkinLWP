@@ -132,7 +132,7 @@ let refreshPurchasesInfo(context: Context) =
 let getPurchasesDialog(context: Context, skus: string[]) : Dialog =
     let errorDialog(message: string) =
         use builder = new AlertDialog.Builder(context)
-        builder.SetNeutralButton("OK", System.EventHandler<DialogClickEventArgs>(fun _ _ -> ())) |> ignore
+        builder.SetNeutralButton("OK", (fun _ _ -> ())) |> ignore
         builder.SetTitle("Error").SetMessage(message).Create()
 
     try
@@ -167,7 +167,8 @@ let getPurchasesDialog(context: Context, skus: string[]) : Dialog =
             button.Click.Add(fun args -> Async.Start buyItemAsync)
             dialogView.AddView(button)
         builder.SetView(dialogView) |> ignore
-        builder.SetNegativeButton("Cancel", System.EventHandler<DialogClickEventArgs>(fun _ _ -> ())) |> ignore
+        builder.SetTitle("Buy premium content") |> ignore
+        builder.SetNegativeButton("Cancel", (fun _ _ -> ())) |> ignore
         builder.Create() :> Dialog 
     with
     | ex ->

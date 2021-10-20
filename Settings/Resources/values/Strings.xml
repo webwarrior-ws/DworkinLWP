@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="library_name">$projectname$</string>
+  <string name="premium_preset_info">This preset uses premium content.\n"Buy" button will display feature(s) needed to unlock this preset.</string>
 </resources>

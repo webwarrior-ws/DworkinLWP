@@ -100,7 +100,7 @@
 					android:paddingBottom="@dimen/editor_title_padding_bottom"
 					android:textAppearance="@style/SettingsGroupTitle" />
 				<TextView
-					android:text="Buy paid content"
+					android:text="Unlock premium content"
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content" />
 			</LinearLayout>
