@@ -5,6 +5,7 @@
     <RootNamespace>Cheesebaron.ColorPickers</RootNamespace>
     <PackageId>Cheesebaron.ColorPickers</PackageId>
     <Description>Give your Android App a way to select a color!</Description>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>
