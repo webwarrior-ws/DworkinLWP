@@ -286,7 +286,11 @@ type PresetSelectionFragment() =
                 .SetPositiveButton(
                     "Buy", 
                     (fun _ _ ->
-                        InAppPurchases.getPurchasesDialog(this.Context, skus |> Set.toArray).Show()
+                        async {
+                            let! data = InAppPurchases.getPurchasesDataAsync(skus |> Set.toArray)
+                            this.Activity.RunOnUiThread(fun () -> InAppPurchases.getPurchasesDialog(this.Activity, data).Show())
+                        }
+                        |> Async.Start
                     )) |> ignore
             builder.Show() |> ignore
         else

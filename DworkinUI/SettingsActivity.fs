@@ -304,7 +304,12 @@ type SettingsActivity() =
 
         this.FindViewById<View>(Resources.Id.purchases_link).Click.Add(fun _ ->
             let skus = Settings.InAppPurchases.getAvailablePurchases()
-            InAppPurchases.getPurchasesDialog(this, skus).Show() )
+            async {
+                let! data = InAppPurchases.getPurchasesDataAsync(skus)
+                this.RunOnUiThread(fun () -> InAppPurchases.getPurchasesDialog(this, data).Show())
+            }
+            |> Async.Start
+            )
 
         this.UpdatePresetName()
         // open presets manager

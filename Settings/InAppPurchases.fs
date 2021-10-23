@@ -79,19 +79,26 @@ let getSKUForClass(cls : System.Type) : string option =
                 Some((attribs.[0] :?> InAppPurchaseAttribute).SKU)
         classSKUMapping.[cls] <- result
         result
-            
+         
+         
+let private writeLog (msg : string) =
+    Android.Util.Log.Debug("iaps", msg) |> ignore
     
+
 let private performBillingAction<'T>(action: IInAppBilling -> Async<'T>) (fallback: Async<'T>) (timeout: int) : Async<'T> =
     async {
         let billing = CrossInAppBilling.Current
         try
             let connected = billing.ConnectAsync().Wait(timeout)
             if connected then
+                writeLog("Connected to Billing API")
                 return! action billing
             else 
+                writeLog("Failed to connect to Billing API")
                 return! fallback
         finally
             Async.RunSynchronously (billing.DisconnectAsync() |> Async.AwaitTask)
+            writeLog("Disconnected from Billing API")
     }
 
 let private getPurchaseItemsAsync() : Async<seq<InAppBillingPurchase>> =
@@ -121,31 +128,36 @@ let refreshPurchasesInfo(context: Context) =
             writeToStorage(context)
         with
         | ex ->
-            Android.Util.Log.Debug("iaps", sprintf "Error: %A" ex) |> ignore
+            writeLog(sprintf "Error in refreshPurchasesInfo: %A" ex)
             readFromStorage(context)
     }
     |> Async.Start
 
 
+let getPurchasesDataAsync (skus : string[]) =
+    performBillingAction
+        (fun billing -> billing.GetProductInfoAsync(ItemType.InAppPurchase, skus) |> Async.AwaitTask)
+        (async { return raise (System.Exception("Could not connect to Billing API")) })
+        1000
+
+
 /// Get information about available purchases among given skus 
 /// and answer dialog containing purchase actions
-let getPurchasesDialog(context: Context, skus: string[]) : Dialog =
+let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct>) : Dialog =
     let errorDialog(message: string) =
         use builder = new AlertDialog.Builder(context)
         builder.SetNeutralButton("OK", (fun _ _ -> ())) |> ignore
         builder.SetTitle("Error").SetMessage(message).Create()
 
     try
-        let purchasesData : seq<InAppBillingProduct> = 
-            performBillingAction
-                (fun billing -> billing.GetProductInfoAsync(ItemType.InAppPurchase, skus) |> Async.AwaitTask)
-                (async { return raise (System.Exception("Could not connect to Billing API")) })
-                1000
-            |> Async.RunSynchronously
-            |> Seq.filter (fun each -> Array.contains each.ProductId skus)
-            
         use builder = new AlertDialog.Builder(context)
         let dialogView = new LinearLayout(context, Orientation=Orientation.Vertical)
+        builder
+            .SetView(dialogView)
+            .SetTitle("Buy premium content")
+            .SetNegativeButton("Cancel", (fun _ _ -> ())) |> ignore
+        let dialog = builder.Create()
+
         for each in purchasesData do
             let button = new Button(context)
             button.Text <- sprintf "Buy %s (%s)" each.Description each.LocalizedPrice
@@ -153,6 +165,7 @@ let getPurchasesDialog(context: Context, skus: string[]) : Dialog =
                 performBillingAction
                     (fun billing -> async {
                         let! purchase = billing.PurchaseAsync(each.ProductId, ItemType.InAppPurchase) |> Async.AwaitTask // TODO: verify
+                        dialog.Cancel()
                         if not (isNull purchase) && purchase.State = PurchaseState.Purchased then
                             swap purchasedItems (Set.add purchase.ProductId)
                             writeToStorage(context)
@@ -166,11 +179,9 @@ let getPurchasesDialog(context: Context, skus: string[]) : Dialog =
                     1000
             button.Click.Add(fun args -> Async.Start buyItemAsync)
             dialogView.AddView(button)
-        builder.SetView(dialogView) |> ignore
-        builder.SetTitle("Buy premium content") |> ignore
-        builder.SetNegativeButton("Cancel", (fun _ _ -> ())) |> ignore
-        builder.Create() :> Dialog 
+
+        dialog :> Dialog 
     with
     | ex ->
-        Android.Util.Log.Debug("iaps", sprintf "Error: %A" ex) |> ignore
+        writeLog(sprintf "Error in getPurchasesDialog: %A" ex)
         errorDialog ex.Message :> Dialog
