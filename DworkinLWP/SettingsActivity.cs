@@ -65,4 +65,18 @@ namespace DworkinLWP
             }
         }
     }
+
+    // trick the linker
+    class LinkerPleaseInclude
+    {
+        static bool falseflag = false;
+        static LinkerPleaseInclude()
+        {
+            if (falseflag)
+            {
+                var ignore = new AndroidX.AppCompat.Widget.FitWindowsFrameLayout(Application.Context);
+            }
+        }
+    }
 }
+

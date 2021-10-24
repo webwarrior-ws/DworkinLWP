@@ -57,6 +57,10 @@
     <AndroidPackageFormat>aab</AndroidPackageFormat>
     <AndroidUseAapt2>true</AndroidUseAapt2>
     <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
+    <AndroidSupportedAbis />
+    <JavaMaximumHeapSize>
+    </JavaMaximumHeapSize>
+    <AndroidLinkSkip>androidx.appcompat.widget.FitWindowsFrameLayout</AndroidLinkSkip>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=3.98.4.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">

@@ -81,7 +81,7 @@ let getSKUForClass(cls : System.Type) : string option =
         result
          
          
-let private writeLog (msg : string) =
+let inline private writeLog (msg : string) =
     Android.Util.Log.Debug("iaps", msg) |> ignore
     
 
@@ -160,7 +160,7 @@ let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct
 
         for each in purchasesData do
             let button = new Button(context)
-            button.Text <- sprintf "Buy %s (%s)" each.Description each.LocalizedPrice
+            button.Text <- sprintf "Buy %s (%s)" each.Name each.LocalizedPrice
             let buyItemAsync = 
                 performBillingAction
                     (fun billing -> async {
@@ -169,11 +169,15 @@ let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct
                         if not (isNull purchase) && purchase.State = PurchaseState.Purchased then
                             swap purchasedItems (Set.add purchase.ProductId)
                             writeToStorage(context)
+                            writeLog(sprintf "Purchased item: %s" each.ProductId)
                             if not purchase.IsAcknowledged then
                                 let! purchaseAcknowledged = billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask
                                 if not purchaseAcknowledged then
                                     swap purchasedItems (Set.remove purchase.ProductId)
                                     writeToStorage(context)
+                                    writeLog("Purchase not acknowledged")
+                                else
+                                    writeLog("Purchase acknowledged")
                         })
                     (async { (errorDialog "Could not connect to Billing API").Show() |> ignore })
                     1000
