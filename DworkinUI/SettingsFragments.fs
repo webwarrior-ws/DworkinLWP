@@ -44,7 +44,16 @@ type OverallSettingsFragment() =
         seedDisplay <- view.FindViewById<EditText>(Resources.Id.seed_display)
         let nextSeedButton = view.FindViewById<Button>(Resources.Id.next_seed_button)
         seedDisplay.Text <- CurrentSettings.get().Seed |> string
-        seedDisplay.TextChanged.Add(fun args -> this.SetRandomSeed(int seedDisplay.Text))
+        seedDisplay.TextChanged.Add(fun args -> 
+            match System.Int32.TryParse seedDisplay.Text with
+            | true, seed -> this.SetRandomSeed(seed)
+            | false, _ -> 
+                if seedDisplay.Text.Length < 8 then // empty field (also incorrect symbols ?)
+                    seedDisplay.Text <- "0" 
+                else // too big, truncate
+                    seedDisplay.Text <- seedDisplay.Text.[0..seedDisplay.Text.Length-2]
+                seedDisplay.SetSelection(seedDisplay.Text.Length) // move cursor to the end of text
+        ) 
         nextSeedButton.Click.Add(fun args -> 
             let nextSeed : int = System.Random().Next()
             seedDisplay.Text <- string nextSeed //this.SetRandomSeed() is called here beacuse text is changed 
