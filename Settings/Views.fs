@@ -202,7 +202,7 @@ type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defSty
     abstract ProgressToValue : int -> 'TValue
     abstract ValueToString : 'TValue -> string
     
-    member internal this.SeekBar : SeekBar = this.FindViewById<SeekBar>(Resources.Id.seek_bar)
+    member internal this.SeekBar : AndroidX.AppCompat.Widget.AppCompatSeekBar = this.FindViewById<_>(Resources.Id.seek_bar)
     member private this.NumberDisplay = this.FindViewById<TextView>(Resources.Id.number_display)
 
     interface IRandomizedEditor<'TValue> with
@@ -268,7 +268,6 @@ type RandomizedFloatSeekBar(context : Context, attrs : IAttributeSet, defStyle :
     member this.SetRange(low : float32, high : float32, numSteps : int) =
         assert (low < high)
         assert (numSteps > 0)
-        this.SeekBar.Min <- 0
         this.SeekBar.Max <- numSteps
         steps <- numSteps
         minVal <- low
