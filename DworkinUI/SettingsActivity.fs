@@ -141,7 +141,6 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
             this.OnPresetSelected(allPresets.[pos])
             true
         | PresetContextMenuChoice.Rename ->
-            let builtinPresetNames = [| for preset in allPresets do if preset.IsBuiltin then yield preset.Name |]
             let dialog = new RenamePresetDialog<'TPreset>(allPresets.[pos], allPresets.ToArray())
             dialog.PresetRenamed.Add(fun (oldName, newName) ->
                 match this.CurrentPresetSelection with
@@ -242,28 +241,15 @@ type OverallPresetSelectionActivity() =
 type AppearanceSettingsActivity() =
     inherit ActivityWithBackButton()
     
-    member private this.UpdatePresetName() =
-        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
-        if not (isNull display) then
-            display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
-
-    override this.OnRestart() =
-        base.OnRestart()
-        this.UpdatePresetName()
-        let fragment = this.SupportFragmentManager.FindFragmentById(Resources.Id.content) :?> AppearanceSettingsFragment
-        fragment.UpdateEditors()
-
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
         this.SetContentView(Resources.Layout.Empty)
         this.SetupToolbar()
         let fragment = new AppearanceSettingsFragment()
-        fragment.SettingChanged.Add(fun() -> this.UpdatePresetName())
         let transaction = this.SupportFragmentManager.BeginTransaction()
         transaction
             .Replace(Resources.Id.content, fragment)
             .RunOnCommit(new Java.Lang.Runnable(fun () -> 
-                this.UpdatePresetName()
                 // open presets manager for appearance
                 this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
                     this.StartActivity(typeof<AppearancePresetSelectionActivity>) ) ))

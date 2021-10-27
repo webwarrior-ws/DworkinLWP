@@ -27,8 +27,6 @@ module IAPItem =
     let all = [| EffectsAndMaterials; PatternPCB; PatternVine; PatternFloralSwirls; |]
 
 
-type IAPItemInfo = class end //TODO: replace by InAppBillingProduct
-
 
 let private purchasedItems = Atom(Set.empty<string>)
 

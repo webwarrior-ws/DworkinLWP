@@ -133,9 +133,15 @@ type AppearanceSettingsFragment() =
 
     let settingChangedEvent = Event<unit>()
 
+    let mutable display : TextView = null
+
     member this.SettingChanged = settingChangedEvent.Publish
 
     member this.UpdateEditors() = updateEditorsEvent.Trigger()
+
+    member this.UpdatePresetName() =
+        if not (isNull display) then
+            display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
 
     member private this.GetEffectEditor() =
         let editor = SettingsClassChooser<EffectSettings>.Create(this.Context, Effects.allTypes)
@@ -207,4 +213,19 @@ type AppearanceSettingsFragment() =
         editorsGroup.AddView(this.GetBackgroundEditor())
         editorsGroup.AddView(this.GetForegroundEditor())
         editorsGroup.AddView(this.GetEffectEditor())
+        display <- view.FindViewById<TextView>(Resources.Id.preset_name_display)
         view
+
+    override this.OnCreate(bundle) =
+        base.OnCreate(bundle)
+        this.SettingChanged.Add(this.UpdatePresetName)
+
+    override this.OnResume() =
+        base.OnResume()
+        this.UpdatePresetName()
+        this.UpdateEditors()
+
+    override this.OnDestroy() =
+        base.OnDestroy()
+        display <- null
+
