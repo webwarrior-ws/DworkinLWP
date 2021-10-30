@@ -246,14 +246,8 @@ type AppearanceSettingsActivity() =
         this.SetContentView(Resources.Layout.Empty)
         this.SetupToolbar()
         let fragment = new AppearanceSettingsFragment()
-        let transaction = this.SupportFragmentManager.BeginTransaction()
-        transaction
-            .Replace(Resources.Id.content, fragment)
-            .RunOnCommit(new Java.Lang.Runnable(fun () -> 
-                // open presets manager for appearance
-                this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
-                    this.StartActivity(typeof<AppearancePresetSelectionActivity>) ) ))
-            .Commit() |> ignore
+        fragment.PresetButtonAction <- fun () -> this.StartActivity(typeof<AppearancePresetSelectionActivity>)
+        this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
 
 
 [<Activity(Name = "dworkinUI.SettingsActivity", Label = "Settings")>]
@@ -264,6 +258,12 @@ type SettingsActivity() =
         let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
         if not (isNull display) then
             display.Text <- CurrentPresetSelection.getOverallPresetDisplayText()
+
+    member this.IsTabletLayout : bool =
+        this.Resources.GetBoolean(Resources.Boolean.isTablet)
+
+    member private this.SecondaryPaneTitleView =
+        this.FindViewById<TextView>(Resources.Id.settings_secondary_title)
 
     override this.OnRestart() =
         base.OnRestart()
@@ -282,12 +282,29 @@ type SettingsActivity() =
         this.SetContentView(Resources.Layout.SettingsScreen)
         this.SetupToolbar()
         
-        this.FindViewById<View>(Resources.Id.pattern_link).Click.Add(fun _ -> 
-            this.StartActivity(typeof<PatternSettingsActivity>) )
+        if this.IsTabletLayout then // two-pane tablet layout
+            if not (isNull bundle) then
+                let title = bundle.GetString("secondary_pane_title")
+                if not (isNull title) then
+                    this.SecondaryPaneTitleView.Text <- title
+            this.FindViewById<View>(Resources.Id.pattern_link).Click.Add(fun _ -> 
+                this.SecondaryPaneTitleView.Text <- "Pattern settings"
+                let fragment = new PatternSettingsFragment()
+                this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.settings_secondary, fragment).Commit() |> ignore
+            )
+            this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
+                this.SecondaryPaneTitleView.Text <- "Appearance settings"
+                let fragment = new AppearanceSettingsFragment()
+                fragment.PresetButtonAction <- fun () -> this.StartActivity(typeof<AppearancePresetSelectionActivity>)
+                this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.settings_secondary, fragment).Commit() |> ignore
+            )
+        else // normal phone one-pane layout
+            this.FindViewById<View>(Resources.Id.pattern_link).Click.Add(fun _ -> 
+                this.StartActivity(typeof<PatternSettingsActivity>) )
 
-        this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
-            this.StartActivity(typeof<AppearanceSettingsActivity>) )
-
+            this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
+                this.StartActivity(typeof<AppearanceSettingsActivity>) )
+        
         this.FindViewById<View>(Resources.Id.purchases_link).Click.Add(fun _ ->
             let skus = Settings.InAppPurchases.getAvailablePurchases()
             async {
@@ -295,12 +312,17 @@ type SettingsActivity() =
                 this.RunOnUiThread(fun () -> InAppPurchases.getPurchasesDialog(this, data).Show())
             }
             |> Async.Start
-            )
+        )
 
         this.UpdatePresetName()
         // open presets manager
         this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
             this.StartActivity(typeof<OverallPresetSelectionActivity>))
+    
+    override this.OnSaveInstanceState(bundle) =
+        base.OnSaveInstanceState(bundle)
+        if this.IsTabletLayout then
+            bundle.PutString("secondary_pane_title", this.SecondaryPaneTitleView.Text)
 
     override this.OnResume() =
         base.OnResume()

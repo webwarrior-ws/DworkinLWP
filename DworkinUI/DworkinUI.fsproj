@@ -21,7 +21,7 @@
     <Name>DworkinUI</Name>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
-    <AndroidDesignerPreferredDevice>Nexus 4</AndroidDesignerPreferredDevice>
+    <AndroidDesignerPreferredDevice>10.1in WXGA (Tablet)</AndroidDesignerPreferredDevice>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
@@ -134,7 +134,8 @@
     <AndroidResource Include="Resources\layout\AppearanceSettingsFragment.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
-    <AndroidResource Include="Resources\values-sw600dp\attrs.xml" />
+    <AndroidResource Include="Resources\layout-sw600dp-w720dp\SettingsScreen.axml" />
+    <AndroidResource Include="Resources\values-sw600dp-w720dp\attrs.xml" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Content Include="packages.config" />
     <Compile Include="PreviewRenderers.fs" />

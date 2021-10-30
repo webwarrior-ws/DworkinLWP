@@ -41,7 +41,7 @@
 						android:textAppearance="@style/SettingTitle"/>
 				</LinearLayout>
 				<TextView
-					android:text="Click to open preset manager"
+					android:text="Open appearance preset manager"
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content" />
 			</LinearLayout>

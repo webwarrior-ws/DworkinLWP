@@ -135,6 +135,8 @@ type AppearanceSettingsFragment() =
 
     let mutable display : TextView = null
 
+    member val PresetButtonAction : unit -> unit = ignore with get, set
+
     member this.SettingChanged = settingChangedEvent.Publish
 
     member this.UpdateEditors() = updateEditorsEvent.Trigger()
@@ -214,6 +216,7 @@ type AppearanceSettingsFragment() =
         editorsGroup.AddView(this.GetForegroundEditor())
         editorsGroup.AddView(this.GetEffectEditor())
         display <- view.FindViewById<TextView>(Resources.Id.preset_name_display)
+        view.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args -> this.PresetButtonAction())
         view
 
     override this.OnCreate(bundle) =
