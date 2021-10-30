@@ -125,7 +125,7 @@ type OverallPreset(settings : SettingsHolder) =
         
         let numPixelsX = (width - int(spacing * displayMetrics.Density)*(n+1) - int(padding * 2.0f)) / n
         let numPixelsX = numPixelsX - (numPixelsX%2) // make it even
-        let numPixelsY = if isTablet then numPixelsX * width / height else numPixelsX * height / width
+        let numPixelsY = numPixelsX * height / width
         let numPixelsY = numPixelsY - (numPixelsY%2) // make it even
         
         (numPixelsX, numPixelsY)
