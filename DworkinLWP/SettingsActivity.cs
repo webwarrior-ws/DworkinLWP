@@ -15,7 +15,10 @@ namespace DworkinLWP
     [Activity(Name="dworkinLWP.SettingsActivity", Label = "Dworkin LWP")]
     class SettingsActivity : DworkinUI.SettingsActivity
     {
-        const int REQUEST_CODE_CHANGE_WALLPAPER = 0x1;
+        static SettingsActivity()
+        {
+            DworkinUI.ActivityWithBackButton.MenuComponent = new MenuComponent();
+        }
 
         public override void OnCreate(Bundle bundle)
         {
@@ -35,33 +38,37 @@ namespace DworkinLWP
             base.OnStop();
             LibDworkin.DworkinSettings.CurrentSettings.save(this);
         }
+    }
 
-        public override bool OnCreateOptionsMenu(IMenu menu)
+    class MenuComponent : DworkinUI.IMenuComponent
+    {
+        const int REQUEST_CODE_CHANGE_WALLPAPER = 0x1;
+
+        public bool OnCreateOptionsMenu(AndroidX.AppCompat.App.AppCompatActivity activity, IMenu menu)
         {
-            this.MenuInflater.Inflate(Resource.Menu.menu, menu);
+            activity.MenuInflater.Inflate(Resource.Menu.menu, menu);
             return true;
         }
-        
-        public override bool OnOptionsItemSelected(IMenuItem item)
+
+        public bool OnOptionsItemSelected(AndroidX.AppCompat.App.AppCompatActivity activity, IMenuItem item)
         {
             if (item.ItemId == Resource.Id.action_set_wallpaper)
             {
                 Intent intent = new Intent(WallpaperManager.ActionChangeLiveWallpaper);
                 var lwpServiceJavaClass = Java.Lang.Class.FromType(typeof(DworkinWallpaperService));
-                intent.PutExtra(WallpaperManager.ExtraLiveWallpaperComponent, new ComponentName(this, lwpServiceJavaClass));
-                this.StartActivityForResult(intent, REQUEST_CODE_CHANGE_WALLPAPER);
+                intent.PutExtra(WallpaperManager.ExtraLiveWallpaperComponent, new ComponentName(activity, lwpServiceJavaClass));
+                activity.StartActivityForResult(intent, REQUEST_CODE_CHANGE_WALLPAPER);
                 return true;
             }
             else
-                return base.OnOptionsItemSelected(item);
+                return false;
         }
 
-        protected override void OnActivityResult(int requestCode, [GeneratedEnum] Result resultCode, Intent data)
+        public void OnActivityResult(AndroidX.AppCompat.App.AppCompatActivity activity, int requestCode, [GeneratedEnum] Result resultCode)
         {
-            base.OnActivityResult(requestCode, resultCode, data);
             if (requestCode == REQUEST_CODE_CHANGE_WALLPAPER && resultCode == Result.Ok)
             {
-                this.Finish();
+                activity.Finish();
             }
         }
     }

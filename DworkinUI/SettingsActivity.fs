@@ -12,9 +12,22 @@ open LibDworkin.DworkinSettings
 
 
 
+type IMenuComponent = interface
+    abstract OnCreateOptionsMenu : AndroidX.AppCompat.App.AppCompatActivity * IMenu -> bool
+    abstract OnOptionsItemSelected : AndroidX.AppCompat.App.AppCompatActivity * IMenuItem -> bool
+    abstract OnActivityResult : AndroidX.AppCompat.App.AppCompatActivity * int * Result -> unit
+end
+
+
 [<AbstractClass>]
 type ActivityWithBackButton() =
     inherit AndroidX.AppCompat.App.AppCompatActivity()
+
+    static member val MenuComponent : IMenuComponent = 
+        { new IMenuComponent with
+            override this.OnCreateOptionsMenu(_, _) = false
+            override this.OnOptionsItemSelected(_, _) = false
+            override this.OnActivityResult(_, _, _) = () } with get, set
     
     member this.Toolbar = this.FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resources.Id.app_toolbar)
 
@@ -23,11 +36,20 @@ type ActivityWithBackButton() =
         this.SupportActionBar.SetDisplayHomeAsUpEnabled(true)
 
     override this.OnOptionsItemSelected(item) =
-        if item.ItemId = Android.Resource.Id.Home then
+        if ActivityWithBackButton.MenuComponent.OnOptionsItemSelected(this, item) then
+            true
+        elif item.ItemId = Android.Resource.Id.Home then
             this.Finish()
             true
         else
             base.OnOptionsItemSelected(item)
+
+    override this.OnActivityResult(requestCode, resultCode, data) =
+        base.OnActivityResult(requestCode, resultCode, data)
+        ActivityWithBackButton.MenuComponent.OnActivityResult(this, requestCode, resultCode)
+
+    override this.OnCreateOptionsMenu(menu) =
+        ActivityWithBackButton.MenuComponent.OnCreateOptionsMenu(this, menu)
 
 
 [<Activity(Label = "Pattern Settings")>]
@@ -163,6 +185,10 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
             true
         | _ -> 
             base.OnContextItemSelected(item)
+
+    override this.OnCreateOptionsMenu(menu) = 
+        // Don't show menu with "preview/set" button in preset selection screens
+        true
     
 
 [<Activity(Label = "Appearance Preset")>] 
