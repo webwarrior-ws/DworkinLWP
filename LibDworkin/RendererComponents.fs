@@ -560,7 +560,7 @@ type Effect(shader : ResettableLazy<Shader>) =
         let needsInit = not shader.IsValueCreated || not wasUsed
         base.Use()
         if needsInit then 
-            this.Shader.DeferredSetUniform("screenDimensions", this.ScreenDimensions.X, this.ScreenDimensions.Y)        
+            GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), this.ScreenDimensions.X, this.ScreenDimensions.Y) 
             this.SetUniforms()
         wasUsed <- true
 
