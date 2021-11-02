@@ -54,6 +54,7 @@ namespace DworkinUITest
         [Test]
         public void PresetSelectionScreens()
         {
+            app.Invoke("ChangeAppearanceSettings");
             app.Tap(c => c.Marked("Appearance"));
 
             app.Tap(c => c.Marked("preset_control"));

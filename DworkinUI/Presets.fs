@@ -155,7 +155,18 @@ module BuiltinPresets =
                 Name="Painted wood", IsBuiltin=true, IsSaved=true);
         |]
     
-    let private overallPresets : OverallPreset[] = [||]
+    let private overallPresets : OverallPreset[] = 
+        [|
+            OverallPreset({ 
+                Environment=ConfigSettings.Maze(Scale=Defined(1.5f), WallThickness=Defined(2.0f))
+                Effect=Effects.Shadow()
+                ForegroundColor=Defined(0.7f, 0.5f, 0.4f)
+                BackgroundColor=Defined(0.3f, 0.2f, 0.2f)
+                Foreground=Materials.SolidColor()
+                Background=Materials.SolidColor()
+                Seed=42 },
+                Name="Maze/wood", IsBuiltin=true, IsSaved=true)
+        |]
 
     let getAppearancePresets(context : Android.Content.Context) : AppearancePreset[] =
         appearancePresets
