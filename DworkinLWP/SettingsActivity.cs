@@ -13,7 +13,7 @@ using System.Text;
 namespace DworkinLWP
 {
     [Activity(Name="dworkinLWP.SettingsActivity", Label = "Dworkin LWP")]
-    class SettingsActivity : DworkinUI.SettingsActivity
+    public class SettingsActivity : DworkinUI.SettingsActivity
     {
         static SettingsActivity()
         {
@@ -37,6 +37,21 @@ namespace DworkinLWP
         {
             base.OnStop();
             LibDworkin.DworkinSettings.CurrentSettings.save(this);
+        }
+
+        [Java.Interop.Export("ChangeAppearanceSettings")]
+        public void ChangeAppearanceSettings() 
+        {
+            var oldSettings = LibDworkin.DworkinSettings.CurrentSettings.get();
+            var newSettings = new LibDworkin.DworkinSettings.SettingsHolder(
+                oldSettings.Environment,
+                new LibDworkin.DworkinSettings.Effects.Bevel { Contrast = new Settings.Randomizeable<float>.Defined(2.5f) },
+                new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(0.9f, 0.9f, 0.9f)),
+                new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(0.25f, 0.3f, 0.8f)),
+                oldSettings.Foreground,
+                new LibDworkin.DworkinSettings.Materials.Wood(),
+                oldSettings.Seed);
+            LibDworkin.DworkinSettings.CurrentSettings.set(newSettings);
         }
     }
 

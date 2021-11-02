@@ -70,6 +70,7 @@
       <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\portable-net45+monoandroid10+monotouch10+xamarinios10\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="Java.Interop" />
+    <Reference Include="Mono.Android.Export" />
     <Reference Include="OpenTK-1.0" />
     <Reference Include="Plugin.InAppBilling, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Plugin.InAppBilling.4.0.2\lib\monoandroid10.0\Plugin.InAppBilling.dll</HintPath>
