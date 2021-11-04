@@ -53,7 +53,8 @@ module PresetManagement =
             failwith "Built-in presets cannot be saved"
         else
             ensurePresetsDir context preset.DirName
-            use ostream = new System.IO.FileStream((getFilePath context preset.DirName preset.Name), System.IO.FileMode.Create)
+            let presetFilename = getFilePath context preset.DirName preset.Name
+            use ostream = new System.IO.FileStream(presetFilename, System.IO.FileMode.Create)
             let json = Serialization.toJsonValue(preset)
             json.Save(ostream)
             preset.IsSaved <- true

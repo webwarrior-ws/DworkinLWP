@@ -290,7 +290,25 @@ type SettingsActivity() =
 
     member private this.SecondaryPaneTitleView =
         this.FindViewById<TextView>(Resources.Id.settings_secondary_title)
-
+#if DEBUG
+    static member val CREATE_FILE = 5
+    
+    member this.SavePresetsArchive(fs: System.IO.Stream) =
+        let presetDirNames = [| OverallPreset.DirectoryName; AppearancePreset.DirectoryName |] 
+        use zos = new Java.Util.Zip.ZipOutputStream(fs)
+        for dirName in presetDirNames do
+            Settings.Presets.PresetManagement.ensurePresetsDir this dirName
+            let dirPath = Settings.Presets.PresetManagement.getPresetsDirPath this dirName
+            let dir = System.IO.DirectoryInfo(dirPath)
+            for file in dir.EnumerateFiles() do
+                let zipEntry = new Java.Util.Zip.ZipEntry(dirName + "/" + file.Name)
+                zos.PutNextEntry(zipEntry)
+                let fileContent = System.IO.File.ReadAllBytes(file.FullName)
+                zos.Write(fileContent)
+                zos.CloseEntry()
+        zos.Close()
+        fs.Close()
+#endif
     override this.OnRestart() =
         base.OnRestart()
         this.UpdatePresetName()
@@ -344,6 +362,20 @@ type SettingsActivity() =
         // open presets manager
         this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
             this.StartActivity(typeof<OverallPresetSelectionActivity>))
+#if DEBUG
+        let controlsGroup = this.FindViewById<ViewGroup>(Resources.Id.controls_group)
+        let savePresetsArchiveButton = new Button(this, Text="Save presets")
+        savePresetsArchiveButton.Click.Add(fun _ -> 
+            let intent = new Intent(Intent.ActionCreateDocument)
+            intent
+                .AddCategory(Intent.CategoryOpenable)
+                .SetType("application/zip")
+                .PutExtra(Intent.ExtraTitle, "presets.zip") 
+                |> ignore
+            this.StartActivityForResult(intent, SettingsActivity.CREATE_FILE)
+        )
+        controlsGroup.AddView(savePresetsArchiveButton)
+#endif
     
     override this.OnSaveInstanceState(bundle) =
         base.OnSaveInstanceState(bundle)
@@ -359,4 +391,11 @@ type SettingsActivity() =
             purchasesLink.Visibility <- ViewStates.Gone
         else
             purchasesLink.Visibility <- ViewStates.Visible
-
+#if DEBUG
+    override this.OnActivityResult(requestCode, resultCode, data) =
+        base.OnActivityResult(requestCode, resultCode, data)
+        if requestCode = SettingsActivity.CREATE_FILE && resultCode = Result.Ok && not (isNull data) then
+            let uri = data.Data
+            use fs = this.ContentResolver.OpenOutputStream(uri)
+            this.SavePresetsArchive(fs)
+#endif
