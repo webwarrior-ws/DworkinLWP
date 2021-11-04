@@ -38,6 +38,8 @@ type Preset() =
 
 /// Functions and classes used to manage presets (save/load/etc.)
 module PresetManagement =
+    let private fileExtension = ".preset"
+
     let getPresetsDirPath (context : Context) (dirName : string) =
         context.FilesDir.Path + "/presets/" + dirName
 
@@ -45,7 +47,7 @@ module PresetManagement =
         System.IO.Directory.CreateDirectory(getPresetsDirPath context dirName) |> ignore
 
     let getFilePath (context : Context) (dirName : string) (name : string) =
-        let filename = Java.Net.URLEncoder.Encode(name, "UTF-8") + ".preset"
+        let filename = Java.Net.URLEncoder.Encode(name, "UTF-8") + fileExtension
         (getPresetsDirPath context dirName) + "/" + filename
 
     let savePreset<'TPreset when 'TPreset :> Preset>(context : Context) (preset : 'TPreset) =
@@ -84,11 +86,11 @@ module PresetManagement =
             preset.IsSaved <- false
 
     let loadPreset<'TPreset when 'TPreset :> Preset> (context : Context) (filePath : string) : 'TPreset =
-        if not (filePath.EndsWith ".preset") then
-            failwith "preset files must end with .preset"
+        if not (filePath.EndsWith fileExtension) then
+            failwithf "preset files must end with %s" fileExtension
         else
             use file = new Java.IO.File(filePath)
-            let encodedName = file.Name.Remove(file.Name.Length - ".preset".Length)
+            let encodedName = file.Name.Remove(file.Name.Length - fileExtension.Length)
             let name = Java.Net.URLDecoder.Decode(encodedName, "UTF-8")
             use stream = new System.IO.FileStream(file.AbsolutePath, System.IO.FileMode.Open)
             let json = System.Json.JsonValue.Load(stream)
@@ -99,11 +101,10 @@ module PresetManagement =
 
     let loadPresetsFromAssets<'TPreset when 'TPreset :> Preset> (context : Context) (dirName : string) : 'TPreset[] =
         let dirPath = "presets/" + dirName
-        let extension = ".preset"
         [|
             for fileName in context.Assets.List(dirPath) do
-                if fileName.EndsWith(extension) then
-                    let encodedName = fileName.Remove(fileName.Length - extension.Length)
+                if fileName.EndsWith(fileExtension) then
+                    let encodedName = fileName.Remove(fileName.Length - fileExtension.Length)
                     let name = Java.Net.URLDecoder.Decode(encodedName, "UTF-8")
                     use stream = context.Assets.Open(dirPath + "/" + fileName)
                     let json = System.Json.JsonValue.Load(stream)
