@@ -140,38 +140,23 @@ type OverallPreset(settings : SettingsHolder) =
 
 
 /// This module contains references to built-in presets.
-/// Now they are hardcoded, but in future they will be lazily initialized from assets or something similar.
 module BuiltinPresets =
     open LibDworkin.DworkinSettings
     open DworkinConfigs
+    open Settings.Presets.PresetManagement
     
-    let private appearancePresets : AppearancePreset[] = 
-        [|
-            AppearancePreset(
-                Effects.Plain(), Defined(0.0f, 0.0f, 0.0f), Defined(0.5f, 0.5f, 1.0f), Materials.SolidColor(), Materials.SolidColor(), 
-                Name="Basic", IsBuiltin=true, IsSaved=true);
-            AppearancePreset(
-                Effects.Shadow(), Defined(0.7f, 0.5f, 0.4f), Defined(0.3f, 0.2f, 0.2f), Materials.Wood(Painted=Defined(true)), Materials.Wood(Painted=Defined(true)), 
-                Name="Painted wood", IsBuiltin=true, IsSaved=true);
-        |]
+    let mutable private appearancePresets : AppearancePreset[] = null
     
-    let private overallPresets : OverallPreset[] = 
-        [|
-            OverallPreset({ 
-                Environment=ConfigSettings.Maze(Scale=Defined(1.5f), WallThickness=Defined(2.0f))
-                Effect=Effects.Shadow()
-                ForegroundColor=Defined(0.7f, 0.5f, 0.4f)
-                BackgroundColor=Defined(0.3f, 0.2f, 0.2f)
-                Foreground=Materials.SolidColor()
-                Background=Materials.SolidColor()
-                Seed=42 },
-                Name="Maze/wood", IsBuiltin=true, IsSaved=true)
-        |]
+    let mutable private overallPresets : OverallPreset[] = null
 
     let getAppearancePresets(context : Android.Content.Context) : AppearancePreset[] =
+        if isNull appearancePresets then
+            appearancePresets <- loadPresetsFromAssets<AppearancePreset> context AppearancePreset.DirectoryName
         appearancePresets
 
     let getOverallPresets(context : Android.Content.Context) : OverallPreset[] =
+        if isNull overallPresets then
+            overallPresets <- loadPresetsFromAssets<OverallPreset> context OverallPreset.DirectoryName
         overallPresets
 
 

@@ -97,6 +97,24 @@ module PresetManagement =
             preset.IsSaved <- true
             preset
 
+    let loadPresetsFromAssets<'TPreset when 'TPreset :> Preset> (context : Context) (dirName : string) : 'TPreset[] =
+        let dirPath = "presets/" + dirName
+        let extension = ".preset"
+        [|
+            for fileName in context.Assets.List(dirPath) do
+                if fileName.EndsWith(extension) then
+                    let encodedName = fileName.Remove(fileName.Length - extension.Length)
+                    let name = Java.Net.URLDecoder.Decode(encodedName, "UTF-8")
+                    use stream = context.Assets.Open(dirPath + "/" + fileName)
+                    let json = System.Json.JsonValue.Load(stream)
+                    let preset : 'TPreset = Serialization.fromJsonValue(json)
+                    preset.Name <- name
+                    preset.IsSaved <- true
+                    preset.IsBuiltin <- true
+                    yield preset
+        |]
+
+
 
 type PresetPreviewState =
     | Pending

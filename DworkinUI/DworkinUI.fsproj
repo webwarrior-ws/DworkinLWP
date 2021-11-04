@@ -54,6 +54,8 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
   <ItemGroup>
     <AndroidAsset Include="Assets\textures\preview_sdf.png" />
+    <AndroidAsset Include="Assets\presets\overall\maze%252Fwood.preset" />
+    <AndroidAsset Include="Assets\presets\appearance\wood1.preset" />
     <AndroidResource Include="Resources\drawable\bevelmode_down_up.xml" />
     <AndroidResource Include="Resources\drawable\bevelmode_level_up.xml" />
     <AndroidResource Include="Resources\drawable\bevelmode_level_down.xml" />
