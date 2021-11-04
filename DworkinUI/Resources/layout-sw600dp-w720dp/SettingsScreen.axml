@@ -20,6 +20,7 @@
 			android:layout_weight="1"
 			class="DworkinUI.OverallSettingsFragment" />
 		<LinearLayout
+			android:id="@+id/second_pane"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
 			android:orientation="vertical"
@@ -27,7 +28,7 @@
 			android:paddingHorizontal="@dimen/editor_padding_h"
 			android:paddingVertical="@dimen/editor_padding_v"
 			android:divider="@drawable/divider_thick"
-			android:showDividers="middle">
+			android:showDividers="none">
 			<TextView 
 				android:text=""
 				android:layout_width="match_parent"

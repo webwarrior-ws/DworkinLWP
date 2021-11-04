@@ -327,17 +327,21 @@ type SettingsActivity() =
         this.SetupToolbar()
         
         if this.IsTabletLayout then // two-pane tablet layout
+            let secondPane = this.FindViewById<LinearLayout>(Resources.Id.second_pane)
             if not (isNull bundle) then
                 let title = bundle.GetString("secondary_pane_title")
                 if not (isNull title) then
                     this.SecondaryPaneTitleView.Text <- title
+                    secondPane.ShowDividers <- ShowDividers.Middle
             this.FindViewById<View>(Resources.Id.pattern_link).Click.Add(fun _ -> 
                 this.SecondaryPaneTitleView.Text <- "Pattern settings"
+                secondPane.ShowDividers <- ShowDividers.Middle
                 let fragment = new PatternSettingsFragment()
                 this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.settings_secondary, fragment).Commit() |> ignore
             )
             this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
                 this.SecondaryPaneTitleView.Text <- "Appearance settings"
+                secondPane.ShowDividers <- ShowDividers.Middle
                 let fragment = new AppearanceSettingsFragment()
                 fragment.PresetButtonAction <- fun () -> this.StartActivity(typeof<AppearancePresetSelectionActivity>)
                 this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.settings_secondary, fragment).Commit() |> ignore
