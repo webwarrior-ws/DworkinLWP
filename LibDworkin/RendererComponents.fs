@@ -10,6 +10,7 @@ open OpenTK
 
 open Microsoft.FSharp.NativeInterop
 
+
 #if __ANDROID__
 open Android.Opengl
 open Javax.Microedition.Khronos
@@ -657,7 +658,7 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
     member private this.SetRoughnessAndSpecularUniforms() =
         GL.Uniform1(this.Shader.GetUniformLocation("fgRoughness"), fgRoughness)
         GL.Uniform1(this.Shader.GetUniformLocation("bgRoughness"), bgRoughness)
-        GL.Uniform4(this.Shader.GetUniformLocation("fgSpecular"), fgSpecular)
+        GL.Uniform4(this.Shader.GetUniformLocation("fgSpecular"), fgSpecular)  
         GL.Uniform4(this.Shader.GetUniformLocation("bgSpecular"), bgSpecular)
 
     override this.UsesStencil = true

@@ -19,7 +19,6 @@ open Javax.Microedition.Khronos
 let maxSDFDistance = 16.0f
 
 
-
 type BaseRenderer(platform : AbstractPlatform) =
 #if __ANDROID__
     inherit Java.Lang.Object()
@@ -268,6 +267,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Nearest)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
+        GL.BindTexture(TextureTarget.Texture2D, 0)
     
     member this.InitializeQuadVBO() =
         quadVBO <- gen1 GL.GenBuffers
@@ -382,6 +382,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Luminance, stencilSize, stencilSize, 0, 
                           PixelFormat.Luminance, PixelType.UnsignedByte, stencil.TextureData)
             GL.Uniform1(this.Effect.Shader.GetUniformLocation("stencil"), 3)
+            GL.BindTexture(TextureTarget.Texture2D, 0)
 
         let aTexCoords = this.Effect.Shader.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
@@ -429,10 +430,10 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Distances are in range [-maxDistance; maxDistance]. 
         // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
         // B channel acts as a stencil buffer for negative distances calculation (pixels with B>0 are skipped)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                 TextureTarget.Texture2D, this.SDFTexture, 0) // needed for some reason
-            
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+        
         this.ClearBlueChannel()
 
         if this.Effect.UsesStencil then
@@ -518,35 +519,35 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.ClearBuffers()
     
     member private this.CalculateNegativeDistances() =
-            // Step 2: calculate [negative] distances inside of shapes in area of influence.
-            // Since one cannot read from and write to the same texture, 
-            // two textures are used and are swapped between horizontal and vertical passes.
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                    TextureTarget.Texture2D, this.SDFTexture2, 0)
-            GL.ActiveTexture(TextureUnit.Texture0)
-            GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
-            GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
+        // Step 2: calculate [negative] distances inside of shapes in area of influence.
+        // Since one cannot read from and write to the same texture, 
+        // two textures are used and are swapped between horizontal and vertical passes.
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                TextureTarget.Texture2D, this.SDFTexture2, 0)
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
+        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
 
-            this.ClearBlueChannel()
+        this.ClearBlueChannel()
 
-            // horizontal pass
-            this.CalcNegativeDistShaderHorizontal.Use()
-            GL.Uniform1(this.CalcNegativeDistShaderHorizontal.GetUniformLocation("sdf"), 0)
-            let aPos = this.CalcNegativeDistShaderHorizontal.GetAttributeLocation("texCoords")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-            GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        // horizontal pass
+        this.CalcNegativeDistShaderHorizontal.Use()
+        GL.Uniform1(this.CalcNegativeDistShaderHorizontal.GetUniformLocation("sdf"), 0)
+        let aPos = this.CalcNegativeDistShaderHorizontal.GetAttributeLocation("texCoords")
+        GL.EnableVertexAttribArray(aPos)
+        GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6)
 
-            // swap textures; vertical pass
-            GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2)
-            this.CalcNegativeDistShaderVertical.Use()
-            GL.Uniform1(this.CalcNegativeDistShaderVertical.GetUniformLocation("sdf"), 0)
-            let aPos = this.CalcNegativeDistShaderVertical.GetAttributeLocation("texCoords")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                    TextureTarget.Texture2D, this.SDFTexture, 0)
-            GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        // swap textures; vertical pass
+        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2)
+        this.CalcNegativeDistShaderVertical.Use()
+        GL.Uniform1(this.CalcNegativeDistShaderVertical.GetUniformLocation("sdf"), 0)
+        let aPos = this.CalcNegativeDistShaderVertical.GetAttributeLocation("texCoords")
+        GL.EnableVertexAttribArray(aPos)
+        GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                TextureTarget.Texture2D, this.SDFTexture, 0)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6)
 
     member this.ClearBuffers() =
         shapeVertices.Reset()
@@ -628,6 +629,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | :? Materials.SameAsBackground -> currentSettings.Background.Build(platform, getRandom(), fgColor)
             | material -> material.Build(platform, getRandom(), fgColor) 
         this.Background <- currentSettings.Background.Build(platform, getRandom(), bgColor)
+        this.Effect.Use()
         this.Effect.SetMaterialProperties(
             { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
             { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
