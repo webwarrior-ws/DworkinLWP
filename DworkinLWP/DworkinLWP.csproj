@@ -58,7 +58,7 @@
     <AndroidPackageFormat>aab</AndroidPackageFormat>
     <AndroidUseAapt2>true</AndroidUseAapt2>
     <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
-    <AndroidSupportedAbis />
+    <AndroidSupportedAbis>armeabi-v7a;x86_64;arm64-v8a</AndroidSupportedAbis>
     <JavaMaximumHeapSize>
     </JavaMaximumHeapSize>
     <AndroidLinkSkip>androidx.appcompat.widget.FitWindowsFrameLayout</AndroidLinkSkip>

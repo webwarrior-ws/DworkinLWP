@@ -8,7 +8,7 @@ namespace DworkinUITest
     {
         public static IApp StartApp(Platform platform)
         {
-            return ConfigureApp.Android.ApkFile("D:/Projects/DworkinLWP/DworkinLWP/bin/Debug/dworkinLWP.DworkinLWP.apk")
+            return ConfigureApp.Android.ApkFile("D:/Projects/DworkinLWP/DworkinLWP/bin/Debug/dworkinLWP.DworkinLWP-Signed.apk")
                     .EnableLocalScreenshots()
                     .StartApp();
         }

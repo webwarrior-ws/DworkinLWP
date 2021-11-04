@@ -37,18 +37,23 @@ namespace DworkinUITest
         }
 
         [Test]
+        [Category("Wallpaper")]
         public void WallpaperPreviewWithCustomSettings()
         {
-            app.WaitForElement(c => c.Marked("action_set_wallpaper"));
+            app.WaitForElement(c => c.Id("action_set_wallpaper"));
             app.Invoke("ChangeAppearanceSettings");
 
             app.Screenshot("Settings screen");
 
-            app.Tap(c => c.Marked("action_set_wallpaper"));
+            app.Tap(c => c.Id("action_set_wallpaper"));
+
+            app.WaitForNoElement(c => c.Id("action_set_wallpaper"));
+
+            this.WaitForTimeSpan(TimeSpan.FromSeconds(0.5));
+            app.Screenshot("Wallpaper preview");
 
             this.WaitForTimeSpan(TimeSpan.FromSeconds(3.0));
-
-            app.Screenshot("Wallpaper preview");
+            app.Screenshot("Wallpaper preview 2");
         }
 
         [Test]
@@ -57,26 +62,26 @@ namespace DworkinUITest
             app.Invoke("ChangeAppearanceSettings");
             app.Tap(c => c.Marked("Appearance"));
 
-            app.Tap(c => c.Marked("preset_control"));
+            app.Tap(c => c.Id("preset_control"));
             this.WaitForTimeSpan(TimeSpan.FromSeconds(1.0));
             app.Screenshot("Appearance presets");
 
-            app.Tap(c => c.Marked("save_preset_button"));
+            app.Tap(c => c.Id("save_preset_button"));
             this.WaitForTimeSpan(TimeSpan.FromSeconds(0.2));
             app.Screenshot("Appearance presets save");
 
             app.Back();
-            app.WaitForElement(c => c.Marked("save_preset_button"));
+            app.WaitForElement(c => c.Id("save_preset_button"));
             app.Back();
-            app.WaitForElement(c => c.Marked("preset_control"));
+            app.WaitForElement(c => c.Id("preset_control"));
             app.Back();
 
-            app.Tap(c => c.Marked("preset_control"));
-            this.WaitForTimeSpan(TimeSpan.FromSeconds(1.0));
+            app.Tap(c => c.Id("preset_control"));
+            this.WaitForTimeSpan(TimeSpan.FromSeconds(1.5));
             app.Screenshot("Overall presets");
 
-            app.Tap(c => c.Marked("save_preset_button"));
-            this.WaitForTimeSpan(TimeSpan.FromSeconds(0.5));
+            app.Tap(c => c.Id("save_preset_button"));
+            this.WaitForTimeSpan(TimeSpan.FromSeconds(1.5));
             app.Screenshot("Overall presets save");
         }
     
