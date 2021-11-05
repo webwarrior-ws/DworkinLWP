@@ -296,7 +296,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         if platform.IsAndroid then
             let materialKind = if texture = this.ForegroundTexture then "foreground" else "background"
             let materialName = material.GetType().Name
+#if TRACE
             platform.Log("frameTime", sprintf "Rendering %s (%s): %gms" materialKind materialName stopWatch.Elapsed.TotalMilliseconds)
+#endif
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
@@ -311,9 +313,9 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.InitializeMaterialTextures()
         this.InitializeStencilTexture()
         stopWatch.Stop()
-
+#if TRACE
         platform.Log("frameTime", sprintf "(re-)creating textures: %gms" stopWatch.Elapsed.TotalMilliseconds) |> ignore
-
+#endif
         GL.BindTexture(TextureTarget.Texture2D, 0)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
 
@@ -643,9 +645,9 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         match stepper with
         | Some(value) -> value
         | None -> AsyncEnvironmentStepper() :> AbstractEnvironmentStepper
-  
+#if TRACE  
     member val StatsPrinted = false with get, set
-
+#endif
     member this.StepsPerFrame 
         with get() : int = stepsPerFrame
         and set(value : int) = 
@@ -735,12 +737,12 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | shapes -> shapesToDraw <- shapesToDraw |> Array.append shapes
         stopWatch.Stop()
         this.EnvironmentStepper.Environment <- env 
-        
+#if TRACE        
         if platform.IsAndroid then
             let dt = stopWatch.Elapsed
             platform.Log("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds)
             this.StatsPrinted <- false
-        
+#endif        
         this.ResetStencil()
         // call RenderShapes even if there is nothing to draw, beacuse otherwise first frame is missed due to double buffering
         this.RenderShapes(shapesToDraw)
@@ -809,7 +811,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         
         if dt < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
-
+#if TRACE
         if platform.IsAndroid then
             if steps > 0 then
                 platform.Log("frameTime", 
@@ -829,6 +831,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
                         (TimeStats.stdev TimeSamplers.Shapes.Samples)
                         (TimeStats.stdev TimeSamplers.Image.Samples) )
                 this.StatsPrinted <- true
+ #endif
     
     member this.DrawTransition(strategy : TransitionStrategy, frameCount : int) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
