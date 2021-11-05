@@ -290,6 +290,14 @@ type SettingsActivity() =
 
     member private this.SecondaryPaneTitleView =
         this.FindViewById<TextView>(Resources.Id.settings_secondary_title)
+
+    member private this.UpdatePurchasesLinkVisibility() =
+        let purchasesLink = this.FindViewById<View>(Resources.Id.purchases_link)
+        let availablePurchases = Settings.InAppPurchases.getAvailablePurchases()
+        if Array.isEmpty availablePurchases then
+            purchasesLink.Visibility <- ViewStates.Gone
+        else
+            purchasesLink.Visibility <- ViewStates.Visible
 #if DEBUG
     static member val CREATE_FILE = 5
     
@@ -388,13 +396,15 @@ type SettingsActivity() =
 
     override this.OnResume() =
         base.OnResume()
-        Settings.InAppPurchases.refreshPurchasesInfo(this.ApplicationContext)
-        let availablePurchases = Settings.InAppPurchases.getAvailablePurchases()
-        let purchasesLink = this.FindViewById<View>(Resources.Id.purchases_link)
-        if Array.isEmpty availablePurchases then
-            purchasesLink.Visibility <- ViewStates.Gone
-        else
-            purchasesLink.Visibility <- ViewStates.Visible
+        Settings.InAppPurchases.readFromStorage(this.ApplicationContext)
+        this.UpdatePurchasesLinkVisibility() // based on purchaes info from storage
+        async {
+            // fetch purchases info from billing API and update "Premium content" element visibility again
+            do! Settings.InAppPurchases.refreshPurchasesInfoAsync(this.ApplicationContext)
+            this.RunOnUiThread(this.UpdatePurchasesLinkVisibility)
+        }
+        |> Async.Start
+        
 #if DEBUG
     override this.OnActivityResult(requestCode, resultCode, data) =
         base.OnActivityResult(requestCode, resultCode, data)

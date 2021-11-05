@@ -127,7 +127,7 @@ let private getPurchaseItemsAsync() : Async<seq<InAppBillingPurchase>> =
 
 /// Access purchased in-app purchases using Google Play Billing API and store results in memeory and storage.
 /// If Billing API returns error, use values stored in storage.
-let refreshPurchasesInfo(context: Context) =
+let refreshPurchasesInfoAsync(context: Context) =
     async {
         try
             let! purchases = getPurchaseItemsAsync()
@@ -144,7 +144,6 @@ let refreshPurchasesInfo(context: Context) =
             writeLog(sprintf "Error in refreshPurchasesInfo: %A" ex)
             readFromStorage(context)
     }
-    |> Async.Start
 
 
 let getPurchasesDataAsync (skus : string[]) =
