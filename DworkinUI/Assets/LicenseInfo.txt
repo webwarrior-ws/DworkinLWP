@@ -1,0 +1,35 @@
+﻿SOFTWARE LIBRARIES:
+
+Xamarin.AndroidX
+https://go.microsoft.com/fwlink/?linkid=2113238
+MIT License
+
+Xamarin.Essentials
+https://github.com/xamarin/Essentials
+MIT License
+https://www.nuget.org/packages/Xamarin.Essentials/1.5.3.2/license
+
+Xamarin.Android.Google.BillingClient
+https://go.microsoft.com/fwlink/?linkid=2100110
+MIT License
+https://www.nuget.org/packages/Xamarin.Android.Google.BillingClient/3.0.0/license
+
+Plugin.InAppBilling by James Montemagno
+https://github.com/jamesmontemagno/InAppBillingPlugin
+MIT License
+https://github.com/jamesmontemagno/InAppBillingPlugin/blob/master/LICENSE
+
+FSharp.Core
+https://github.com/fsharp/fsharp
+MIT License
+https://github.com/fsharp/fsharp/blob/master/LICENSE
+
+Cheesebaron.ColorPickers by Tomasz Cielecki
+https://github.com/Cheesebaron/Cheesebaron.ColorPickers
+Apache-2.0 License
+http://www.apache.org/licenses/LICENSE-2.0
+
+Aether by Andrew Cherry
+https://xyncro.tech/aether/
+MIT License
+https://github.com/xyncro/aether/blob/master/LICENSE.md

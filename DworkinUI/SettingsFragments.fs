@@ -95,6 +95,21 @@ type OverallSettingsFragment() =
                 |> ignore
         )
 
+        view.FindViewById<View>(Resources.Id.license_control).Click.Add(fun _ ->
+            use builder = new AlertDialog.Builder(this.Context)
+            let root = new RelativeLayout(this.Context)
+            let scrollView = inflater.Inflate(Resources.Layout.LicenseInfo, root)
+            let textView = scrollView.FindViewById<TextView>(Resources.Id.text)
+            use reader = new System.IO.StreamReader(this.Context.Assets.Open("LicenseInfo.txt"))
+            textView.Text <- reader.ReadToEnd()
+            builder
+                .SetTitle("Licenses")
+                .SetView(root)
+                .SetNeutralButton("OK", fun _ _ -> ())
+                .Show()
+                |> ignore
+        )
+
         view
         
     override this.OnResume() =
