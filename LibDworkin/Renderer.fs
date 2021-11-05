@@ -292,11 +292,10 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
         GL.DrawArrays(BeginMode.Triangles, 0, 6)
         stopWatch.Stop()
-
+#if TRACE
         if platform.IsAndroid then
             let materialKind = if texture = this.ForegroundTexture then "foreground" else "background"
             let materialName = material.GetType().Name
-#if TRACE
             platform.Log("frameTime", sprintf "Rendering %s (%s): %gms" materialKind materialName stopWatch.Elapsed.TotalMilliseconds)
 #endif
 
