@@ -9,6 +9,21 @@ open Plugin.InAppBilling
 open Atom
 
 
+let verifyPurchaseImpl =
+    let key1 = @"LHHCHk@OCfjpijhF8v1C@PDG@@NB@P9@LHHCBfJB@PD@s{@RREFHw.3BT.GCPf3yLneS9@3B.JM8dw[OxjcBp4ru19KwJLvRghsoOgqqkTHvxK.@BfHjpd@k@gF9yk[sS6g"
+    let key2 = @"6R@a[S7NIJ0NU@cPO7cS1p)zMQEmThapeQOR:VuLOOkLdp-u0fVdN`FrKXngNmP))-sjdmV:xIgn2xKkr6c[j2@`k[jU;u6wQmsDd;37Xn[q)p;QgC-{K:EN0V5QDtsLSKc"
+    let key3 = @"QT1Gui73QGG(6QKDzdGtdyw0UB3SObJ2LA5K;1,GISkkmQaSTBqSVhHLGA:NKfz;EL[lk2AYmFEGD;2R:[3`r@d55pT[0Tm@,DWGlp1SN4zUItLqDg7oSgN;4k4RJGBRBA"
+    
+    { new IInAppBillingVerifyPurchase with 
+        override this.VerifyPurchase(signedData, signature, productId, transactionId) =
+            let key1Transform = InAppBillingImplementation.InAppBillingSecurity.TransformString(key1, 1)
+            let key2Transform = InAppBillingImplementation.InAppBillingSecurity.TransformString(key2, 2)
+            let key3Transform = InAppBillingImplementation.InAppBillingSecurity.TransformString(key3, 3)
+            let resultingKey = key1Transform + key2Transform + key3Transform
+            InAppBillingImplementation.InAppBillingSecurity.VerifyPurchase(resultingKey, signedData, signature)
+            |> System.Threading.Tasks.Task.FromResult }
+
+
 type InAppPurchaseAttribute(sku : string) =
     inherit System.Attribute()
     member this.SKU = sku
@@ -162,7 +177,7 @@ let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct
             let buyItemAsync = 
                 performBillingAction
                     (fun billing -> async {
-                        let! purchase = billing.PurchaseAsync(each.ProductId, ItemType.InAppPurchase) |> Async.AwaitTask // TODO: verify
+                        let! purchase = billing.PurchaseAsync(each.ProductId, ItemType.InAppPurchase, verifyPurchaseImpl) |> Async.AwaitTask
                         dialog.Cancel()
                         if not (isNull purchase) && purchase.State = PurchaseState.Purchased then
                             swap purchasedItems (Set.add purchase.ProductId)
