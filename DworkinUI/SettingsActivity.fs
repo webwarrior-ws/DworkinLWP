@@ -129,6 +129,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
                 let i = allPresets.FindIndex(fun x -> x.Name = preset.Name)
                 if i >= 0 then
                     allPresets.[i] <- preset :?> 'TPreset 
+                    previews.[i].InvalidateCache()
                     previews.[i] <- newPreview
                 else
                     allPresets.Add(preset :?> 'TPreset) 
@@ -146,11 +147,12 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
         match v with
         | :? GridView as gridView ->
             let menuInfo = menuInfo :?> AdapterView.AdapterContextMenuInfo
-            let preview = gridView.GetChildAt(menuInfo.Position) :?> PresetPreview
-            menu.SetHeaderTitle(preview.Preset.Name) |> ignore
-            if preview.Preset.InAppPurchases.IsEmpty then
+            let preview = gridView.Adapter.GetItem(menuInfo.Position) :?> PresetPreview
+            let preset = preview.Preset
+            menu.SetHeaderTitle(preset.Name) |> ignore
+            if preset.InAppPurchases.IsEmpty then
                 menu.Add(menuInfo.Position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
-            if not preview.Preset.IsBuiltin then
+            if not preset.IsBuiltin then
                 menu.Add(menuInfo.Position, int PresetContextMenuChoice.Rename, 1, "Rename") |> ignore
                 menu.Add(menuInfo.Position, int PresetContextMenuChoice.Delete, 2, "Delete") |> ignore
         | _ -> ()
@@ -189,6 +191,12 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
     override this.OnCreateOptionsMenu(menu) = 
         // Don't show menu with "preview/set" button in preset selection screens
         true
+
+    override this.OnDestroy() =
+        base.OnDestroy()
+        for each in previews do each.Dispose()
+        previews.Clear()
+        System.GC.Collect() // needed because otherwise will eventually get OutOfMemoryException
     
 
 [<Activity(Label = "Appearance Preset")>] 

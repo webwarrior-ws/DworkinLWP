@@ -80,7 +80,7 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
                         newPreset.Name <- nameInput.Text
                         newPreset.IsSaved <- false
                         PresetManagement.savePreset this.Context newPreset
-                        preview.SaveCurrentImage()
+                        preview.SaveCurrentImageForAnotherPreset(newPreset)
                         presetSavedEvent.Trigger(newPreset) )
                 .SetNegativeButton("Cancel", fun _ _ -> this.Dialog.Cancel())
                 .Create()

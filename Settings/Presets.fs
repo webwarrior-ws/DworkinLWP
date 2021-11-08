@@ -147,6 +147,9 @@ type PresetPreview(context : Context, preset : Preset) =
 
     override this.Dispose(disposing) =
         cancellationSource.Dispose()
+        if not (isNull currentBitmap) then
+            currentBitmap.Dispose()
+            currentBitmap <- null
         base.Dispose(disposing) 
     
     override this.OnAttachedToWindow() =
@@ -166,9 +169,12 @@ type PresetPreview(context : Context, preset : Preset) =
         this.NameDisplay.Text <- preset.Name
 
     // previews cache management
-    member this.CacheFilePath =
+    member this.GetCacheFilePathFor(preset: Preset) =
         let filename = "img-" + Java.Net.URLEncoder.Encode(preset.Name, "UTF-8") + ".png"
         context.CacheDir.Path + "/" + preset.DirName + "/" + filename
+
+    member this.CacheFilePath =
+        this.GetCacheFilePathFor(preset)
     
     member private this.EnsureCacheDir() =
         System.IO.Directory.CreateDirectory(context.CacheDir.Path + "/" + preset.DirName) |> ignore
@@ -178,6 +184,9 @@ type PresetPreview(context : Context, preset : Preset) =
             async {
                 try
                     this.EnsureCacheDir()
+#if TRACE
+                    Android.Util.Log.Debug("presetPreview", sprintf "Save bitmap for %s to cache: %s" this.Preset.Name this.CacheFilePath) |> ignore
+#endif
                     use ostream = new System.IO.FileStream(this.CacheFilePath, System.IO.FileMode.Create)
                     do! bitmap.CompressAsync(Android.Graphics.Bitmap.CompressFormat.Png, 1, ostream) |> Async.AwaitTask |> Async.Ignore
                 with
@@ -190,6 +199,9 @@ type PresetPreview(context : Context, preset : Preset) =
         if preset.IsSaved && file.Exists() then
             let bitmap = Android.Graphics.BitmapFactory.DecodeFile(this.CacheFilePath)
             if not (isNull bitmap) && (bitmap.Width, bitmap.Height) = this.ImageSize then
+#if TRACE
+                Android.Util.Log.Debug("presetPreview", sprintf "Load bitmap for %s from cache: %s" this.Preset.Name this.CacheFilePath) |> ignore
+#endif
                 Some(bitmap)
             else
                 None // force re-generation of thumbnail with correct dimensions
@@ -199,23 +211,39 @@ type PresetPreview(context : Context, preset : Preset) =
     member this.InvalidateCache() =
         use file = new Java.IO.File(this.CacheFilePath)
         if file.Exists() then
+#if TRACE
+            Android.Util.Log.Debug("presetPreview", sprintf "Delete cached image: %s" this.CacheFilePath) |> ignore
+#endif
             file.Delete() |> ignore
 
-    member this.SaveCurrentImage() =
+    member this.SaveCurrentImageForAnotherPreset(anotherPreset: Preset) =
         if not (isNull currentBitmap) then
             try
                 this.EnsureCacheDir()
-                use ostream = new System.IO.FileStream(this.CacheFilePath, System.IO.FileMode.Create)
-                currentBitmap.Compress(Android.Graphics.Bitmap.CompressFormat.Png, 1, ostream) |> ignore
+                let cacheFilePath = this.GetCacheFilePathFor(anotherPreset)
+                use ostream = new System.IO.FileStream(cacheFilePath, System.IO.FileMode.Create)
+                let result = currentBitmap.Compress(Android.Graphics.Bitmap.CompressFormat.Png, 1, ostream) 
+#if TRACE
+                Android.Util.Log.Debug("presetPreview", sprintf "Save bitmap for %s to cache: %s" anotherPreset.Name cacheFilePath) |> ignore
+                if not result then
+                    Android.Util.Log.Debug("presetPreview", sprintf "Could not save bitmap for %s to cache" anotherPreset.Name) |> ignore
+#else
+                ()
+#endif
             with
-            | _ -> ()
+            | exn -> 
+                Android.Util.Log.Error("presetPreview", exn.Message) |> ignore
 
     // state changes
     member this.SetInitialState() =
         if state = PresetPreviewState.Pending then
-            match this.GetCachedPreview() with
-            | Some(bitmap) -> this.SetImage(bitmap)
-            | None -> this.RequestGeneration()
+            try
+                match this.GetCachedPreview() with
+                | Some(bitmap) -> this.SetImage(bitmap)
+                | None -> this.RequestGeneration()
+            with
+            | :? Java.Lang.OutOfMemoryError ->
+                this.ShowError()
 
     /// Pending | Generating -> Complete
     member this.SetImage(bitmap : Android.Graphics.Bitmap) =
@@ -248,7 +276,9 @@ type PresetPreview(context : Context, preset : Preset) =
                 this.Post(this.ShowError) |> ignore
         } 
         state <- PresetPreviewState.Generating
+#if TRACE
         Android.Util.Log.Debug("preview-render", sprintf "Request render preset %A in %d" this.Preset.Name (this.GetHashCode())) |> ignore
+#endif
         Async.Start(generationTask, cancellationSource.Token)
         this.StatusDisplay.Text <- "Generating preview..."
     
