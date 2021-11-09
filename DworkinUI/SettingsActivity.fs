@@ -104,6 +104,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
             else [||]
         allPresets.AddRange(builtinPresets)
         allPresets.AddRange(presets)
+        allPresets.Sort(System.Comparison<'TPreset>(fun x y -> System.Collections.Generic.Comparer.Default.Compare(x.Name, y.Name)))
         let previewSize = this.GetPreviewSize()
         for preset in allPresets do
             previews.Add <| new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
