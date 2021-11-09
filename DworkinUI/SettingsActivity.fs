@@ -301,11 +301,12 @@ type SettingsActivity() =
 
     member private this.UpdatePurchasesLinkVisibility() =
         let purchasesLink = this.FindViewById<View>(Resources.Id.purchases_link)
-        let availablePurchases = Settings.InAppPurchases.getAvailablePurchases()
-        if Array.isEmpty availablePurchases then
-            purchasesLink.Visibility <- ViewStates.Gone
-        else
-            purchasesLink.Visibility <- ViewStates.Visible
+        if not (isNull purchasesLink) then
+            let availablePurchases = Settings.InAppPurchases.getAvailablePurchases()
+            if Array.isEmpty availablePurchases then
+                purchasesLink.Visibility <- ViewStates.Gone
+            else
+                purchasesLink.Visibility <- ViewStates.Visible
 #if DEBUG
     static member val CREATE_FILE = 5
     

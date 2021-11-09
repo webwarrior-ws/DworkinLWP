@@ -25,18 +25,28 @@
         android:layout_gravity="top|right"
         android:src="@drawable/dice_preview"
         android:visibility="invisible" />
-    <TextView
-        android:id="@+id/nameDisplay"
-        android:text="Preset Name"
-        android:layout_width="wrap_content"
-        android:layout_height="28sp"
+    <RelativeLayout
+        android:id="@+id/nameDisplayContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|bottom"
-        android:textColor="@android:color/white"
-        android:shadowColor="#000000"
-        android:shadowRadius="3.0"
-        android:textSize="18sp"
-        android:textAlignment="center">
-    </TextView>
+        android:background="#B0808080">
+        <TextView
+            android:id="@+id/nameDisplay"
+            android:text="Preset Name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:paddingBottom="2dp"
+            android:paddingHorizontal="4dp"
+            android:textColor="@android:color/white"
+            android:shadowColor="#000000"
+            android:shadowRadius="3.0"
+            android:textSize="14sp"
+            android:textAlignment="center">
+        </TextView>
+    </RelativeLayout>
     <TextView
         android:id="@+id/statusDisplay"
         android:text="Loading preview..."

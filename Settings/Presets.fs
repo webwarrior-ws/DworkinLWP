@@ -139,11 +139,12 @@ type PresetPreview(context : Context, preset : Preset) =
     
     member internal this.StatusDisplay = this.FindViewById<TextView>(Resources.Id.statusDisplay)
     member private this.NameDisplay = this.FindViewById<TextView>(Resources.Id.nameDisplay)
+    member private this.NameDisplayContainer = this.FindViewById<View>(Resources.Id.nameDisplayContainer)
 
     member this.NameVisible
-        with get() : bool = this.NameDisplay.Visibility = ViewStates.Visible
+        with get() : bool = this.NameDisplayContainer.Visibility = ViewStates.Visible
         and set(isVisible : bool) = 
-            this.NameDisplay.Visibility <- if isVisible then ViewStates.Visible else ViewStates.Invisible
+            this.NameDisplayContainer.Visibility <- if isVisible then ViewStates.Visible else ViewStates.Invisible
 
     override this.Dispose(disposing) =
         cancellationSource.Dispose()
