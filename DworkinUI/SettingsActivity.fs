@@ -133,7 +133,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
                     previews.[i].InvalidateCache()
                     previews.[i] <- newPreview
                 else
-                    let j = allPresets.FindIndex(fun each -> not each.IsBuiltin && each.Name > preset.Name)
+                    let j = allPresets.FindLastIndex(fun each -> not each.IsBuiltin && preset.Name > each.Name) + 1
                     allPresets.Insert(j, preset :?> 'TPreset) 
                     previews.Insert(j, newPreview)
                 fragment.Update() )
