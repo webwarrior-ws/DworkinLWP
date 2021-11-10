@@ -101,10 +101,10 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
                 [| for file in presetsDir.ListFiles() do
                     let preset : 'TPreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
                     yield preset |]
+                |> Array.sortBy (fun each -> each.Name)
             else [||]
-        allPresets.AddRange(builtinPresets)
         allPresets.AddRange(presets)
-        allPresets.Sort(System.Comparison<'TPreset>(fun x y -> System.Collections.Generic.Comparer.Default.Compare(x.Name, y.Name)))
+        allPresets.AddRange(builtinPresets)
         let previewSize = this.GetPreviewSize()
         for preset in allPresets do
             previews.Add <| new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
@@ -133,8 +133,9 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
                     previews.[i].InvalidateCache()
                     previews.[i] <- newPreview
                 else
-                    allPresets.Add(preset :?> 'TPreset) 
-                    previews.Add(newPreview)
+                    let j = allPresets.FindIndex(fun each -> not each.IsBuiltin && each.Name > preset.Name)
+                    allPresets.Insert(j, preset :?> 'TPreset) 
+                    previews.Insert(j, newPreview)
                 fragment.Update() )
             dialog.Show(this.SupportFragmentManager, dialog.GetType().Name) )
 
