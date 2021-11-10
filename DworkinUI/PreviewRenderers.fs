@@ -11,6 +11,15 @@ open Javax.Microedition.Khronos.Egl
 open LibDworkin.RendererComponents
 
 
+
+let inline writeLog(message: string) =
+#if TRACE
+    Android.Util.Log.Debug("preview-render", message) |> ignore
+#else
+    ()
+#endif
+
+
 module OffscreenRendering =
     open System.Threading
     open System.Threading.Tasks
@@ -293,7 +302,7 @@ type BasePresetRenderer(platform, width : int, height : int) =
         if not <| OffscreenRendering.Request(width, height) then
             failwith "failed to get offscreen GL context"
 
-        Android.Util.Log.Debug("preview-render", "Initialize renderer instance") |> ignore
+        writeLog("Initialize renderer instance")
 
     /// Return bitmap containing image from current renderbuffer
     member this.CaptureRenderbuffer() : Bitmap =
@@ -312,7 +321,7 @@ type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
             match instance with
             | Some(renderer) when renderer.WallpaperSize = (width, height) -> renderer
             | _ ->
-                Android.Util.Log.Debug("preview-render", "Request renderer instance") |> ignore
+                writeLog("Request renderer instance")
                 let renderer = rendererFactory()
                 renderer.Initialize()
                 instance <- Some(renderer)
@@ -357,10 +366,14 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
 
     member this.RenderPreview(bgColor : Graphics.Color4, fgColor : Graphics.Color4, background : Material, foreground : Material, effect : Effect) : Bitmap = 
         let hash = bgColor.GetHashCode() ^^^ fgColor.GetHashCode() ^^^ background.GetHashCode() ^^^ foreground.GetHashCode() ^^^ effect.GetHashCode()
-        Android.Util.Log.Debug("preview-render", sprintf "Request render %d" hash) |> ignore
+        writeLog(sprintf "Request render %d" hash)
         
         let getBitmap() =
-            Android.Util.Log.Debug("preview-render", sprintf "Begin   render %d" hash) |> ignore
+            writeLog(sprintf "Begin   render %d" hash)
+            // account for smaller size
+            background.ExtraScaleFactor <- 0.25f
+            foreground.ExtraScaleFactor <- 0.25f
+
             this.Background <- background
             this.Foreground <- foreground
             this.Effect <- effect
@@ -373,7 +386,7 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
                 texturesInitialized <- true
 
             this.DrawImage()
-            Android.Util.Log.Debug("preview-render", sprintf "End     render %d" hash) |> ignore
+            writeLog(sprintf "End     render %d" hash)
             this.CaptureRenderbuffer()
 
         OffscreenRendering.processRequest getBitmap |> Option.get
@@ -400,11 +413,11 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
 
     member this.RenderPreview(settings : LibDworkin.DworkinSettings.SettingsHolder) : Bitmap = 
         let hash = settings.GetHashCode()
-        Android.Util.Log.Debug("preview-render", sprintf "Request render [overall] %d" hash) |> ignore
+        writeLog(sprintf "Request render [overall] %d" hash)
 
         let getBitmap() =
             let stopwatch = System.Diagnostics.Stopwatch.StartNew()
-            Android.Util.Log.Debug("preview-render", sprintf "Begin   render [overall] %d" hash) |> ignore
+            writeLog(sprintf "Begin   render [overall] %d" hash)
             let random = System.Random(settings.Seed)
             let fgColor, bgColor = settings.GetColors(System.Random(settings.Seed)) // use independent PRNG for colors
             this.Effect <- settings.Effect.Build(platform, random)
@@ -424,25 +437,25 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
 
             this.ClearSDF()
             this.ResetStencil()
-            Android.Util.Log.Debug("preview-render", sprintf "Build environment [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
+            writeLog(sprintf "Build environment [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
             let envConfig = settings.Environment.Build(settings.Seed) :> LibDworkin.Agents.IDworkinEnvironmentConfig 
             let env = envConfig.GetEnvironment(this.GetDimensions(width, height))
-            Android.Util.Log.Debug("preview-render", sprintf "Begin simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
+            writeLog(sprintf "Begin simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
             let shapes = ResizeArray()
             while env.HasAgents do
                 shapes.AddRange(env.Step())
                 if shapes.Count > 10000 then
-                    Android.Util.Log.Debug("preview-render", sprintf "Begin shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
+                    writeLog(sprintf "Begin shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
                     this.RenderShapes(shapes.ToArray())
-                    Android.Util.Log.Debug("preview-render", sprintf "End   shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
+                    writeLog(sprintf "End   shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
                     shapes.Clear()
             if shapes.Count > 0 then
                 this.RenderShapes(shapes.ToArray())
-            Android.Util.Log.Debug("preview-render", sprintf "End   simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
+            writeLog(sprintf "End   simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
 
             this.DrawImage()
             
-            Android.Util.Log.Debug("preview-render", sprintf "End     render [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds) |> ignore
+            writeLog(sprintf "End     render [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
             this.CaptureRenderbuffer()
 
         OffscreenRendering.processRequest getBitmap |> Option.get

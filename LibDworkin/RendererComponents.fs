@@ -376,6 +376,8 @@ type Material(shader : ResettableLazy<Shader>) =
     inherit ShaderBasedComponent(shader)
     /// Scale as used in Renderer
     member val Scale = Geometry.Point(1.0f) with get, set
+    // Additional scale factor. Used in appearance preset preview renderer
+    member val ExtraScaleFactor = 1.0f with get, set
 
     override this.Use() =
         base.Use()
@@ -413,7 +415,7 @@ type AbstractUniversalMaterial(platform : AbstractPlatform,
 
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
-        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor)
+        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor * this.ExtraScaleFactor)
         // obtain all textures first so that OpenGL state is not messed up
         let reflectionTexture = platform.GetTexture(Helpers.reflectionMapTextureName).Value
         let aoTexture =
@@ -512,7 +514,7 @@ type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlig
     override this.SetUniforms() =
         GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
         GL.Uniform1(this.Shader.GetUniformLocation("highlight"), highlight)
-        GL.Uniform1(this.Shader.GetUniformLocation("scale"), scale)
+        GL.Uniform1(this.Shader.GetUniformLocation("scale"), scale * this.ExtraScaleFactor)
         GL.Uniform2(this.Shader.GetUniformLocation("offset"), offset)
         GL.Uniform1(this.Shader.GetUniformLocation("stretch"), stretch)
         GL.Uniform1(this.Shader.GetUniformLocation("strokeFreq"), strokeFreq)
