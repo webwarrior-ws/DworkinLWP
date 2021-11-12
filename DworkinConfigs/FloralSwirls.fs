@@ -808,7 +808,9 @@ module LargeSwirlsStrategies =
         [|
             BranchingCriterionBased(
                 Criterion=BranchingCriterionCustom.IntervalRandBoundedT(DRange=NumberRange(30.0f, 60.0f),TInterval=NumberRange(0.1f, 0.8f)),
-                SpawnConfig=spawnConfigForFirstStrat
+                SpawnConfig=(spawnConfigForFirstStrat 
+                             |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 3.0f
+                             |> Optic.set (agentConfig_ >-> speed_) (AgentSpeedConstant(Magnitude=1.0f)))
             );
 
             BranchingCriterionBased(
@@ -872,7 +874,7 @@ module LargeSwirlsStrategies =
                     |> Optic.set (detectorSize_) DetectorSize.Absolute
                     |> Optic.set (handler_ >-> CollisionHandler.IgnoreParentUpTo.MinDistance_) 30.0f
                     |> Optic.set (primaryDetector_ >-> angle_) 90.0f
-                    |> Optic.set (primaryDetector_ >-> distance_) 5.0f)
+                    |> Optic.set (primaryDetector_ >-> distance_) 3.0f)
             :> BranchingStrategy;
 
             (swirlsShifted4Cosine.[1] :?> BranchingCriterionBased)
@@ -1302,4 +1304,4 @@ let magneticSpiralSingle =
         LengthInterval=Interval(900.0f, 1200.0f, 100.0f),
         N=1)
         |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> angle_) 180.0f
-        |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 60.0f
+        |> Optic.set (agentConfig_ >-> terminationConditions_ >-> collision_ >-> primaryDetector_ >-> distance_) 30.0f
