@@ -34,7 +34,7 @@ namespace DworkinLWP
             if (!CurrentSettings.isSet())
             {
                 var defaultSettings = new SettingsHolder(
-                        new ConfigSettings.PCB_RandomPosChips(),
+                        new ConfigSettings.FlowingLeaves(),
                         new Effects.Plain(),
                         new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(0.0f, 0.0f, 0.0f)),
                         new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(1.0f, 1.0f, 1.0f)),

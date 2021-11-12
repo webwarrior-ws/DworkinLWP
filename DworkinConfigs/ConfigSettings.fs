@@ -235,16 +235,16 @@ type FlowingLeaves() =
     [<FloatRange(0.5f, 1.5f, Step=0.05f)>]
     member val Density = Defined(1.0f) with get, set
 
-    [<FloatRange(0.0f, 0.75f, Step=0.05f)>]
-    member val ScaleVariance = Defined(0.0f) with get, set
+    [<FloatRange(0.0f, 0.75f, Step=0.05f, Name="Scale variance")>]
+    member val ScaleVariance = Defined(0.4f) with get, set
     
     [<FloatRange(0.0f, 2.0f, Step=0.1f)>]
     member val Curviness = Defined(0.0f) with get, set
     
-    [<FloatRange(2.5f, 10.0f, Step=0.5f)>]
+    [<FloatRange(2.5f, 10.0f, Step=0.5f, Name="Leaf thickness")>]
     member val LeafThickness = Defined(5.0f) with get, set
     
-    [<FloatRange(40.0f, 90.0f, Step=5.0f)>]
+    [<FloatRange(40.0f, 90.0f, Step=5.0f, Name="Leaf length")>]
     member val LeafLength = Defined(50.0f) with get, set
     
     [<FloatRange(0.5f, 0.8f, Step=0.05f)>]
@@ -308,7 +308,7 @@ type Vine() =
 
     [<Enum([| VineType.Single; VineType.Curly1; VineType.Curly2; VineType.Curly3; VineType.Splitting |], 
            ItemType=typeof<VineType>, Representation=EnumRepresentation.VineType, Name="Vine type")>]
-    member val VineType = Defined(VineType.Single) with get, set
+    member val VineType = Defined(VineType.Curly2) with get, set
 
     [<Enum([| VineLeafType.None; VineLeafType.IndAlt; VineLeafType.IndByScale; VineLeafType.WithStem; 
               VineLeafType.SlightlyCurved; VineLeafType.Rounded; VineLeafType.Straight1; VineLeafType.Curved1 |],

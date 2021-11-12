@@ -220,8 +220,8 @@ module Effects =
         inherit EffectSettings()
         static do Settings.RegisterClass<Outline>()
 
-        [<FloatRange(0.02f, 0.1f)>]
-        member val OutlineWidth = Defined(0.05f) with get, set
+        [<FloatRange(0.02f, 0.1f, Step=0.01f, Name="Width")>]
+        member val OutlineWidth = Defined(0.07f) with get, set
 
         override this.Build(platform, random) = 
             OutlineEffect(platform, Randomizeable.getValue random <@ this.OutlineWidth @>) :> Effect
@@ -392,7 +392,7 @@ module Effects =
                 getValue <@ this.Washout @>)
             :> Effect
 
-    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<Highlight>; typeof<FuzzyTexture> |]
+    let allTypes = [| typeof<Plain>; typeof<Outline>; typeof<Shadow>; typeof<Bevel>; typeof<Glow>; typeof<FuzzyTexture> |]
 
 
 module Colors =
