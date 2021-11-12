@@ -1,0 +1,1 @@
+{"Background": {"<<<Type>>>": "SolidColor"}, "BackgroundColor": [0.9372549, 0.9372549, 0.9372549], "Effect": {"<<<Type>>>": "Plain"}, "Environment": {"<<<Type>>>": "Vine", "Leaves": "IndByScale", "Scale": 2, "StartingPositions": "BottomAndTop", "VineType": "Curly3"}, "Foreground": {"<<<Type>>>": "SolidColor"}, "ForegroundColor": [0, 0.5647059, 0.0235294122], "Seed": 533094064}

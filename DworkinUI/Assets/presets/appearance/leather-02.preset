@@ -1,0 +1,1 @@
+{"bgColor": [0.145098045, 0.2627451, 0.137254909], "bgMaterial": {"<<<Type>>>": "Leather"}, "effect": {"<<<Type>>>": "Bevel", "Contrast": 2.25, "MaxDistance": 0.5, "Mode": "DownLevel", "Profile": "Circular"}, "fgColor": [0.05882353, 0.09411765, 0.0431372561], "fgMaterial": {"<<<Type>>>": "SameAsBackground"}}

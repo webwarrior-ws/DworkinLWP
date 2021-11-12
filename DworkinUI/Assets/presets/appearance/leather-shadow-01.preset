@@ -1,0 +1,1 @@
+{"bgColor": [0.521568656, 0.58431375, 0.7647059], "bgMaterial": {"<<<Type>>>": "Leather"}, "effect": {"<<<Type>>>": "Shadow", "Inner": true, "Offset": 5, "Size": 0.5, "Softness": 0.6, "Strength": 0.900000036}, "fgColor": [0.141176477, 0.235294119, 0.466666669], "fgMaterial": {"<<<Type>>>": "SameAsBackground"}}

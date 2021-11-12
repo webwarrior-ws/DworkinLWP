@@ -1,0 +1,1 @@
+{"bgColor": [0.8627451, 0.647058845, 0.3529412], "bgMaterial": {"<<<Type>>>": "Stucco", "Type": "Combed"}, "effect": {"<<<Type>>>": "Bevel", "Contrast": 2, "MaxDistance": 0.5, "Mode": "UpLevel", "Profile": "InverseCircular"}, "fgColor": [0.356862754, 0.227450982, 0.6039216], "fgMaterial": {"<<<Type>>>": "SameAsBackground"}}

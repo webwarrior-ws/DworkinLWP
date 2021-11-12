@@ -1,0 +1,1 @@
+{"bgColor": [0.08627451, 0.6156863, 0.5764706], "bgMaterial": {"<<<Type>>>": "SolidColor"}, "effect": {"<<<Type>>>": "Bevel", "Contrast": 2, "MaxDistance": 0.5, "Mode": "LevelUp", "Profile": "Circular"}, "fgColor": [0.8627451, 0.8627451, 0.8627451], "fgMaterial": {"<<<Type>>>": "SameAsBackground"}}

@@ -1,0 +1,1 @@
+{"bgColor": [0.13333334, 0.13333334, 0.13333334], "bgMaterial": {"<<<Type>>>": "Metal", "Type": "Brushed"}, "effect": {"<<<Type>>>": "Bevel", "Contrast": 1.5, "MaxDistance": 0.5, "Mode": "DownLevel", "Profile": "Linear"}, "fgColor": [0.3764706, 0.945098042, 0.9647059], "fgMaterial": {"<<<Type>>>": "Metal", "Type": "Smooth"}}

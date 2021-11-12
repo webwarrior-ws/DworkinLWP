@@ -1,0 +1,1 @@
+{"bgColor": [0.156862751, 0.156862751, 0.156862751], "bgMaterial": {"<<<Type>>>": "SolidColor"}, "effect": {"<<<Type>>>": "Glow", "Inside": "Glow", "Intensity": 0.15, "Size": 0.8}, "fgColor": [0.149019614, 0.9647059, 0.9490196], "fgMaterial": {"<<<Type>>>": "SameAsBackground"}}

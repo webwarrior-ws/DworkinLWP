@@ -1,0 +1,1 @@
+{"bgColor": [0.8627451, 0.647058845, 0.3529412], "bgMaterial": {"<<<Type>>>": "Stucco", "Type": "Rough"}, "effect": {"<<<Type>>>": "FuzzyTexture", "Distortion": 0.15, "Fill": 0.6, "Softness": 0.1, "TextureType": "Ink", "Washout": 0}, "fgColor": [0.435294122, 0.1764706, 0.0431372561], "fgMaterial": {"<<<Type>>>": "SameAsBackground"}}

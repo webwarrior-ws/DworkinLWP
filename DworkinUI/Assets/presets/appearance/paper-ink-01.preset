@@ -1,0 +1,1 @@
+{"bgColor": [0.9607843, 0.9607843, 0.9607843], "bgMaterial": {"<<<Type>>>": "Paper", "Type": "Watercolor"}, "effect": {"<<<Type>>>": "FuzzyTexture", "Distortion": 0.25, "Fill": 0.55, "Softness": 0.15, "TextureType": "Ink", "Washout": 0.05}, "fgColor": [0.07450981, 0.09803922, 0.254901975], "fgMaterial": {"<<<Type>>>": "SameAsBackground"}}

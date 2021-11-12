@@ -1,0 +1,1 @@
+{"bgColor": [0.13333334, 0.13333334, 0.13333334], "bgMaterial": {"<<<Type>>>": "Metal", "Type": "Brushed"}, "effect": {"<<<Type>>>": "Shadow", "Inner": true, "Offset": 3, "Size": 0.25, "Softness": 1, "Strength": 0.8}, "fgColor": [0.254901975, 0.1882353, 0.772549033], "fgMaterial": {"<<<Type>>>": "Metal", "Type": "Smooth"}}
