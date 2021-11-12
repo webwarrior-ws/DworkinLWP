@@ -1103,7 +1103,7 @@ type S_ShapedSwirlSingle() =
             let x = lerp env.Bounds.Left env.Bounds.Right (if horizontal then 1.0f - this.Ty else this.Tx)
             let y = lerp env.Bounds.Top env.Bounds.Bottom (if horizontal then this.Tx else this.Ty)
             Point(x, y)
-        let angle = if horizontal then -Single.HalfPi else 0.0f
+        let angle = (if horizontal then -Single.HalfPi else 0.0f) - 0.14f
         let spawnOptions = ProbeSpawnOptions(Position=pos, Angle=angle)
         let agentBlock (a : DworkinAgent) = a.ScaleBy(Point(scale * this.Thickness, scale))
         let probeData = env.LaunchProbe(this.Config, spawnOptions, agentBlock)
