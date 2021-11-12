@@ -17,4 +17,8 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
+  <PropertyGroup>
+	<AndroidResgenExtraArgs>-c en_US</AndroidResgenExtraArgs>
+  </PropertyGroup>
+
 </Project>

@@ -349,4 +349,8 @@
 		<Target Name="AfterBuild">
 		</Target>
 	-->
+  <PropertyGroup>
+      <AndroidResgenExtraArgs>-c en_US</AndroidResgenExtraArgs>
+  </PropertyGroup>
+  
 </Project>
