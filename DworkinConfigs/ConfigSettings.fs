@@ -60,7 +60,7 @@ type PCB_RandomPosChips() =
     [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>, Representation=EnumRepresentation.PCBEndpoints)>]
     member val Endpoints = Defined(PCB.Endpoints.Hollow) with get, set
     
-    [<FloatRange(0.75f, 1.5f)>]
+    [<FloatRange(0.75f, 1.5f, Step=0.05f)>]
     member val Size = Defined(1.0f) with get, set
 
     [<FloatRange(0.2f, 0.8f, Step=0.05f)>]
@@ -113,7 +113,7 @@ type PCB_Traces() =
     [<Enum([| PCB.Endpoints.Hollow; PCB.Endpoints.Filled |], ItemType=typeof<PCB.Endpoints>, Representation=EnumRepresentation.PCBEndpoints)>]
     member val Endpoints = Defined(PCB.Endpoints.Hollow) with get, set
     
-    [<FloatRange(1.0f, 2.5f)>]
+    [<FloatRange(1.0f, 2.5f, Step=0.1f)>]
     member val Size = Defined(1.75f) with get, set
         
     [<FloatRange(0.0f, 1.0f, Step=0.1f, Name="Trace thickness variance")>]
@@ -175,10 +175,10 @@ type Maze() =
            ItemType=typeof<MazeAngles>, Representation=EnumRepresentation.MazeAngles)>]
     member val Angles = Defined(MazeAngles.Square) with get, set
 
-    [<FloatRange(0.5f, 2.0f, Name="Wall thickness")>]
+    [<FloatRange(0.5f, 2.0f, Step=0.05f, Name="Wall thickness")>]
     member val WallThickness = Defined(1.0f) with get, set
 
-    [<FloatRange(0.0f, 0.5f, Name="Wall thickness variance")>]
+    [<FloatRange(0.0f, 0.5f, Step=0.05f, Name="Wall thickness variance")>]
     member val ThicknessVariance = Defined(0.0f) with get, set
 
     [<Bool>]
@@ -187,7 +187,7 @@ type Maze() =
     [<Enum([| 0; 45 |], ItemType=typeof<int>, Representation=EnumRepresentation.Angle)>]
     member val Orientation = Defined(0) with get, set
 
-    [<FloatRange(0.5f, 1.5f)>]
+    [<FloatRange(0.5f, 1.5f, Step=0.05f)>]
     member val Scale = Defined(1.0f) with get, set
 
     override this.Build(seed) =
@@ -466,7 +466,7 @@ type FloralSwirls() =
     [<Bool(Name="Leaves on stem")>]
     member val LeavesOnStem = Defined(false) with get, set
 
-    [<FloatRange(1.0f, 2.0f)>]
+    [<FloatRange(1.0f, 2.0f, Step=0.1f)>]
     member val Thickness = Defined(1.0f) with get, set
 
     override this.Build(seed) = 
