@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-	<AndroidResgenExtraArgs>-c en_US</AndroidResgenExtraArgs>
+	<AndroidAapt2LinkExtraArgs>-c en-rUS</AndroidAapt2LinkExtraArgs>
   </PropertyGroup>
 
 </Project>
