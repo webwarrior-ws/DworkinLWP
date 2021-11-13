@@ -273,9 +273,9 @@ module OffscreenRendering =
     // Stop all pending tasks and release OpenGL resources
     let Release() =
         cts.Cancel()
+        if taskScheduler.IsValueCreated then taskScheduler.Value.Complete()
         EndOurGL()
         cts <- new CancellationTokenSource()
-        if taskScheduler.IsValueCreated then taskScheduler.Value.Complete()
         taskScheduler <- lazy(
             let ts = new SingleThreadTaskScheduler(cts.Token)
             ts.Start()
@@ -283,14 +283,8 @@ module OffscreenRendering =
 
     /// Preform given function (request) on a dedicated thread and return its result synchronously.
     /// Requests are queued up and run sequentially.
-    let processRequest(request : unit -> 'T) : 'T option =
-        let resultHolder : 'T option ref = ref None
-        let action () = resultHolder := Some(request())
-        try
-            taskScheduler.Value.Schedule(action).GetAwaiter().GetResult()
-        with 
-        | _ -> ()
-        !resultHolder
+    let processRequest(request : unit -> 'T) : Async<'T> =
+        taskScheduler.Value.Schedule(request) |> Async.AwaitTask
 
 
 
@@ -311,14 +305,19 @@ type BasePresetRenderer(platform, width : int, height : int) =
         let pixels = bitmap.LockPixels()
         GL.ReadPixels(0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, pixels)
         bitmap.UnlockPixels()
+#if DEBUG
+        match GL.GetErrorCode() with
+        | x when x <> ErrorCode.NoError -> writeLog(sprintf "OpenGL error: %A" x)
+        | _ -> ()
+#endif
         bitmap
 
 
 type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
     let mutable instance : 'T option = None
     
-    member this.RequestInstance(rendererFactory : unit -> 'T, width, height) : 'T =
-        OffscreenRendering.processRequest(fun () ->
+    member this.RequestInstance(rendererFactory : unit -> 'T, width, height) : Async<'T> =
+        OffscreenRendering.processRequest <| fun () ->
             match instance with
             | Some(renderer) when renderer.WallpaperSize = (width, height) -> renderer
             | _ ->
@@ -326,13 +325,13 @@ type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
                 let renderer = rendererFactory()
                 renderer.Initialize()
                 instance <- Some(renderer)
-                renderer)
-            |> Option.get
+                renderer
     
     member this.ResetInstance() = 
-        if instance.IsSome then
-            OffscreenRendering.Release()
-            instance <- None
+        OffscreenRendering.processRequest <| fun () ->
+            if instance.IsSome then
+                OffscreenRendering.Release()
+                instance <- None
 
 
 type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height : int) =
@@ -344,7 +343,7 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
 
     static let singleton = RendererSingleton<AppearancePresetRenderer>()
 
-    static member RequestInstance(platform, width, height) : AppearancePresetRenderer =
+    static member RequestInstance(platform, width, height) : Async<AppearancePresetRenderer> =
         let factory () = new AppearancePresetRenderer(platform, width , height)
         singleton.RequestInstance(factory, width, height)
     
@@ -365,7 +364,7 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
         GL.Disable(EnableCap.DepthTest)
         GL.Disable(EnableCap.CullFace)
 
-    member this.RenderPreview(bgColor : Graphics.Color4, fgColor : Graphics.Color4, background : Material, foreground : Material, effect : Effect) : Bitmap = 
+    member this.RenderPreview(bgColor : Graphics.Color4, fgColor : Graphics.Color4, background : Material, foreground : Material, effect : Effect) : Async<Bitmap> = 
         let hash = bgColor.GetHashCode() ^^^ fgColor.GetHashCode() ^^^ background.GetHashCode() ^^^ foreground.GetHashCode() ^^^ effect.GetHashCode()
         writeLog(sprintf "Request render %d" hash)
         
@@ -390,7 +389,7 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
             writeLog(sprintf "End     render %d" hash)
             this.CaptureRenderbuffer()
 
-        OffscreenRendering.processRequest getBitmap |> Option.get
+        OffscreenRendering.processRequest getBitmap
 
 
 type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : int) =
@@ -400,7 +399,7 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
 
     static let singleton = RendererSingleton<OverallPresetRenderer>()
 
-    static member RequestInstance(platform, width, height) : OverallPresetRenderer =
+    static member RequestInstance(platform, width, height) : Async<OverallPresetRenderer> =
         let factory () = new OverallPresetRenderer(platform, width , height)
         singleton.RequestInstance(factory, width, height)
     
@@ -412,13 +411,24 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
         this.OnSurfaceCreated()
         LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset <- true
 
-    member this.RenderPreview(settings : LibDworkin.DworkinSettings.SettingsHolder) : Bitmap = 
+    member this.RenderPreview(settings : LibDworkin.DworkinSettings.SettingsHolder) : Async<Bitmap> = 
         let hash = settings.GetHashCode()
         writeLog(sprintf "Request render [overall] %d" hash)
 
+        let stopwatch = System.Diagnostics.Stopwatch.StartNew()
+        writeLog(sprintf "Build environment [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
+        let envConfig = settings.Environment.Build(settings.Seed) :> LibDworkin.Agents.IDworkinEnvironmentConfig 
+        let env = envConfig.GetEnvironment(this.GetDimensions(width, height))
+        writeLog(sprintf "Begin simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
+        let shapes = ResizeArray()
+        while env.HasAgents do
+            shapes.AddRange(env.Step())
+        writeLog(sprintf "End   simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
+        let maxShapesInOnePass = 10000
+
         let getBitmap() =
             let stopwatch = System.Diagnostics.Stopwatch.StartNew()
-            writeLog(sprintf "Begin   render [overall] %d" hash)
+            writeLog(sprintf "Begin   render [overall] %d on thread#%d" hash  System.Threading.Thread.CurrentThread.ManagedThreadId)
             let random = System.Random(settings.Seed)
             let fgColor, bgColor = settings.GetColors(System.Random(settings.Seed)) // use independent PRNG for colors
             this.Effect <- settings.Effect.Build(platform, random)
@@ -438,25 +448,16 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
 
             this.ClearSDF()
             this.ResetStencil()
-            writeLog(sprintf "Build environment [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
-            let envConfig = settings.Environment.Build(settings.Seed) :> LibDworkin.Agents.IDworkinEnvironmentConfig 
-            let env = envConfig.GetEnvironment(this.GetDimensions(width, height))
-            writeLog(sprintf "Begin simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
-            let shapes = ResizeArray()
-            while env.HasAgents do
-                shapes.AddRange(env.Step())
-                if shapes.Count > 10000 then
-                    writeLog(sprintf "Begin shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
-                    this.RenderShapes(shapes.ToArray())
-                    writeLog(sprintf "End   shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
-                    shapes.Clear()
-            if shapes.Count > 0 then
+            writeLog(sprintf "Begin shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
+            if shapes.Count > maxShapesInOnePass then
+                let splitShapes = shapes |> Seq.splitInto (shapes.Count / maxShapesInOnePass + 1)
+                for chunk in splitShapes do
+                    this.RenderShapes(chunk)
+            else
                 this.RenderShapes(shapes.ToArray())
-            writeLog(sprintf "End   simulation [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
-
+            writeLog(sprintf "End   shapes [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
             this.DrawImage()
-            
             writeLog(sprintf "End     render [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
             this.CaptureRenderbuffer()
 
-        OffscreenRendering.processRequest getBitmap |> Option.get
+        OffscreenRendering.processRequest getBitmap

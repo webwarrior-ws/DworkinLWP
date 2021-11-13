@@ -19,7 +19,7 @@ type Preset() =
     member val IsBuiltin = false with get, set
 
     // to be overriden in subclasses:
-    abstract GeneratePreview : Context * int * int -> Android.Graphics.Bitmap
+    abstract GeneratePreview : Context * int * int -> Async<Android.Graphics.Bitmap>
     /// Name used to define sub-directories for storage of presets and preview cache. 
     /// Has to be unique for each type of preset.
     abstract DirName : string
@@ -271,7 +271,7 @@ type PresetPreview(context : Context, preset : Preset) =
         let generationTask = async {
             try
                 let w, h = this.ImageSize
-                let bitmap = preset.GeneratePreview(context, w, h)
+                let! bitmap = preset.GeneratePreview(context, w, h)
                 // using Post method because one must only change UI state from UI thread
                 this.Post(fun () -> this.SetImage(bitmap)) |> ignore
                 if preset.IsSaved then

@@ -63,8 +63,7 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
 
     override this.GeneratePreview(context, w, h) =
         let platform = LibDworkin.RendererComponents.AndroidPlatform(context)
-        let renderer = PreviewRenderers.AppearancePresetRenderer.RequestInstance(platform, w, h)
-
+        
         let getRandom() = System.Random(69)
         let fgColor, bgColor = Colors.getColors (getRandom()) fgColor bgColor
         let background = this.Background.Build(platform, getRandom(), bgColor)
@@ -74,7 +73,10 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
             | foreground -> foreground.Build(platform, getRandom(), fgColor)
         let effect = this.Effect.Build(platform, getRandom())
 
-        renderer.RenderPreview(bgColor, fgColor, background, foreground, effect)
+        async {
+            let! renderer = PreviewRenderers.AppearancePresetRenderer.RequestInstance(platform, w, h)
+            return! renderer.RenderPreview(bgColor, fgColor, background, foreground, effect)
+        }
 
     /// Return true if provided settings have same effect, materials and colors as receiver
     member this.IsUsedInSettings(settings : SettingsHolder) : bool =
@@ -132,8 +134,10 @@ type OverallPreset(settings : SettingsHolder) =
 
     override this.GeneratePreview(context, w, h) =
         let platform = LibDworkin.RendererComponents.AndroidPlatform(context)
-        let renderer = PreviewRenderers.OverallPresetRenderer.RequestInstance(platform, w, h)
-        renderer.RenderPreview(settings)
+        async {
+            let! renderer = PreviewRenderers.OverallPresetRenderer.RequestInstance(platform, w, h)
+            return! renderer.RenderPreview(settings)
+        }
 
     override this.UsedClasses =
         [| settings.Effect.GetType(); settings.Foreground.GetType(); settings.Background.GetType(); settings.Environment.GetType() |]

@@ -52,9 +52,10 @@ type EGLContextFactory private() =
 /// This class tracks its instances and can reset them all (for specific context or all contexts).
 /// Context is defined by context marker (int).
 type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
-    static let allInstances = ResizeArray<WeakReference<ResettableLazy<'T>>>()
+    static let allInstances = new Collections.Concurrent.BlockingCollection<WeakReference<ResettableLazy<'T>>>()
 
-    let dict = SpecializedCollections.SmallDictionary<int, 'T>.Create()
+    let dict = Collections.Concurrent.ConcurrentDictionary<int, 'T>()
+    //SpecializedCollections.SmallDictionary<int, 'T>.Create()
     do
         allInstances.Add(WeakReference<ResettableLazy<'T>>(this))
 
@@ -65,14 +66,16 @@ type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
         0
 #endif
 
-    member this.Value = dict.GetOrSetIfAbsent(ResettableLazy<_>.CurrentContextMarker, valueFactory)
+    member this.Value = 
+        let key = ResettableLazy<_>.CurrentContextMarker
+        dict.GetOrAdd(key, fun key -> valueFactory())
     member this.IsValueCreated = dict.ContainsKey(ResettableLazy<_>.CurrentContextMarker)
 
     member this.Reset() =
         dict.Clear()
 
     member this.Reset(contextMarker : int) =
-        dict.Remove(contextMarker) |> ignore
+        dict.TryRemove(contextMarker) |> ignore
     
     static member ResetAll(?contextMarker : int) : unit =
         for each in allInstances do
@@ -197,8 +200,8 @@ type Graphics.Color4 with
 /// Platform-independent facade used by renderers to load shaders and other stuff
 [<AbstractClass>]
 type AbstractPlatform() =
-    static let shaders = Collections.Generic.Dictionary<string * string, ResettableLazy<Shader>>()
-    static let textures = Collections.Generic.Dictionary<string, ResettableLazy<int>>()
+    static let shaders = Collections.Concurrent.ConcurrentDictionary<string * string, ResettableLazy<Shader>>()
+    static let textures = Collections.Concurrent.ConcurrentDictionary<string, ResettableLazy<int>>()
 
     abstract member TextFromAsset : string -> string
     abstract member LoadTextureFromAsset : string -> int
@@ -207,10 +210,9 @@ type AbstractPlatform() =
     abstract member Log : string * string -> unit
 
     member this.GetShader(vertexShaderName : string, fragmentShaderName : string) : ResettableLazy<Shader> =
-        getOrSetIfAbsent 
-            shaders
-            (vertexShaderName, fragmentShaderName)
-            (fun () -> 
+        shaders.GetOrAdd(
+            (vertexShaderName, fragmentShaderName),
+            (fun _ -> 
                 let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
                 ResettableLazy(fun () -> 
 #if DEBUG
@@ -219,13 +221,14 @@ type AbstractPlatform() =
                         sprintf "Load shader %s on thread#%A" fragmentShaderName System.Threading.Thread.CurrentThread.ManagedThreadId)  
 #endif
                     let s = new Shader(readSource vertexShaderName, readSource fragmentShaderName)          
-                    s))        
+                    s))
+        )                    
     
     member this.GetTexture(filename : string) : ResettableLazy<int> =
-        getOrSetIfAbsent
-            textures
-            filename
-            (fun () -> ResettableLazy(fun () -> this.LoadTextureFromAsset(filename)))
+        textures.GetOrAdd(
+            filename,
+            (fun _ -> ResettableLazy(fun () -> this.LoadTextureFromAsset(filename)))
+        )
 
 #if __ANDROID__
  type AndroidPlatform(context : Android.Content.Context) =

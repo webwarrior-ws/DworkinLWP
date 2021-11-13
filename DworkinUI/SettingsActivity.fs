@@ -237,7 +237,7 @@ type AppearancePresetSelectionActivity() =
         this.Finish()
 
     override this.OnStop() =
-        PreviewRenderers.AppearancePresetRenderer.ResetInstance()
+        PreviewRenderers.AppearancePresetRenderer.ResetInstance() |> Async.Start
         base.OnStop()
 
 
@@ -269,7 +269,7 @@ type OverallPresetSelectionActivity() =
         this.Finish()
     
     override this.OnStop() =
-        PreviewRenderers.OverallPresetRenderer.ResetInstance()
+        PreviewRenderers.OverallPresetRenderer.ResetInstance() |> Async.Start
         base.OnStop()
 
 
