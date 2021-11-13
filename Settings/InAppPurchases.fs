@@ -114,15 +114,15 @@ let private performBillingAction<'T>(action: IInAppBilling -> Async<'T>) (fallba
             writeLog("Disconnected from Billing API")
     }
 
-let private getPurchaseItemsAsync() : Async<seq<InAppBillingPurchase>> =
+let private getPurchaseItemsAsync() : Async<option<seq<InAppBillingPurchase>>> =
     performBillingAction 
         (fun billing -> 
             async {
                 let! purchases = billing.GetPurchasesAsync(ItemType.InAppPurchase) |> Async.AwaitTask
                 //check for null just incase
-                return (if not (isNull purchases) then purchases else Seq.empty)
+                return (if not (isNull purchases) then Some(purchases) else None)
             })
-        (async { return Seq.empty })
+        (async { return None })
         2000
 
 /// Access purchased in-app purchases using Google Play Billing API and store results in memeory and storage.
@@ -130,15 +130,16 @@ let private getPurchaseItemsAsync() : Async<seq<InAppBillingPurchase>> =
 let refreshPurchasesInfoAsync(context: Context) =
     async {
         try
-            let! purchases = getPurchaseItemsAsync()
-            swap 
-                purchasedItems
-                (fun _ -> 
-                 purchases 
-                 |> Seq.filter (fun p -> p.State = PurchaseState.Purchased) // ?
-                 |> Seq.map (fun p -> p.ProductId)
-                 |> Set.ofSeq)
-            writeToStorage(context)
+            match! getPurchaseItemsAsync() with
+            | Some(purchases) ->
+                let newPurchasedItems = 
+                    purchases 
+                    |> Seq.filter (fun p -> p.State = PurchaseState.Purchased) // ?
+                    |> Seq.map (fun p -> p.ProductId)
+                    |> Set.ofSeq
+                swap purchasedItems (fun _ -> newPurchasedItems)
+                writeToStorage(context)
+            | None -> ()
         with
         | ex ->
             writeLog(sprintf "Error in refreshPurchasesInfo: %A" ex)
