@@ -213,9 +213,11 @@ type AbstractPlatform() =
             (fun () -> 
                 let readSource fname = this.TextFromAsset(IO.Path.Combine("shaders", fname))
                 ResettableLazy(fun () -> 
+#if DEBUG
                     this.Log(
                         "preview-render", 
                         sprintf "Load shader %s on thread#%A" fragmentShaderName System.Threading.Thread.CurrentThread.ManagedThreadId)  
+#endif
                     let s = new Shader(readSource vertexShaderName, readSource fragmentShaderName)          
                     s))        
     

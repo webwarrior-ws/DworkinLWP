@@ -13,7 +13,7 @@ open LibDworkin.RendererComponents
 
 
 let inline writeLog(message: string) =
-#if TRACE
+#if DEBUG
     Android.Util.Log.Debug("preview-render", message) |> ignore
 #else
     ()
@@ -275,6 +275,7 @@ module OffscreenRendering =
         cts.Cancel()
         EndOurGL()
         cts <- new CancellationTokenSource()
+        if taskScheduler.IsValueCreated then taskScheduler.Value.Complete()
         taskScheduler <- lazy(
             let ts = new SingleThreadTaskScheduler(cts.Token)
             ts.Start()
@@ -369,7 +370,7 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
         writeLog(sprintf "Request render %d" hash)
         
         let getBitmap() =
-            writeLog(sprintf "Begin   render %d" hash)
+            writeLog(sprintf "Begin   render %d  on thread#%d" hash System.Threading.Thread.CurrentThread.ManagedThreadId)
             // account for smaller size
             background.ExtraScaleFactor <- 0.25f
             foreground.ExtraScaleFactor <- 0.25f
