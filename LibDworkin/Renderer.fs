@@ -376,15 +376,9 @@ type BaseRenderer(platform : AbstractPlatform) =
 
         this.Effect.Use()
 
-        GL.ActiveTexture(TextureUnit.Texture0); checkError(__LINE__)
-        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture); checkError(__LINE__)
-        GL.Uniform1(this.Effect.Shader.GetUniformLocation("sdf"), 0); checkError(__LINE__)
-        GL.ActiveTexture(TextureUnit.Texture1); checkError(__LINE__)
-        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture); checkError(__LINE__)
-        GL.Uniform1(this.Effect.Shader.GetUniformLocation("background"), 1); checkError(__LINE__)
-        GL.ActiveTexture(TextureUnit.Texture2); checkError(__LINE__)
-        GL.BindTexture(TextureTarget.Texture2D, this.ForegroundTexture); checkError(__LINE__)
-        GL.Uniform1(this.Effect.Shader.GetUniformLocation("foreground"), 2); checkError(__LINE__)
+        this.Effect.SetTexture("sdf", TextureUnit.Texture0, this.SDFTexture)
+        this.Effect.SetTexture("background", TextureUnit.Texture1, this.BackgroundTexture)
+        this.Effect.SetTexture("foreground", TextureUnit.Texture2, this.ForegroundTexture)
 
         if this.Effect.UsesStencil then
             GL.ActiveTexture(TextureUnit.Texture3); checkError(__LINE__)
@@ -849,10 +843,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | TransitionStrategy.Dissolve -> dissolveTransitionShader.Value
 
         shader.Use()
-
-        GL.ActiveTexture(TextureUnit.Texture0); checkError(__LINE__)
-        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture); checkError(__LINE__)
-        GL.Uniform1(shader.GetUniformLocation("background"), 0); checkError(__LINE__)
+        shader.SetTexture("background", TextureUnit.Texture0, this.BackgroundTexture)
 
         match strategy with
         | TransitionStrategy.Fade -> 
@@ -862,9 +853,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         | TransitionStrategy.Dissolve -> 
             GL.Uniform1(shader.GetUniformLocation("t"), float32(frameCount)/float32(transitionDuration)); checkError(__LINE__)
             GL.Uniform1(shader.GetUniformLocation("ratio"), float32(fst this.WallpaperSize) / float32(snd this.WallpaperSize)); checkError(__LINE__)
-            GL.ActiveTexture(TextureUnit.Texture1); checkError(__LINE__)
-            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value); checkError(__LINE__)
-            GL.Uniform1(shader.GetUniformLocation("noise"), 1); checkError(__LINE__)
+            shader.SetTexture("noise", TextureUnit.Texture1, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value)
         
         let aTexCoords = shader.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO); checkError(__LINE__)

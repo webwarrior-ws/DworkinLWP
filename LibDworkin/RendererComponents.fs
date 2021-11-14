@@ -346,6 +346,11 @@ type Shader(vertexShader : string, fragmentShader : string) =
     member this.GetAttributeLocation(name : string) =
         getOrSetIfAbsent attributeLocations name (fun () -> GL.GetAttribLocation(this.Program, name))
     
+    member this.SetTexture(uniformName : string, textureSlot : TextureUnit, texture : int) =
+        GL.ActiveTexture(textureSlot); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
+        GL.Uniform1(this.GetUniformLocation(uniformName), int textureSlot - int TextureUnit.Texture0); checkError(__LINE__)
+
     // These methods defer setting uniform to the next time Use() method is called.
     // Do not use when setting samplers.
     member this.DeferredSetUniform(name : string, value : int) =
@@ -371,9 +376,7 @@ type ShaderBasedComponent(shader : ResettableLazy<Shader>) =
     member this.ResetShader() = shader.Reset()
 
     member internal this.SetTexture(uniformName : string, textureSlot : TextureUnit, texture : int) =
-        GL.ActiveTexture(textureSlot); checkError(__LINE__)
-        GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
-        GL.Uniform1(this.Shader.GetUniformLocation(uniformName), int textureSlot - int TextureUnit.Texture0); checkError(__LINE__)
+        this.Shader.SetTexture(uniformName, textureSlot, texture)
 
     abstract SetUniforms : unit -> unit
     default this.SetUniforms() = ()
