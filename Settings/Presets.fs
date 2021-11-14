@@ -301,37 +301,33 @@ type PresetPreview(context : Context, preset : Preset) =
 type PresetPreviewAdapter(previews : System.Collections.Generic.IList<PresetPreview>) =
     inherit BaseAdapter()
 
-    member val Previews = previews with get, set
+    member val ParentFragment : PresetSelectionFragment = null with get, set
 
-    override this.Count = this.Previews.Count
-    override this.GetItem(pos) = this.Previews.[pos] :> Java.Lang.Object
+    override this.Count = previews.Count
+    override this.GetItem(pos) = previews.[pos] :> Java.Lang.Object
     override this.GetItemId(pos) = int64 pos
 
     override this.GetView(pos, convertView, parent) =
-        let view = this.Previews.[pos]
+        let view = previews.[pos]
+        view.Clickable <- true
         view.LongClickable <- true
+        view.Click.Add(fun args -> this.ParentFragment.OnPresetClicked(view))
         view :> View
 
 
-[<AllowNullLiteral>]
-type PresetSelectionFragment() =
+and [<AllowNullLiteral>]
+     PresetSelectionFragment(previews: IList<PresetPreview>) =
     inherit AndroidX.Fragment.App.Fragment()
     
-    let adapter = new PresetPreviewAdapter([||])
+    let adapter = new PresetPreviewAdapter(previews)
 
     let presetSelectedEvent = Event<Preset>()
     member this.PresetSelected = presetSelectedEvent.Publish
-
-    member this.Previews
-        with get() : IList<PresetPreview> = adapter.Previews
-        and set(newValue : IList<PresetPreview>) = 
-            adapter.Previews <- newValue
-            this.Update()
-    
+        
     member this.Update() =
         adapter.NotifyDataSetChanged()
 
-    member private this.OnPresetClicked(eventArgs, preview : PresetPreview) =
+    member this.OnPresetClicked(preview : PresetPreview) =
         let skus = preview.Preset.InAppPurchases
         if not skus.IsEmpty then
             // inform user that he needs to purchase items
@@ -357,16 +353,16 @@ type PresetSelectionFragment() =
          // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
         let view = inflater.Inflate(Resources.Layout.PresetSelectionFragment, container, false)
         let gridView = view.FindViewById<GridView>(Resources.Id.previewGrid)
-        if this.Previews.Count > 0 then
-            gridView.SetColumnWidth(fst this.Previews.[0].ImageSize)
-        for each in this.Previews do
+        if previews.Count > 0 then
+            gridView.SetColumnWidth(fst previews.[0].ImageSize)
+        for each in previews do
             each.Initialize()
-            each.Click.Add(fun args -> this.OnPresetClicked(args, each))
+        adapter.ParentFragment <- this
         gridView.Adapter <- adapter
         this.Activity.RegisterForContextMenu(gridView)
         view         
 
     override this.OnStop() =
         base.OnStop()
-        for each in this.Previews do
+        for each in previews do
             each.CancelGeneration()

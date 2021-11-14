@@ -112,7 +112,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
         this.SetContentView(Resources.Layout.PresetSelectionScreen)
         this.SetupToolbar()
 
-        fragment <- new Settings.Presets.PresetSelectionFragment(Previews=previews)
+        fragment <- new Settings.Presets.PresetSelectionFragment(previews)
         fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> 'TPreset) )
     
         this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->

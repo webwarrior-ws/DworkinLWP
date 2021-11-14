@@ -12,5 +12,6 @@
         android:horizontalSpacing="@dimen/preset_preview_spacing"
         android:verticalSpacing="@dimen/preset_preview_spacing"
         android:stretchMode="none"
-        android:gravity="center_horizontal"/>
+        android:gravity="center_horizontal"
+        android:clickable="false"/>
 </FrameLayout>
