@@ -16,6 +16,15 @@ open Android.Opengl
 open Javax.Microedition.Khronos
 #endif
 
+let inline checkError(lineInfo: string) =
+#if DEBUG && __ANDROID__
+    let errorCode = GL.GetErrorCode()
+    if errorCode <> ErrorCode.NoError then
+        Android.Util.Log.Error("OpenGL", sprintf "Error %A at Renderer.fs line %s" errorCode lineInfo) |> ignore
+#else
+    ()
+#endif
+
 let maxSDFDistance = 16.0f
 
 
@@ -139,15 +148,15 @@ type BaseRenderer(platform : AbstractPlatform) =
     // Methods that perform some OpenGL-specific tasks
     member this.PerformDrawElements(indicesBuffer : Buffer<int>) =
 #if __ANDROID__            
-            GL.DrawElements(BeginMode.Triangles, indicesBuffer.Size, DrawElementsType.UnsignedInt, indicesBuffer.Array)
+            GL.DrawElements(BeginMode.Triangles, indicesBuffer.Size, DrawElementsType.UnsignedInt, indicesBuffer.Array); checkError(__LINE__)
 #else       
             Graphics.ES30.GL.DrawElements(Graphics.ES30.PrimitiveType.Triangles, indicesBuffer.Size, 
                                           Graphics.ES30.DrawElementsType.UnsignedInt, indicesBuffer.Array)
 #endif
     /// Transfer data from buffer to VBO
     member this.TransferBufferData(buffer : Buffer<'T>, vbo : int, bufferTarget : BufferTarget) = 
-        GL.BindBuffer(bufferTarget, vbo)
-        GL.BufferData(bufferTarget, nativeint (buffer.Size * sizeof<'T>), buffer.Array, BufferUsage.StreamDraw)
+        GL.BindBuffer(bufferTarget, vbo); checkError(__LINE__)
+        GL.BufferData(bufferTarget, nativeint (buffer.Size * sizeof<'T>), buffer.Array, BufferUsage.StreamDraw); checkError(__LINE__)
 
     // shapes buliding (adding data to VBOs)
     member private this.BuildCircle(center, radius, strokeWidth) =
@@ -212,46 +221,46 @@ type BaseRenderer(platform : AbstractPlatform) =
         max 6 ( min (int (size * 4.0f)) 120)
     
     member private this.SetCommonTextureParameters(wrapMode : TextureWrapMode) =
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int wrapMode)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int wrapMode)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int wrapMode); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int wrapMode); checkError(__LINE__)
 
     /// initialize sdf texture and framebuffer
     member private this.InitializeSDF() =
         if sdfTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(sdfTextures.Length, sdfTextures) 
-        GL.GenTextures(sdfTextures.Length, sdfTextures)
+        GL.GenTextures(sdfTextures.Length, sdfTextures); checkError(__LINE__)
         if sdfFrameBuffer = 0 then 
             sdfFrameBuffer <- gen1 GL.GenFramebuffers
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer); checkError(__LINE__)
 
         for texture in sdfTextures do
-            GL.BindTexture(TextureTarget.Texture2D, texture)
+            GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
             // NOTE: UnsignedShort565 may be the only supported pixel type
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
-                            PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
-            this.SetCommonTextureParameters(TextureWrapMode.ClampToEdge)
+                            PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0); checkError(__LINE__)
+            this.SetCommonTextureParameters(TextureWrapMode.ClampToEdge); checkError(__LINE__)
 
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                    TextureTarget.Texture2D, texture, 0)      
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-            GL.Clear(ClearBufferMask.ColorBufferBit)
+                                    TextureTarget.Texture2D, texture, 0)    ; checkError(__LINE__)  
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f); checkError(__LINE__)
+            GL.Clear(ClearBufferMask.ColorBufferBit); checkError(__LINE__)
         
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, this.SDFTexture, 0)
+                                TextureTarget.Texture2D, this.SDFTexture, 0); checkError(__LINE__)
     
     member this.InitializeMaterialTextures() =
         if materialTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(materialTextures.Length, materialTextures) 
-        GL.GenTextures(materialTextures.Length, materialTextures)
+        GL.GenTextures(materialTextures.Length, materialTextures); checkError(__LINE__)
         if materialFrameBuffer = 0 then 
             materialFrameBuffer <- gen1 GL.GenFramebuffers
         
         Array.iter2 
             (fun (texture : int) (material : Material) ->
-                GL.BindTexture(TextureTarget.Texture2D, texture)
+                GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
                 // NOTE: UnsignedShort565 may be the only supported pixel type
                 GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, wallpaperWidth, wallpaperHeight, 0, 
-                                PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0)
+                                PixelFormat.Rgb, PixelType.UnsignedByte, nativeint 0); checkError(__LINE__)
                 this.SetCommonTextureParameters(TextureWrapMode.ClampToEdge)
                 this.DrawMaterial(material, texture))
             [| this.ForegroundTexture; this.BackgroundTexture |] 
@@ -260,39 +269,39 @@ type BaseRenderer(platform : AbstractPlatform) =
     member private this.InitializeStencilTexture() =
         if stencilTexture <> 0 then GL.DeleteTexture(stencilTexture)
         stencilTexture <- GL.GenTexture()
-        GL.BindTexture(TextureTarget.Texture2D, stencilTexture)
+        GL.BindTexture(TextureTarget.Texture2D, stencilTexture); checkError(__LINE__)
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Luminance, stencilSize, stencilSize, 0, 
-                      PixelFormat.Luminance, PixelType.UnsignedByte, stencil.TextureData)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Nearest)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Nearest)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge)
-        GL.BindTexture(TextureTarget.Texture2D, 0)
+                      PixelFormat.Luminance, PixelType.UnsignedByte, stencil.TextureData); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Nearest); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Nearest); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.ClampToEdge); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.ClampToEdge); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, 0); checkError(__LINE__)
     
     member this.InitializeQuadVBO() =
         quadVBO <- gen1 GL.GenBuffers
-        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
+        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO); checkError(__LINE__)
         GL.BufferData(BufferTarget.ArrayBuffer, 
                       nativeint (fullScreenQuadVertices.Length * sizeof<float32>), 
                       fullScreenQuadVertices, 
-                      BufferUsage.StaticDraw)
+                      BufferUsage.StaticDraw); checkError(__LINE__)
 
     member this.ResetStencil() = stencil.Reset()
 
     member this.DrawMaterial(material : Material, texture : int) =
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-        GL.BindTexture(TextureTarget.Texture2D, texture)
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, materialFrameBuffer)
+        GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, materialFrameBuffer); checkError(__LINE__)
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, texture, 0)
+                                TextureTarget.Texture2D, texture, 0); checkError(__LINE__)
         material.Use()
         let aTexCoords = material.Shader.GetAttributeLocation("texCoords")
-        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
-        GL.EnableVertexAttribArray(aTexCoords)
-        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
-        GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO); checkError(__LINE__)
+        GL.EnableVertexAttribArray(aTexCoords); checkError(__LINE__)
+        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6); checkError(__LINE__)
         stopWatch.Stop()
-#if TRACE
+#if TRACE || DEBUG
         if platform.IsAndroid then
             let materialKind = if texture = this.ForegroundTexture then "foreground" else "background"
             let materialName = material.GetType().Name
@@ -302,7 +311,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
         // Set the OpenGL viewport to fill the entire surface. 
-        GL.Viewport(0, 0, width, height)
+        GL.Viewport(0, 0, width, height); checkError(__LINE__)
         // setup scale and offset
         let dimensions = this.GetDimensions(width, height)
         this.SetScale(dimensions, width, height)
@@ -312,17 +321,17 @@ type BaseRenderer(platform : AbstractPlatform) =
         this.InitializeMaterialTextures()
         this.InitializeStencilTexture()
         stopWatch.Stop()
-#if TRACE
+#if TRACE || DEBUG
         platform.Log("frameTime", sprintf "(re-)creating textures: %gms" stopWatch.Elapsed.TotalMilliseconds) |> ignore
 #endif
-        GL.BindTexture(TextureTarget.Texture2D, 0)
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+        GL.BindTexture(TextureTarget.Texture2D, 0); checkError(__LINE__)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0); checkError(__LINE__)
 
         this.ResetEnvironment(dimensions)
     
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
-        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+        GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f); checkError(__LINE__)
 
         this.ResetStencil()
 
@@ -337,8 +346,8 @@ type BaseRenderer(platform : AbstractPlatform) =
         circlesVBO <- gen1 GL.GenBuffers
         circleDataVBO <- gen1 GL.GenBuffers
 
-        GL.Disable(EnableCap.DepthTest)
-        GL.Disable(EnableCap.CullFace)
+        GL.Disable(EnableCap.DepthTest); checkError(__LINE__)
+        GL.Disable(EnableCap.CullFace); checkError(__LINE__)
 #if __ANDROID__
         if lastContext <> EGLContextFactory.CurrentContext then // OpenGL Context was lost, restart
             this.OnSurfaceChanged(wallpaperWidth, wallpaperHeight)
@@ -348,51 +357,51 @@ type BaseRenderer(platform : AbstractPlatform) =
     abstract member OnDrawFrame : unit -> unit
     default this.OnDrawFrame() =
         // Clear the rendering surface. 
-        GL.Clear(ClearBufferMask.ColorBufferBit)
+        GL.Clear(ClearBufferMask.ColorBufferBit); checkError(__LINE__)
     
     abstract member ResetEnvironment : Point -> unit
     default this.ResetEnvironment(dimensions) = ()
 
     member this.ClearSDF() =
-        GL.ColorMask(true, true, true, true)
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+        GL.ColorMask(true, true, true, true); checkError(__LINE__)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer); checkError(__LINE__)
         for texture in sdfTextures do
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                    TextureTarget.Texture2D, texture, 0) 
-            GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f)
-            GL.Clear(ClearBufferMask.ColorBufferBit)
+                                    TextureTarget.Texture2D, texture, 0) ; checkError(__LINE__)
+            GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f); checkError(__LINE__)
+            GL.Clear(ClearBufferMask.ColorBufferBit); checkError(__LINE__)
 
     member this.DrawImage() =
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0); checkError(__LINE__)
 
         this.Effect.Use()
 
-        GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
-        GL.Uniform1(this.Effect.Shader.GetUniformLocation("sdf"), 0)
-        GL.ActiveTexture(TextureUnit.Texture1)
-        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture)
-        GL.Uniform1(this.Effect.Shader.GetUniformLocation("background"), 1)
-        GL.ActiveTexture(TextureUnit.Texture2)
-        GL.BindTexture(TextureTarget.Texture2D, this.ForegroundTexture)
-        GL.Uniform1(this.Effect.Shader.GetUniformLocation("foreground"), 2)
+        GL.ActiveTexture(TextureUnit.Texture0); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture); checkError(__LINE__)
+        GL.Uniform1(this.Effect.Shader.GetUniformLocation("sdf"), 0); checkError(__LINE__)
+        GL.ActiveTexture(TextureUnit.Texture1); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture); checkError(__LINE__)
+        GL.Uniform1(this.Effect.Shader.GetUniformLocation("background"), 1); checkError(__LINE__)
+        GL.ActiveTexture(TextureUnit.Texture2); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, this.ForegroundTexture); checkError(__LINE__)
+        GL.Uniform1(this.Effect.Shader.GetUniformLocation("foreground"), 2); checkError(__LINE__)
 
         if this.Effect.UsesStencil then
-            GL.ActiveTexture(TextureUnit.Texture3)
-            GL.BindTexture(TextureTarget.Texture2D, stencilTexture)
+            GL.ActiveTexture(TextureUnit.Texture3); checkError(__LINE__)
+            GL.BindTexture(TextureTarget.Texture2D, stencilTexture); checkError(__LINE__)
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Luminance, stencilSize, stencilSize, 0, 
-                          PixelFormat.Luminance, PixelType.UnsignedByte, stencil.TextureData)
-            GL.Uniform1(this.Effect.Shader.GetUniformLocation("stencil"), 3)
-            GL.BindTexture(TextureTarget.Texture2D, 0)
+                          PixelFormat.Luminance, PixelType.UnsignedByte, stencil.TextureData); checkError(__LINE__)
+            GL.Uniform1(this.Effect.Shader.GetUniformLocation("stencil"), 3); checkError(__LINE__)
+            GL.BindTexture(TextureTarget.Texture2D, 0); checkError(__LINE__)
 
         let aTexCoords = this.Effect.Shader.GetAttributeLocation("texCoords")
-        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
-        GL.EnableVertexAttribArray(aTexCoords)
-        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
+        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO); checkError(__LINE__)
+        GL.EnableVertexAttribArray(aTexCoords); checkError(__LINE__)
+        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
 
-        GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6); checkError(__LINE__)
         
-        GL.DisableVertexAttribArray(aTexCoords)
+        GL.DisableVertexAttribArray(aTexCoords); checkError(__LINE__)
     
     member this.BuildOuterShellForPolygon(points : Point[]) =
         let n = points.Length
@@ -420,10 +429,10 @@ type BaseRenderer(platform : AbstractPlatform) =
             for _j=1 to 2 do polygonSegmentsVertices.Add O2 )
 
     member private this.ClearBlueChannel() =
-        GL.ColorMask(false, false, true, false)
-        GL.ClearColor(0.0f, 0.0f, 1.0f, 0.0f)
-        GL.Clear(ClearBufferMask.ColorBufferBit)
-        GL.ColorMask(true, true, true, true)
+        GL.ColorMask(false, false, true, false); checkError(__LINE__)
+        GL.ClearColor(0.0f, 0.0f, 1.0f, 0.0f); checkError(__LINE__)
+        GL.Clear(ClearBufferMask.ColorBufferBit); checkError(__LINE__)
+        GL.ColorMask(true, true, true, true); checkError(__LINE__)
 
     member this.RenderShapes(shapes : ShapeAndPaint[]) =
         // Update sdf (signed distance field) texture.
@@ -431,11 +440,11 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Distances are in range [-maxDistance; maxDistance]. 
         // maxDistance is defined as a multiple of unit distance in agent environment coordinates (may not be the same distance in screen space coordinates).
         // B channel acts as a stencil buffer for negative distances calculation (pixels with B>0 are skipped)
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer); checkError(__LINE__)
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, this.SDFTexture, 0) // needed for some reason
+                                TextureTarget.Texture2D, this.SDFTexture, 0); checkError(__LINE__) // needed for some reason
         
-        this.ClearBlueChannel()
+        this.ClearBlueChannel(); checkError(__LINE__)
 
         if this.Effect.UsesStencil then
             stencil.Update(shapes, scale, this.MaxDistance)
@@ -454,8 +463,8 @@ type BaseRenderer(platform : AbstractPlatform) =
 
             polygonDrawingShader.Value.Use()
             let aPos = polygonDrawingShader.Value.GetAttributeLocation("pos")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+            GL.EnableVertexAttribArray(aPos); checkError(__LINE__)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
 
             this.PerformDrawElements(polygonVertexIndices)
             
@@ -478,22 +487,22 @@ type BaseRenderer(platform : AbstractPlatform) =
             
         this.TransferBufferData(shapeVertices, shapesVBO, BufferTarget.ArrayBuffer)
 
-        GL.Enable(EnableCap.Blend)
+        GL.Enable(EnableCap.Blend); checkError(__LINE__)
         // Min blend equation is not specified by OpenGL ES 2.0 standard - need OpenGL ES 3.0 or GL_EXT_blend_minmax extension
-        GL.BlendEquation(All.Min) 
+        GL.BlendEquation(All.Min); checkError(__LINE__)
 
         // Step 1(polygons): calculate [positive] distances outside of shapes.
         if polygonVertexIndices.Size > 0 then
             this.TransferBufferData(polygonSegmentsVertices, polygonSegmentsVBO, BufferTarget.ArrayBuffer)
             this.CalcPositiveDistShader.Use()
             let aSegment = this.CalcPositiveDistShader.GetAttributeLocation("pointOnSegment")
-            GL.EnableVertexAttribArray(aSegment)
-            GL.VertexAttribPointer(aSegment, 2, VertexAttribPointerType.Float, false, 0, 0)
+            GL.EnableVertexAttribArray(aSegment); checkError(__LINE__)
+            GL.VertexAttribPointer(aSegment, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
                 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO)
+            GL.BindBuffer(BufferTarget.ArrayBuffer, shapesVBO); checkError(__LINE__)
             let aPos = this.CalcPositiveDistShader.GetAttributeLocation("pos")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+            GL.EnableVertexAttribArray(aPos); checkError(__LINE__)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
 
             this.PerformDrawElements(polygonVertexIndices)
             
@@ -502,18 +511,18 @@ type BaseRenderer(platform : AbstractPlatform) =
             circleDrawingShader.Value.Use()
             this.TransferBufferData(circleVertexData, circleDataVBO, BufferTarget.ArrayBuffer)
             let aData = circleDrawingShader.Value.GetAttributeLocation("data")
-            GL.EnableVertexAttribArray(aData)
-            GL.VertexAttribPointer(aData, 4, VertexAttribPointerType.Float, false, 0, 0)
+            GL.EnableVertexAttribArray(aData); checkError(__LINE__)
+            GL.VertexAttribPointer(aData, 4, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
 
             this.TransferBufferData(circleVertices, circlesVBO, BufferTarget.ArrayBuffer)
             let aPos = circleDrawingShader.Value.GetAttributeLocation("pos")
-            GL.EnableVertexAttribArray(aPos)
-            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+            GL.EnableVertexAttribArray(aPos); checkError(__LINE__)
+            GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
 
             this.PerformDrawElements(circleVertexIndices)
 
-        GL.BlendEquation(BlendEquationMode.FuncAdd)
-        GL.Disable(EnableCap.Blend)
+        GL.BlendEquation(BlendEquationMode.FuncAdd); checkError(__LINE__)
+        GL.Disable(EnableCap.Blend); checkError(__LINE__)
             
         this.CalculateNegativeDistances()
         // cleanup
@@ -524,31 +533,31 @@ type BaseRenderer(platform : AbstractPlatform) =
         // Since one cannot read from and write to the same texture, 
         // two textures are used and are swapped between horizontal and vertical passes.
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, this.SDFTexture2, 0)
-        GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture)
-        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO)
+                                TextureTarget.Texture2D, this.SDFTexture2, 0); checkError(__LINE__)
+        GL.ActiveTexture(TextureUnit.Texture0); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture); checkError(__LINE__)
+        GL.BindBuffer(BufferTarget.ArrayBuffer, quadVBO); checkError(__LINE__)
 
         this.ClearBlueChannel()
 
         // horizontal pass
         this.CalcNegativeDistShaderHorizontal.Use()
-        GL.Uniform1(this.CalcNegativeDistShaderHorizontal.GetUniformLocation("sdf"), 0)
+        GL.Uniform1(this.CalcNegativeDistShaderHorizontal.GetUniformLocation("sdf"), 0); checkError(__LINE__)
         let aPos = this.CalcNegativeDistShaderHorizontal.GetAttributeLocation("texCoords")
-        GL.EnableVertexAttribArray(aPos)
-        GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
-        GL.DrawArrays(BeginMode.Triangles, 0, 6)
+        GL.EnableVertexAttribArray(aPos); checkError(__LINE__)
+        GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6); checkError(__LINE__)
 
         // swap textures; vertical pass
-        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2)
+        GL.BindTexture(TextureTarget.Texture2D, this.SDFTexture2); checkError(__LINE__)
         this.CalcNegativeDistShaderVertical.Use()
-        GL.Uniform1(this.CalcNegativeDistShaderVertical.GetUniformLocation("sdf"), 0)
+        GL.Uniform1(this.CalcNegativeDistShaderVertical.GetUniformLocation("sdf"), 0); checkError(__LINE__)
         let aPos = this.CalcNegativeDistShaderVertical.GetAttributeLocation("texCoords")
-        GL.EnableVertexAttribArray(aPos)
-        GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0)
+        GL.EnableVertexAttribArray(aPos); checkError(__LINE__)
+        GL.VertexAttribPointer(aPos, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
-                                TextureTarget.Texture2D, this.SDFTexture, 0)
-        GL.DrawArrays(BeginMode.Triangles, 0, 6)
+                                TextureTarget.Texture2D, this.SDFTexture, 0); checkError(__LINE__)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6); checkError(__LINE__)
 
     member this.ClearBuffers() =
         shapeVertices.Reset()
@@ -630,7 +639,6 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | :? Materials.SameAsBackground -> currentSettings.Background.Build(platform, getRandom(), fgColor)
             | material -> material.Build(platform, getRandom(), fgColor) 
         this.Background <- currentSettings.Background.Build(platform, getRandom(), bgColor)
-        this.Effect.Use()
         this.Effect.SetMaterialProperties(
             { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
             { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
@@ -644,7 +652,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         match stepper with
         | Some(value) -> value
         | None -> AsyncEnvironmentStepper() :> AbstractEnvironmentStepper
-#if TRACE  
+#if TRACE || DEBUG  
     member val StatsPrinted = false with get, set
 #endif
     member this.StepsPerFrame 
@@ -736,7 +744,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | shapes -> shapesToDraw <- shapesToDraw |> Array.append shapes
         stopWatch.Stop()
         this.EnvironmentStepper.Environment <- env 
-#if TRACE        
+#if TRACE || DEBUG        
         if platform.IsAndroid then
             let dt = stopWatch.Elapsed
             platform.Log("frameTime", sprintf "Setting up environment: %gms" dt.TotalMilliseconds)
@@ -810,7 +818,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
         
         if dt < delay then
             System.Threading.Thread.Sleep(System.TimeSpan.FromMilliseconds(delay - dt))
-#if TRACE
+#if TRACE || DEBUG
         if platform.IsAndroid then
             if steps > 0 then
                 platform.Log("frameTime", 
@@ -833,7 +841,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
  #endif
     
     member this.DrawTransition(strategy : TransitionStrategy, frameCount : int) =
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0); checkError(__LINE__)
 
         let shader = 
             match strategy with
@@ -842,30 +850,30 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
 
         shader.Use()
 
-        GL.ActiveTexture(TextureUnit.Texture0)
-        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture)
-        GL.Uniform1(shader.GetUniformLocation("background"), 0)
+        GL.ActiveTexture(TextureUnit.Texture0); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, this.BackgroundTexture); checkError(__LINE__)
+        GL.Uniform1(shader.GetUniformLocation("background"), 0); checkError(__LINE__)
 
         match strategy with
         | TransitionStrategy.Fade -> 
             let dt = 1.0f/float32(transitionDuration)
             let t = exp((float32(frameCount)*dt - 1.0f - dt) * 10.0f) + dt
-            GL.Uniform1(shader.GetUniformLocation("t"), t)
+            GL.Uniform1(shader.GetUniformLocation("t"), t); checkError(__LINE__)
         | TransitionStrategy.Dissolve -> 
-            GL.Uniform1(shader.GetUniformLocation("t"), float32(frameCount)/float32(transitionDuration))
-            GL.Uniform1(shader.GetUniformLocation("ratio"), float32(fst this.WallpaperSize) / float32(snd this.WallpaperSize))
-            GL.ActiveTexture(TextureUnit.Texture1)
-            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value)
-            GL.Uniform1(shader.GetUniformLocation("noise"), 1)
+            GL.Uniform1(shader.GetUniformLocation("t"), float32(frameCount)/float32(transitionDuration)); checkError(__LINE__)
+            GL.Uniform1(shader.GetUniformLocation("ratio"), float32(fst this.WallpaperSize) / float32(snd this.WallpaperSize)); checkError(__LINE__)
+            GL.ActiveTexture(TextureUnit.Texture1); checkError(__LINE__)
+            GL.BindTexture(TextureTarget.Texture2D, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value); checkError(__LINE__)
+            GL.Uniform1(shader.GetUniformLocation("noise"), 1); checkError(__LINE__)
         
         let aTexCoords = shader.GetAttributeLocation("texCoords")
-        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO)
-        GL.EnableVertexAttribArray(aTexCoords)
-        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0)
+        GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO); checkError(__LINE__)
+        GL.EnableVertexAttribArray(aTexCoords); checkError(__LINE__)
+        GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
 
-        GL.Enable(EnableCap.Blend)
-        GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha)
-        GL.DrawArrays(BeginMode.Triangles, 0, 6)
-        GL.Disable(EnableCap.Blend)
+        GL.Enable(EnableCap.Blend); checkError(__LINE__)
+        GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha); checkError(__LINE__)
+        GL.DrawArrays(BeginMode.Triangles, 0, 6); checkError(__LINE__)
+        GL.Disable(EnableCap.Blend); checkError(__LINE__)
     
-        GL.DisableVertexAttribArray(aTexCoords)
+        GL.DisableVertexAttribArray(aTexCoords); checkError(__LINE__)

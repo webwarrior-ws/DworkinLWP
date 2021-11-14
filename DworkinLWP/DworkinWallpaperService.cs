@@ -40,7 +40,7 @@ namespace DworkinLWP
                         new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(1.0f, 1.0f, 1.0f)),
                         new Materials.SolidColor(),
                         new Materials.SolidColor(),
-                        42);
+                        1054841354);
                 CurrentSettings.set(defaultSettings);
             }
         }

@@ -47,6 +47,15 @@ type EGLContextFactory private() =
     static member val NeedsShaderUniformsReset = false with get, set
 #endif
 
+let inline checkError(lineInfo: string) =
+#if DEBUG && __ANDROID__
+    let errorCode = GL.GetErrorCode()
+    if errorCode <> ErrorCode.NoError then
+        Android.Util.Log.Error("OpenGL", sprintf "Error %A at %s line %s" errorCode __SOURCE_FILE__ lineInfo) |> ignore
+#else
+    ()
+#endif
+
 
 /// Like Lazy<'T>, but stores different values for different contexts and can "forget" computed value.
 /// This class tracks its instances and can reset them all (for specific context or all contexts).
@@ -106,12 +115,12 @@ module Helpers =
     /// Create OpenGL texture based on given image data. Return texture ID.
     let uploadTexture(pixels : nativeint, width, height) : int =
         let texture = GL.GenTexture()
-        GL.BindTexture(TextureTarget.Texture2D, texture)
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, pixels)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
+        GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, pixels); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat); checkError(__LINE__)
         texture
 
     let create1x1Texture(color : Graphics.Color4) : int =
@@ -243,13 +252,13 @@ type AbstractPlatform() =
         use stream = context.Assets.Open(IO.Path.Combine("textures", filename))
         use bitmap = Android.Graphics.BitmapFactory.DecodeStream(stream, new Android.Graphics.Rect(), opts)
         let texture = GL.GenTexture()
-        GL.BindTexture(TextureTarget.Texture2D, texture)
+        GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
         Android.Opengl.GLUtils.TexImage2D(Android.Opengl.GLES20.GlTexture2d, 0, bitmap, 0)
         bitmap.Recycle();
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat); checkError(__LINE__)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat); checkError(__LINE__)
         texture
     
     override this.IsAndroid = true
@@ -325,7 +334,7 @@ type Shader(vertexShader : string, fragmentShader : string) =
     member this.Program = program
 
     member this.Use() = 
-        GL.UseProgram(program)
+        GL.UseProgram(program); checkError(__LINE__)
         if not deferredActions.IsEmpty then
             let actions = deferredActions.Values
             deferredActions.Clear()
@@ -341,15 +350,15 @@ type Shader(vertexShader : string, fragmentShader : string) =
     // Do not use when setting samplers.
     member this.DeferredSetUniform(name : string, value : int) =
         let loc = this.GetUniformLocation(name)
-        deferredActions.[loc] <- (fun () -> GL.Uniform1(loc, value))
+        deferredActions.[loc] <- (fun () -> GL.Uniform1(loc, value); checkError(__LINE__))
     
     member this.DeferredSetUniform(name : string, value : float32) =
         let loc = this.GetUniformLocation(name)
-        deferredActions.[loc] <- (fun () -> GL.Uniform1(loc, value))
+        deferredActions.[loc] <- (fun () -> GL.Uniform1(loc, value); checkError(__LINE__))
     
     member this.DeferredSetUniform(name : string, value1 : float32, value2 : float32) =
         let loc = this.GetUniformLocation(name)
-        deferredActions.[loc] <- (fun () -> GL.Uniform2(loc, value1, value2))
+        deferredActions.[loc] <- (fun () -> GL.Uniform2(loc, value1, value2); checkError(__LINE__))
     
     interface IDisposable with
         member this.Dispose() = 
@@ -362,9 +371,9 @@ type ShaderBasedComponent(shader : ResettableLazy<Shader>) =
     member this.ResetShader() = shader.Reset()
 
     member internal this.SetTexture(uniformName : string, textureSlot : TextureUnit, texture : int) =
-        GL.ActiveTexture(textureSlot)
-        GL.BindTexture(TextureTarget.Texture2D, texture)
-        GL.Uniform1(this.Shader.GetUniformLocation(uniformName), int textureSlot - int TextureUnit.Texture0)
+        GL.ActiveTexture(textureSlot); checkError(__LINE__)
+        GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation(uniformName), int textureSlot - int TextureUnit.Texture0); checkError(__LINE__)
 
     abstract SetUniforms : unit -> unit
     default this.SetUniforms() = ()
@@ -401,7 +410,7 @@ type SolidColorMaterial(platform : AbstractPlatform, color : Graphics.Color4) =
     inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/solidColor.frag"))
 
     override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color); checkError(__LINE__)
 
 
 
@@ -419,8 +428,8 @@ type AbstractUniversalMaterial(platform : AbstractPlatform,
     inherit Material(shader)
 
     override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
-        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor * this.ExtraScaleFactor)
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), scaleFactor * this.ExtraScaleFactor); checkError(__LINE__)
         // obtain all textures first so that OpenGL state is not messed up
         let reflectionTexture = platform.GetTexture(Helpers.reflectionMapTextureName).Value
         let aoTexture =
@@ -442,17 +451,17 @@ type AbstractUniversalMaterial(platform : AbstractPlatform,
         match roughnessTexture with
         | Some(value) -> 
             this.SetTexture("roughnessMap", TextureUnit.Texture3, value)
-            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), -1.0f)
+            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), -1.0f); checkError(__LINE__)
         | None ->
-            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), snd roughness)
+            GL.Uniform1(this.Shader.GetUniformLocation("roughnessValue"), snd roughness); checkError(__LINE__)
         // specular color
-        GL.Uniform4(this.Shader.GetUniformLocation("specularColor"), this.Specular)
+        GL.Uniform4(this.Shader.GetUniformLocation("specularColor"), this.Specular); checkError(__LINE__)
         // toLight vector
         let mutable toLight = Vector3(Helpers.lightPosition.X, Helpers.lightPosition.Y, lightHeight)
         toLight.Normalize()
-        GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight)
+        GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight); checkError(__LINE__)
         // screen dimensions
-        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y))
+        GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), Vector2(1.0f / this.Scale.X, 1.0f / this.Scale.Y)); checkError(__LINE__)
 
     override this.Roughness = snd roughness
     
@@ -517,19 +526,19 @@ type MetalMaterial(platform : AbstractPlatform, color : Graphics.Color4, highlig
     inherit Material(platform.GetShader("fullScreenQuad.vert", "materials/metal.frag"))
     
     override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("color"), color)
-        GL.Uniform1(this.Shader.GetUniformLocation("highlight"), highlight)
-        GL.Uniform1(this.Shader.GetUniformLocation("scale"), scale * this.ExtraScaleFactor)
-        GL.Uniform2(this.Shader.GetUniformLocation("offset"), offset)
-        GL.Uniform1(this.Shader.GetUniformLocation("stretch"), stretch)
-        GL.Uniform1(this.Shader.GetUniformLocation("strokeFreq"), strokeFreq)
-        GL.Uniform1(this.Shader.GetUniformLocation("strokeLength"), strokeLength)
-        GL.Uniform1(this.Shader.GetUniformLocation("strokeIntensity"), strokeIntensity)
+        GL.Uniform4(this.Shader.GetUniformLocation("color"), color); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("highlight"), highlight); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("scale"), scale * this.ExtraScaleFactor); checkError(__LINE__)
+        GL.Uniform2(this.Shader.GetUniformLocation("offset"), offset); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("stretch"), stretch); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("strokeFreq"), strokeFreq); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("strokeLength"), strokeLength); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("strokeIntensity"), strokeIntensity); checkError(__LINE__)
         let rotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad angle)
         let strokeRotation = Matrix2.CreateRotation(LibDworkin.Geometry.deg2rad strokeAngle)
-        GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation)
-        GL.UniformMatrix2(this.Shader.GetUniformLocation("strokeRotation"), false, ref strokeRotation)
-        GL.Uniform1(this.Shader.GetUniformLocation("aspectRatio"), this.Scale.Y / this.Scale.X)
+        GL.UniformMatrix2(this.Shader.GetUniformLocation("rotation"), false, ref rotation); checkError(__LINE__)
+        GL.UniformMatrix2(this.Shader.GetUniformLocation("strokeRotation"), false, ref strokeRotation); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("aspectRatio"), this.Scale.Y / this.Scale.X); checkError(__LINE__)
 
     override this.Specular = color
     override this.Roughness = 0.2f
@@ -568,7 +577,7 @@ type Effect(shader : ResettableLazy<Shader>) =
         let needsInit = not shader.IsValueCreated || not wasUsed
         base.Use()
         if needsInit then 
-            GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), this.ScreenDimensions.X, this.ScreenDimensions.Y) 
+            GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), this.ScreenDimensions.X, this.ScreenDimensions.Y); checkError(__LINE__) 
             this.SetUniforms()
         wasUsed <- true
 
@@ -577,7 +586,7 @@ type SDFVisualizerEffect(platform : AbstractPlatform, frequency : float32) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "sdfVisualizer.frag"))
     
     override this.SetUniforms() =
-        GL.Uniform1(this.Shader.GetUniformLocation("frequency"), frequency)
+        GL.Uniform1(this.Shader.GetUniformLocation("frequency"), frequency); checkError(__LINE__)
 
 
 type PlainEffect(platform : AbstractPlatform) =
@@ -594,19 +603,19 @@ type ShadowEffect(platform : AbstractPlatform,
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/shadow.frag"))
 
     override this.SetUniforms() =
-        GL.Uniform2(this.Shader.GetUniformLocation("shadowDir"), Vector2.Normalize(shadowDir))
-        GL.Uniform1(this.Shader.GetUniformLocation("shadowOffset"), shadowOffset)
-        GL.Uniform1(this.Shader.GetUniformLocation("shadowSize"), shadowSize)
-        GL.Uniform1(this.Shader.GetUniformLocation("shadowSoftness"), shadowSoftness)
-        GL.Uniform1(this.Shader.GetUniformLocation("shadowStrength"), shadowStrength)
-        GL.Uniform1(this.Shader.GetUniformLocation("inner"), if inner then 1 else 0)
+        GL.Uniform2(this.Shader.GetUniformLocation("shadowDir"), Vector2.Normalize(shadowDir)); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowOffset"), shadowOffset); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowSize"), shadowSize); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowSoftness"), shadowSoftness); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("shadowStrength"), shadowStrength); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("inner"), if inner then 1 else 0); checkError(__LINE__)
 
 
 type OutlineEffect(platform : AbstractPlatform, outlineWidth : float32) =
     inherit Effect(platform.GetShader("fullScreenQuad.vert", "effects/outline.frag"))
 
     override this.SetUniforms() =
-        GL.Uniform1(this.Shader.GetUniformLocation("outlineWidth"), outlineWidth)
+        GL.Uniform1(this.Shader.GetUniformLocation("outlineWidth"), outlineWidth); checkError(__LINE__)
 
 
 type BevelProfile =
@@ -663,10 +672,10 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
     let mutable bgSpecular = Graphics.Color4.White
 
     member private this.SetRoughnessAndSpecularUniforms() =
-        GL.Uniform1(this.Shader.GetUniformLocation("fgRoughness"), fgRoughness)
-        GL.Uniform1(this.Shader.GetUniformLocation("bgRoughness"), bgRoughness)
-        GL.Uniform4(this.Shader.GetUniformLocation("fgSpecular"), fgSpecular)  
-        GL.Uniform4(this.Shader.GetUniformLocation("bgSpecular"), bgSpecular)
+        GL.Uniform1(this.Shader.GetUniformLocation("fgRoughness"), fgRoughness); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("bgRoughness"), bgRoughness); checkError(__LINE__)
+        GL.Uniform4(this.Shader.GetUniformLocation("fgSpecular"), fgSpecular); checkError(__LINE__)  
+        GL.Uniform4(this.Shader.GetUniformLocation("bgSpecular"), bgSpecular); checkError(__LINE__)
 
     override this.UsesStencil = true
 
@@ -684,12 +693,12 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
         let numBevelProfiles = 4 // see BevelProfile
         let lightHeight = 0.6f
         let toLight = Vector3((Helpers.lightPosition.X - 0.5f) *2.0f, (0.5f - Helpers.lightPosition.Y) *2.0f, lightHeight)
-        GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast)
-        GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance)
-        GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight)
-        GL.Uniform1(this.Shader.GetUniformLocation("bevelProfileY"), float32(int(bevelProfile) + 1) / float32(numBevelProfiles + 1))
-        GL.Uniform1(this.Shader.GetUniformLocation("outerSlope"), outerSlope)
-        GL.Uniform1(this.Shader.GetUniformLocation("innerSlope"), innerSlope)
+        GL.Uniform1(this.Shader.GetUniformLocation("contrast"), contrast); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("maxDistance"), maxDistance); checkError(__LINE__)
+        GL.Uniform3(this.Shader.GetUniformLocation("toLight"), toLight); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("bevelProfileY"), float32(int(bevelProfile) + 1) / float32(numBevelProfiles + 1)); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("outerSlope"), outerSlope); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("innerSlope"), innerSlope); checkError(__LINE__)
         this.SetRoughnessAndSpecularUniforms()
         this.SetTexture("reflectionMap", TextureUnit.Texture4, platform.GetTexture(Helpers.reflectionMapTextureName).Value)
         this.SetTexture("profilesMap", TextureUnit.Texture5, profilesMap.Value)
@@ -700,7 +709,6 @@ type BevelEffect(platform : AbstractPlatform, contrast : float32, maxDistance : 
         fgSpecular <- fgProps.Specular
         bgRoughness <- bgProps.Roughness
         bgSpecular <- bgProps.Specular
-        this.SetRoughnessAndSpecularUniforms()
 
 
 type HighlightEffect(platform : AbstractPlatform, lightPos : Geometry.Point, lightIntensity : float32) =
@@ -722,15 +730,14 @@ type GlowEffect(platform : AbstractPlatform, glowStrength : float32, bloomPower 
     let mutable glowColor = Graphics.Color4.White
 
     override this.SetUniforms() =
-        GL.Uniform4(this.Shader.GetUniformLocation("glowColor"), glowColor)  
-        GL.Uniform1(this.Shader.GetUniformLocation("glowStrength"), glowStrength)  
-        GL.Uniform1(this.Shader.GetUniformLocation("bloomPower"), bloomPower)
-        GL.Uniform1(this.Shader.GetUniformLocation("insideType"), int insideType)
+        GL.Uniform4(this.Shader.GetUniformLocation("glowColor"), glowColor); checkError(__LINE__)  
+        GL.Uniform1(this.Shader.GetUniformLocation("glowStrength"), glowStrength); checkError(__LINE__)  
+        GL.Uniform1(this.Shader.GetUniformLocation("bloomPower"), bloomPower); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("insideType"), int insideType); checkError(__LINE__)
 
     override this.SetMaterialProperties(fgProps, bgProps) =
         base.SetMaterialProperties(fgProps, bgProps)
         glowColor <- fgProps.Color
-        GL.Uniform4(this.Shader.GetUniformLocation("glowColor"), glowColor)
 
 
 type FuzzyTextureEffect(platform : AbstractPlatform, 
@@ -743,11 +750,11 @@ type FuzzyTextureEffect(platform : AbstractPlatform,
     inherit Effect(platform.GetShader("effects/fuzzyTexture.vert", "effects/fuzzyTexture.frag"))
 
     override this.SetUniforms() =
-        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), textureScale)
-        GL.Uniform1(this.Shader.GetUniformLocation("falloff"), falloff)
-        GL.Uniform1(this.Shader.GetUniformLocation("absorbThreshold"), absorbThreshold)
-        GL.Uniform1(this.Shader.GetUniformLocation("fill"), fill)
-        GL.Uniform1(this.Shader.GetUniformLocation("interiorFade"), interiorFade)
+        GL.Uniform1(this.Shader.GetUniformLocation("scaleFactor"), textureScale); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("falloff"), falloff); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("absorbThreshold"), absorbThreshold); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("fill"), fill); checkError(__LINE__)
+        GL.Uniform1(this.Shader.GetUniformLocation("interiorFade"), interiorFade); checkError(__LINE__)
         this.SetTexture("noise", TextureUnit.Texture4, platform.GetTexture(noiseTexture).Value)
 
     

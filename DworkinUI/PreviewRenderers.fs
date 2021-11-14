@@ -19,6 +19,15 @@ let inline writeLog(message: string) =
     ()
 #endif
 
+let inline checkError(lineInfo: string) =
+#if DEBUG
+    let errorCode = GL.GetErrorCode()
+    if errorCode <> ErrorCode.NoError then
+        Android.Util.Log.Error("OpenGL", sprintf "Error %A at %s line %s" errorCode __SOURCE_FILE__ lineInfo) |> ignore
+#else
+    ()
+#endif
+
 
 module OffscreenRendering =
     open System.Threading
@@ -41,7 +50,7 @@ module OffscreenRendering =
     let CheckEglError(egl10 : IEGL10, tag : string) =
         let error = egl10.EglGetError()
         if error <> EGL10.EglSuccess then
-            Android.Util.Log.Error(tag, sprintf "EGL-Error=%A" error ) |> ignore
+            Android.Util.Log.Error("OpenGL", sprintf "EGL-Error in %s: %A" tag error ) |> ignore
             false
         else 
             true;
@@ -303,13 +312,8 @@ type BasePresetRenderer(platform, width : int, height : int) =
     member this.CaptureRenderbuffer() : Bitmap =
         let bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888, false)
         let pixels = bitmap.LockPixels()
-        GL.ReadPixels(0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, pixels)
+        GL.ReadPixels(0, 0, width, height, PixelFormat.Rgba, PixelType.UnsignedByte, pixels); checkError(__LINE__)
         bitmap.UnlockPixels()
-#if DEBUG
-        match GL.GetErrorCode() with
-        | x when x <> ErrorCode.NoError -> writeLog(sprintf "OpenGL error: %A" x)
-        | _ -> ()
-#endif
         bitmap
 
 
@@ -323,8 +327,8 @@ type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
             | _ ->
                 writeLog("Request renderer instance")
                 let renderer = rendererFactory()
-                renderer.Initialize()
                 instance <- Some(renderer)
+                renderer.Initialize()
                 renderer
     
     member this.ResetInstance() = 
@@ -355,14 +359,14 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
     override this.Initialize() =
         base.Initialize()
 
-        GL.Viewport(0, 0, width, height)
+        GL.Viewport(0, 0, width, height); checkError(__LINE__)
 
         let dimensions = Vector2(float32 width, float32 height)
         this.SetSizeAndScaleVariables(dimensions, width, height)
         this.InitializeQuadVBO()
         
-        GL.Disable(EnableCap.DepthTest)
-        GL.Disable(EnableCap.CullFace)
+        GL.Disable(EnableCap.DepthTest); checkError(__LINE__)
+        GL.Disable(EnableCap.CullFace); checkError(__LINE__)
 
     member this.RenderPreview(bgColor : Graphics.Color4, fgColor : Graphics.Color4, background : Material, foreground : Material, effect : Effect) : Async<Bitmap> = 
         let hash = bgColor.GetHashCode() ^^^ fgColor.GetHashCode() ^^^ background.GetHashCode() ^^^ foreground.GetHashCode() ^^^ effect.GetHashCode()
@@ -378,8 +382,8 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
             this.Foreground <- foreground
             this.Effect <- effect
             this.Effect.SetMaterialProperties(
-                { Color=fgColor; Specular=this.Foreground.Specular; Roughness=this.Foreground.Roughness },
-                { Color=bgColor; Specular=this.Background.Specular; Roughness=this.Background.Roughness })
+                { Color=fgColor; Specular=foreground.Specular; Roughness=foreground.Roughness },
+                { Color=bgColor; Specular=background.Specular; Roughness=background.Roughness })
 
             if not texturesInitialized then
                 this.InitializeMaterialTextures() // call it here to avoid unnecessary DrawMaterial calls

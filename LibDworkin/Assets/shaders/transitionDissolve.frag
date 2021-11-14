@@ -1,4 +1,5 @@
 ﻿precision mediump float;
+precision mediump sampler2D;
 
 varying vec2 pos;
 

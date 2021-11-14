@@ -62,6 +62,12 @@ namespace DworkinUITest
             app.Invoke("ChangeAppearanceSettings");
             app.Tap(c => c.Marked("Appearance"));
 
+            app.Tap(x => x.Id("swatch"));
+            app.WaitForElement(x => x.Id("color_picker_view"));
+            app.Screenshot("Color picker");
+            app.Back();
+
+            app.WaitForElement(x => x.Id("preset_control"));
             app.Tap(c => c.Id("preset_control"));
             this.WaitForTimeSpan(TimeSpan.FromSeconds(1.0));
             app.Screenshot("Appearance presets");
