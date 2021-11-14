@@ -311,6 +311,7 @@ type PresetPreviewAdapter(previews : System.Collections.Generic.IList<PresetPrev
         let view = previews.[pos]
         view.Clickable <- true
         view.LongClickable <- true
+        view.DescendantFocusability <- DescendantFocusability.BlockDescendants
         view.Click.Add(fun args -> this.ParentFragment.OnPresetClicked(view))
         view :> View
 
