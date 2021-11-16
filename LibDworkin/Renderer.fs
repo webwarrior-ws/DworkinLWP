@@ -122,15 +122,6 @@ type BaseRenderer(platform : AbstractPlatform) =
 #if __ANDROID__
     interface GLSurfaceView.IRenderer with
         member this.Dispose() = 
-            GL.DeleteTextures(sdfTextures.Length, sdfTextures)
-            if stencilTexture <> 0 then GL.DeleteTexture(stencilTexture)
-            GL.DeleteFramebuffers(1, [| sdfFrameBuffer |])
-            GL.DeleteBuffers(5, [| quadVBO; shapesVBO; polygonSegmentsVBO; circlesVBO; circleDataVBO |])
-            let disposeShader (shader : ResettableLazy<Shader>) =
-                if shader.IsValueCreated then
-                    (shader.Value :> System.IDisposable).Dispose()
-            [| polygonDrawingShader; circleDrawingShader; calcPositiveDistShader; calcNegativeDistShaderHorizontal; calcNegativeDistShaderVertical |]
-                |> Array.iter disposeShader
             base.Dispose()
 
         member this.Handle: nativeint = 
@@ -371,8 +362,8 @@ type BaseRenderer(platform : AbstractPlatform) =
             GL.ClearColor(1.0f, 1.0f, 0.0f, 1.0f); checkError(__LINE__)
             GL.Clear(ClearBufferMask.ColorBufferBit); checkError(__LINE__)
 
-    member this.DrawImage() =
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0); checkError(__LINE__)
+    member this.DrawImage(?framebuffer : int) =
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, defaultArg framebuffer 0); checkError(__LINE__)
 
         this.Effect.Use()
 
@@ -422,7 +413,7 @@ type BaseRenderer(platform : AbstractPlatform) =
             for _j=1 to 2 do polygonSegmentsVertices.Add O
             for _j=1 to 2 do polygonSegmentsVertices.Add O2 )
 
-    member private this.ClearBlueChannel() =
+    member internal this.ClearBlueChannel() =
         GL.ColorMask(false, false, true, false); checkError(__LINE__)
         GL.ClearColor(0.0f, 0.0f, 1.0f, 0.0f); checkError(__LINE__)
         GL.Clear(ClearBufferMask.ColorBufferBit); checkError(__LINE__)
@@ -438,7 +429,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
                                 TextureTarget.Texture2D, this.SDFTexture, 0); checkError(__LINE__) // needed for some reason
         
-        this.ClearBlueChannel(); checkError(__LINE__)
+        this.ClearBlueChannel()
 
         if this.Effect.UsesStencil then
             stencil.Update(shapes, scale, this.MaxDistance)
@@ -623,6 +614,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
     let mutable environmentConfig = currentSettings.Environment.Build(currentSettings.Seed) :> Agents.IDworkinEnvironmentConfig
     let mutable state = Uninitialized
     let mutable framesAfterStop = 0
+    let mutable nextSeed : int option = None
     // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
     let initialSetupRoutine = lazy(
         let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
@@ -649,6 +641,9 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
 #if TRACE || DEBUG  
     member val StatsPrinted = false with get, set
 #endif
+#if DEBUG
+    static member val ForceTransition = 0 with get, set
+#endif
     member this.StepsPerFrame 
         with get() : int = stepsPerFrame
         and set(value : int) = 
@@ -663,22 +658,37 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             this.ResetEnvironment(this.GetDimensions(this.WallpaperSize))
     
     member this.ApplyChangesInSettings() =
+#if DEBUG
+        if DworkinRenderer.ForceTransition > 0 then
+            state <- Transitioning(TransitionStrategy.Fade, transitionDuration/6)
+            DworkinRenderer.ForceTransition <- DworkinRenderer.ForceTransition - 1
+#endif
         match state with
+        | Drawing when nextSeed.IsSome ->
+            CurrentSettings.set({ CurrentSettings.get() with Seed=nextSeed.Value })
+            nextSeed <- None
         | Idling(sinceWhen) when not (defaultArg inPreviewMode false) ->
             match CurrentSettings.randomizationInterval with
             | RandomizationInterval.Never -> ()
             | seconds when (System.DateTime.UtcNow - sinceWhen).TotalSeconds >= float(seconds) ->
-                CurrentSettings.set({ CurrentSettings.get() with Seed=System.Random().Next() })
                 if CurrentSettings.transitionStrategy <> TransitionStrategy.None then 
+                    let newSeed = System.Random().Next()
+                    nextSeed <- Some(newSeed)
                     state <- Transitioning(CurrentSettings.transitionStrategy, 0)
+                    this.RenderImageToSDF2Texture()
+                    if currentSettings.Background.HasRandomizedValues || currentSettings.BackgroundColor.IsRandomized then
+                        let getRandom() = System.Random(newSeed)
+                        let _, bgColor = currentSettings.GetColors(getRandom())
+                        this.Background <- currentSettings.Background.Build(platform, getRandom(), bgColor)
+                else
+                    CurrentSettings.set({ CurrentSettings.get() with Seed=System.Random().Next() })
+                    // state will be set to Drawing later in this method since settings are changed
             | _ -> ()
         | _ -> ()
         let previousSettings = currentSettings
         currentSettings <- CurrentSettings.get() |> Settings.Serialization.copy
         if previousSettings <> currentSettings then
-            match state with
-            | Transitioning(_, 0) -> ()
-            | _ -> state <- Drawing
+            state <- Drawing
 
             let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
             let fgColor, bgColor = currentSettings.GetColors(getRandom()) 
@@ -834,35 +844,44 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
                 this.StatsPrinted <- true
  #endif
     
+    member private this.RenderImageToSDF2Texture() =
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer); checkError(__LINE__)
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, 
+                                TextureTarget.Texture2D, this.SDFTexture2, 0); checkError(__LINE__)
+        
+        if this.Effect.UsesStencil then
+            this.ResetStencil()
+        
+        this.DrawImage(this.SDFFrameBuffer)
+
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferSlot.ColorAttachment0, TextureTarget.Texture2D, 0, 0); checkError(__LINE__)
+
     member this.DrawTransition(strategy : TransitionStrategy, frameCount : int) =
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0); checkError(__LINE__)
-
+        
         let shader = 
             match strategy with
             | TransitionStrategy.Fade -> fadeTransitionShader.Value
             | TransitionStrategy.Dissolve -> dissolveTransitionShader.Value
-
+        
         shader.Use()
         shader.SetTexture("background", TextureUnit.Texture0, this.BackgroundTexture)
+        shader.SetTexture("oldImage", TextureUnit.Texture1, this.SDFTexture2)
 
+        let t = float32(frameCount)/float32(transitionDuration)
         match strategy with
         | TransitionStrategy.Fade -> 
-            let dt = 1.0f/float32(transitionDuration)
-            let t = exp((float32(frameCount)*dt - 1.0f - dt) * 10.0f) + dt
+            //let dt = 1.0f/float32(transitionDuration)
+            //let t = exp((float32(frameCount)*dt - 1.0f - dt) * 10.0f) + dt
             GL.Uniform1(shader.GetUniformLocation("t"), t); checkError(__LINE__)
         | TransitionStrategy.Dissolve -> 
-            GL.Uniform1(shader.GetUniformLocation("t"), float32(frameCount)/float32(transitionDuration)); checkError(__LINE__)
+            GL.Uniform1(shader.GetUniformLocation("t"), t); checkError(__LINE__)
             GL.Uniform1(shader.GetUniformLocation("ratio"), float32(fst this.WallpaperSize) / float32(snd this.WallpaperSize)); checkError(__LINE__)
-            shader.SetTexture("noise", TextureUnit.Texture1, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value)
+            shader.SetTexture("noise", TextureUnit.Texture2, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value)
         
         let aTexCoords = shader.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO); checkError(__LINE__)
         GL.EnableVertexAttribArray(aTexCoords); checkError(__LINE__)
         GL.VertexAttribPointer(aTexCoords, 2, VertexAttribPointerType.Float, false, 0, 0); checkError(__LINE__)
-
-        GL.Enable(EnableCap.Blend); checkError(__LINE__)
-        GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha); checkError(__LINE__)
         GL.DrawArrays(BeginMode.Triangles, 0, 6); checkError(__LINE__)
-        GL.Disable(EnableCap.Blend); checkError(__LINE__)
-    
         GL.DisableVertexAttribArray(aTexCoords); checkError(__LINE__)

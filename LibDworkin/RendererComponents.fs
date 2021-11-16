@@ -64,7 +64,6 @@ type ResettableLazy<'T>(valueFactory : unit -> 'T) as this =
     static let allInstances = new Collections.Concurrent.BlockingCollection<WeakReference<ResettableLazy<'T>>>()
 
     let dict = Collections.Concurrent.ConcurrentDictionary<int, 'T>()
-    //SpecializedCollections.SmallDictionary<int, 'T>.Create()
     do
         allInstances.Add(WeakReference<ResettableLazy<'T>>(this))
 

@@ -4,6 +4,7 @@ precision mediump sampler2D;
 varying vec2 pos;
 
 uniform sampler2D background;
+uniform sampler2D oldImage;
 uniform sampler2D noise;
 uniform float t;
 uniform float ratio;
@@ -26,9 +27,10 @@ void main() {
 		pScaled.x *= ratio;
 	else
 		pScaled.y /= ratio;
-   vec3 color = texture2D(background, pos).rgb;
+   vec3 newColor = texture2D(background, pos).rgb;
+   vec3 oldColor = texture2D(oldImage, pos).rgb;
    float noiseValue = texture2D(noise, pScaled).r;
    float alpha = gain(lt(noiseValue, t), 4.0);
-   gl_FragColor = vec4(color, alpha);
+   gl_FragColor = vec4(mix(oldColor, newColor, alpha), 1.0);
 }
 
