@@ -54,6 +54,10 @@ namespace DworkinUITest
 
             this.WaitForTimeSpan(TimeSpan.FromSeconds(3.0));
             app.Screenshot("Wallpaper preview 2");
+
+            app.Invoke("ForceTransition");
+            this.WaitForTimeSpan(TimeSpan.FromSeconds(0.1));
+            app.Screenshot("Wallpaper transition");
         }
 
         [Test]

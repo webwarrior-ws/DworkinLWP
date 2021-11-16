@@ -38,7 +38,7 @@ namespace DworkinLWP
             base.OnStop();
             LibDworkin.DworkinSettings.CurrentSettings.save(this);
         }
-
+#if DEBUG
         [Java.Interop.Export("ChangeAppearanceSettings")]
         public void ChangeAppearanceSettings() 
         {
@@ -53,6 +53,13 @@ namespace DworkinLWP
                 oldSettings.Seed);
             LibDworkin.DworkinSettings.CurrentSettings.set(newSettings);
         }
+
+        [Java.Interop.Export("ForceTransition")]
+        public void ForceTransition()
+        {
+            LibDworkin.Renderer.DworkinRenderer.ForceTransition = 360;
+        }
+#endif
     }
 
     class MenuComponent : DworkinUI.IMenuComponent
