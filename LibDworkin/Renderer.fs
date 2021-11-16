@@ -660,14 +660,24 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
     member this.ApplyChangesInSettings() =
 #if DEBUG
         if DworkinRenderer.ForceTransition > 0 then
-            state <- Transitioning(TransitionStrategy.Fade, transitionDuration/6)
+            match state with
+            | Transitioning(_, _) ->
+                state <- Transitioning(TransitionStrategy.Fade, transitionDuration/2)
+            | _ -> 
+                state <- Idling(System.DateTime.UtcNow - System.TimeSpan.FromDays(1.0))
             DworkinRenderer.ForceTransition <- DworkinRenderer.ForceTransition - 1
+#endif
+        let forceTransitionInPreview =
+#if DEBUG
+            DworkinRenderer.ForceTransition > 0
+#else
+            false
 #endif
         match state with
         | Drawing when nextSeed.IsSome ->
             CurrentSettings.set({ CurrentSettings.get() with Seed=nextSeed.Value })
             nextSeed <- None
-        | Idling(sinceWhen) when not (defaultArg inPreviewMode false) ->
+        | Idling(sinceWhen) when forceTransitionInPreview || not (defaultArg inPreviewMode false) ->
             match CurrentSettings.randomizationInterval with
             | RandomizationInterval.Never -> ()
             | seconds when (System.DateTime.UtcNow - sinceWhen).TotalSeconds >= float(seconds) ->
