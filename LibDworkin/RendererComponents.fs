@@ -251,6 +251,7 @@ type AbstractPlatform() =
         use stream = context.Assets.Open(IO.Path.Combine("textures", filename))
         use bitmap = Android.Graphics.BitmapFactory.DecodeStream(stream, new Android.Graphics.Rect(), opts)
         let texture = GL.GenTexture()
+        checkError(__LINE__)
         GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
         Android.Opengl.GLUtils.TexImage2D(Android.Opengl.GLES20.GlTexture2d, 0, bitmap, 0)
         bitmap.Recycle();

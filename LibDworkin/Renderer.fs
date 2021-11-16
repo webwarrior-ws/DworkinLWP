@@ -865,19 +865,19 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             | TransitionStrategy.Dissolve -> dissolveTransitionShader.Value
         
         shader.Use()
-        shader.SetTexture("background", TextureUnit.Texture0, this.BackgroundTexture)
-        shader.SetTexture("oldImage", TextureUnit.Texture1, this.SDFTexture2)
-
+        
         let t = float32(frameCount)/float32(transitionDuration)
         match strategy with
         | TransitionStrategy.Fade -> 
-            //let dt = 1.0f/float32(transitionDuration)
-            //let t = exp((float32(frameCount)*dt - 1.0f - dt) * 10.0f) + dt
             GL.Uniform1(shader.GetUniformLocation("t"), t); checkError(__LINE__)
         | TransitionStrategy.Dissolve -> 
+            let noiseTexture = platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value
             GL.Uniform1(shader.GetUniformLocation("t"), t); checkError(__LINE__)
             GL.Uniform1(shader.GetUniformLocation("ratio"), float32(fst this.WallpaperSize) / float32(snd this.WallpaperSize)); checkError(__LINE__)
-            shader.SetTexture("noise", TextureUnit.Texture2, platform.GetTexture("fuzzy_texture/FuzzyTexture__fbm.png").Value)
+            shader.SetTexture("noise", TextureUnit.Texture2, noiseTexture)
+
+        shader.SetTexture("background", TextureUnit.Texture0, this.BackgroundTexture)
+        shader.SetTexture("oldImage", TextureUnit.Texture1, this.SDFTexture2)
         
         let aTexCoords = shader.GetAttributeLocation("texCoords")
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO); checkError(__LINE__)
