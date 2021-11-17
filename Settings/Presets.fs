@@ -7,7 +7,7 @@ open Android.Content
 open Android.Util
 open Android.Widget
 open Android.Views
-
+open AndroidX.RecyclerView.Widget
 
 
 [<AbstractClass>]
@@ -298,22 +298,35 @@ type PresetPreview(context : Context, preset : Preset) =
             state <- PresetPreviewState.Pending
 
 
+type SpacingItemDecoration(context: Context) =
+    inherit RecyclerView.ItemDecoration()
+
+    let spacing = int (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing))
+
+    override this.GetItemOffsets(outRect, view, parent, state) =
+        outRect.Set(spacing, spacing, spacing, spacing)
+        
+
+type PresetPreviewViewHolder(context) =
+    inherit RecyclerView.ViewHolder(new FrameLayout(context) :> View)
+
 type PresetPreviewAdapter(previews : System.Collections.Generic.IList<PresetPreview>) =
-    inherit BaseAdapter()
+    inherit RecyclerView.Adapter()
 
     member val ParentFragment : PresetSelectionFragment = null with get, set
+    
+    override this.ItemCount = previews.Count
 
-    override this.Count = previews.Count
-    override this.GetItem(pos) = previews.[pos] :> Java.Lang.Object
-    override this.GetItemId(pos) = int64 pos
+    override this.OnCreateViewHolder(parent, viewType) =
+        new PresetPreviewViewHolder(parent.Context) :> RecyclerView.ViewHolder
 
-    override this.GetView(pos, convertView, parent) =
+    override this.OnBindViewHolder(holder, pos) =
         let view = previews.[pos]
         view.Clickable <- true
         view.LongClickable <- true
         view.DescendantFocusability <- DescendantFocusability.BlockDescendants
         view.Click.Add(fun args -> this.ParentFragment.OnPresetClicked(view))
-        view :> View
+        holder.ItemView <- view
 
 
 and [<AllowNullLiteral>]
@@ -353,14 +366,20 @@ and [<AllowNullLiteral>]
     override this.OnCreateView(inflater, container, bundle) = 
          // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
         let view = inflater.Inflate(Resources.Layout.PresetSelectionFragment, container, false)
-        let gridView = view.FindViewById<GridView>(Resources.Id.previewGrid)
-        if previews.Count > 0 then
-            gridView.SetColumnWidth(fst previews.[0].ImageSize)
+        let recyclerView = view.FindViewById<RecyclerView>(Resources.Id.previewGrid)
         for each in previews do
             each.Initialize()
         adapter.ParentFragment <- this
-        gridView.Adapter <- adapter
-        this.Activity.RegisterForContextMenu(gridView)
+        let numColumns = 
+            if previews.Count > 0 then
+                let previewWidth, _ = previews.[0].ImageSize
+                let screenWidth = this.Context.Resources.DisplayMetrics.WidthPixels
+                if screenWidth > 0 then screenWidth / previewWidth else 2
+            else 2
+        recyclerView.SetLayoutManager(new GridLayoutManager(this.Context, numColumns))
+        recyclerView.SetAdapter(adapter)
+        recyclerView.AddItemDecoration(new SpacingItemDecoration(this.Context))
+        this.Activity.RegisterForContextMenu(recyclerView)
         view         
 
     override this.OnStop() =

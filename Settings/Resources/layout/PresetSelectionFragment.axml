@@ -4,14 +4,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="@dimen/preset_preview_padding">
-    <GridView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/previewGrid"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:numColumns="auto_fit"
-        android:horizontalSpacing="@dimen/preset_preview_spacing"
-        android:verticalSpacing="@dimen/preset_preview_spacing"
-        android:stretchMode="none"
         android:gravity="center_horizontal"
+        android:layout_gravity="center_horizontal"
         android:clickable="false"/>
 </FrameLayout>
