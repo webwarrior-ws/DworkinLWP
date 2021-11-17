@@ -5,6 +5,7 @@ open Android.App
 open Android.Widget
 open Android.Views
 open Android.Content
+open AndroidX.RecyclerView.Widget
 
 open Settings
 open Settings.Presets
@@ -127,6 +128,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
                 // update preset selection grid
                 let newPreview = new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
                 newPreview.Initialize()
+                this.RegisterForContextMenu(newPreview)
                 let i = allPresets.FindIndex(fun x -> x.Name = preset.Name)
                 if i >= 0 then
                     allPresets.[i] <- preset :?> 'TPreset 
@@ -147,16 +149,15 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
 
     override this.OnCreateContextMenu(menu, v, menuInfo) =  
         match v with
-        | :? GridView as gridView ->
-            let menuInfo = menuInfo :?> AdapterView.AdapterContextMenuInfo
-            let preview = gridView.Adapter.GetItem(menuInfo.Position) :?> PresetPreview
+        | :? PresetPreview as preview ->
             let preset = preview.Preset
+            let position = allPresets.FindIndex(fun x -> LanguagePrimitives.PhysicalEquality preset (x :> Preset))
             menu.SetHeaderTitle(preset.Name) |> ignore
             if preset.InAppPurchases.IsEmpty then
-                menu.Add(menuInfo.Position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
+                menu.Add(position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
             if not preset.IsBuiltin then
-                menu.Add(menuInfo.Position, int PresetContextMenuChoice.Rename, 1, "Rename") |> ignore
-                menu.Add(menuInfo.Position, int PresetContextMenuChoice.Delete, 2, "Delete") |> ignore
+                menu.Add(position, int PresetContextMenuChoice.Rename, 1, "Rename") |> ignore
+                menu.Add(position, int PresetContextMenuChoice.Delete, 2, "Delete") |> ignore
         | _ -> ()
         base.OnCreateContextMenu(menu, v, menuInfo)
 

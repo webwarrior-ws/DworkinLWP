@@ -152,7 +152,7 @@ type PresetPreview(context : Context, preset : Preset) =
         cancellationSource.Dispose()
         //if not (isNull currentBitmap) then
         //    currentBitmap.Dispose()
-        //    currentBitmap <- null
+        currentBitmap <- null
         state <- Disposed
         base.Dispose(disposing) 
     
@@ -364,11 +364,12 @@ and [<AllowNullLiteral>]
             presetSelectedEvent.Trigger(preview.Preset)
 
     override this.OnCreateView(inflater, container, bundle) = 
-         // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
+        // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
         let view = inflater.Inflate(Resources.Layout.PresetSelectionFragment, container, false)
         let recyclerView = view.FindViewById<RecyclerView>(Resources.Id.previewGrid)
         for each in previews do
             each.Initialize()
+            this.Activity.RegisterForContextMenu(each)
         adapter.ParentFragment <- this
         let numColumns = 
             if previews.Count > 0 then
@@ -379,7 +380,6 @@ and [<AllowNullLiteral>]
         recyclerView.SetLayoutManager(new GridLayoutManager(this.Context, numColumns))
         recyclerView.SetAdapter(adapter)
         recyclerView.AddItemDecoration(new SpacingItemDecoration(this.Context))
-        this.Activity.RegisterForContextMenu(recyclerView)
         view         
 
     override this.OnStop() =
