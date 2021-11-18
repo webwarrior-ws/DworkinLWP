@@ -156,7 +156,7 @@ let getPurchasesDataAsync (skus : string[]) =
 
 /// Get information about available purchases among given skus 
 /// and answer dialog containing purchase actions
-let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct>) : Dialog =
+let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct>, purchasedItemsChangedCallback : unit -> unit) : Dialog =
     let errorDialog(message: string) =
         use builder = new AlertDialog.Builder(context)
         builder.SetNeutralButton("OK", (fun _ _ -> ())) |> ignore
@@ -183,12 +183,14 @@ let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct
                             swap purchasedItems (Set.add purchase.ProductId)
                             writeToStorage(context)
                             writeLog(sprintf "Purchased item: %s" each.ProductId)
+                            purchasedItemsChangedCallback()
                             if not purchase.IsAcknowledged then
                                 let! purchaseAcknowledged = billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask
                                 if not purchaseAcknowledged then
                                     swap purchasedItems (Set.remove purchase.ProductId)
                                     writeToStorage(context)
                                     writeLog("Purchase not acknowledged")
+                                    purchasedItemsChangedCallback()
                                 else
                                     writeLog("Purchase acknowledged")
                         })

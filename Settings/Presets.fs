@@ -164,11 +164,17 @@ type PresetPreview(context : Context, preset : Preset) =
         FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
         this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
         this.UpdateName()
+        this.UpdatePurchasesStatus()
         if preset.HasRandomizedValues then 
             this.FindViewById<ImageView>(Resources.Id.random_indicator).Visibility <- ViewStates.Visible
-        if not preset.InAppPurchases.IsEmpty then
-            this.FindViewById<View>(Resources.Id.premium_indicator).Visibility <- ViewStates.Visible
     
+    member this.UpdatePurchasesStatus() =
+        this.FindViewById<View>(Resources.Id.premium_indicator).Visibility <-
+            if preset.InAppPurchases.IsEmpty then
+                ViewStates.Invisible
+            else
+                ViewStates.Visible
+
     member this.UpdateName() =
         this.NameDisplay.Text <- preset.Name
 
@@ -355,7 +361,12 @@ and [<AllowNullLiteral>]
                     (fun _ _ ->
                         async {
                             let! data = InAppPurchases.getPurchasesDataAsync(skus |> Set.toArray)
-                            this.Activity.RunOnUiThread(fun () -> InAppPurchases.getPurchasesDialog(this.Activity, data).Show())
+                            this.Activity.RunOnUiThread(
+                                fun () -> 
+                                    let callback () = 
+                                        this.Activity.RunOnUiThread(fun () -> for each in previews do each.UpdatePurchasesStatus())
+                                    let dialog = InAppPurchases.getPurchasesDialog(this.Activity, data, callback)
+                                    dialog.Show())
                         }
                         |> Async.Start
                     )) |> ignore

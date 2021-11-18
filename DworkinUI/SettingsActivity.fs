@@ -377,7 +377,7 @@ type SettingsActivity() =
             let skus = Settings.InAppPurchases.getAvailablePurchases()
             async {
                 let! data = InAppPurchases.getPurchasesDataAsync(skus)
-                this.RunOnUiThread(fun () -> InAppPurchases.getPurchasesDialog(this, data).Show())
+                this.RunOnUiThread(fun () -> InAppPurchases.getPurchasesDialog(this, data, ignore).Show())
             }
             |> Async.Start
         )
