@@ -15,7 +15,17 @@ open Microsoft.FSharp.NativeInterop
 open Android.Opengl
 open Javax.Microedition.Khronos
 
+let inline writeLog(message: string) =
+#if DEBUG && __ANDROID__
+    Android.Util.Log.Debug("Renderer", message) |> ignore
+#else
+    ()
+#endif
 
+
+exception GLException of errorCode : ErrorCode * description : string
+
+#nowarn "44"
 type EGLContextFactory private() =
     inherit Java.Lang.Object()
     
@@ -31,20 +41,20 @@ type EGLContextFactory private() =
             |]
             let context = egl.EglCreateContext(display, eglConfig, Egl.EGL10.EglNoContext, attribs_config)
             currentContext <- context
+            writeLog(sprintf "Create  OpenGL context: %A" context)
             context
 
         member this.DestroyContext(egl, display, context) =
+            writeLog(sprintf "Destroy OpenGL context: %A" context)
             ResettableLazy<Shader>.ResetAll(context.JniIdentityHashCode)
             ResettableLazy<int>.ResetAll(context.JniIdentityHashCode) // textures
             if egl.EglDestroyContext(display, context) then
                 currentContext <- Egl.EGL10.EglNoContext
+                writeLog("Destroyed OpenGL context")
     
     static member CurrentContext = currentContext
 
     static member val Instance = new EGLContextFactory()
-
-    /// Global variable that indicates need to reset shader uniforms after they were modified from another OpenGL context
-    static member val NeedsShaderUniformsReset = false with get, set
 #endif
 
 let inline checkError(lineInfo: string) =
@@ -334,7 +344,14 @@ type Shader(vertexShader : string, fragmentShader : string) =
     member this.Program = program
 
     member this.Use() = 
-        GL.UseProgram(program); checkError(__LINE__)
+        GL.GetErrorCode() |> ignore // clear previous errors
+        
+        GL.UseProgram(program)
+        
+        match GL.GetErrorCode() with
+        | ErrorCode.NoError -> ()
+        | errorCode -> raise (GLException(errorCode, "GL.UseProgram() in Shader.Use()"))
+        
         if not deferredActions.IsEmpty then
             let actions = deferredActions.Values
             deferredActions.Clear()

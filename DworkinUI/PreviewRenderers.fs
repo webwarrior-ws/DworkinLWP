@@ -50,7 +50,9 @@ module OffscreenRendering =
     let CheckEglError(egl10 : IEGL10, tag : string) =
         let error = egl10.EglGetError()
         if error <> EGL10.EglSuccess then
+#if DEBUG
             Android.Util.Log.Error("OpenGL", sprintf "EGL-Error in %s: %A" tag error ) |> ignore
+#endif
             false
         else 
             true;
@@ -209,8 +211,8 @@ module OffscreenRendering =
     // from https://stackoverflow.com/questions/30719366/run-work-on-specific-thread
     type private SingleThreadTaskScheduler(cancellationToken : CancellationToken) =
         inherit TaskScheduler()
-        let cancellationToken = cancellationToken;
-        let taskQueue = new System.Collections.Concurrent.BlockingCollection<Task>();
+
+        let taskQueue = new System.Collections.Concurrent.BlockingCollection<Task>()
 
         [<System.ThreadStatic>]
         [<DefaultValue>]
@@ -255,7 +257,7 @@ module OffscreenRendering =
         override this.TryExecuteTaskInline(task, taskWasPreviouslyQueued) =
             // We'd need to remove the task from queue if it was already queued. 
             // That would be too hard.
-            if (taskWasPreviouslyQueued) then 
+            if taskWasPreviouslyQueued then 
                 false
             else
                 SingleThreadTaskScheduler.isExecuting && this.TryExecuteTask(task);
@@ -290,11 +292,30 @@ module OffscreenRendering =
             ts.Start()
             ts)
 
-    /// Preform given function (request) on a dedicated thread and return its result synchronously.
+    /// Preform given function (request) on a dedicated thread and return its result.
     /// Requests are queued up and run sequentially.
     let processRequest(request : unit -> 'T) : Async<'T> =
         taskScheduler.Value.Schedule(request) |> Async.AwaitTask
+    
+    let resetShadersAndTextures() =
+        if LibDworkin.RendererComponents.EGLContextFactory.CurrentContext = EGL10.EglNoContext then
+            // No context is shared with our context, so reset shaders and textures (they will be lost when context is destroyed)
+            ResettableLazy<Shader>.ResetAll()
+            ResettableLazy<int>.ResetAll() // textures
+        else
+            ResettableLazy<Shader>.ResetAll(EGLContextFactory.CurrentContext.JniIdentityHashCode)
+            ResettableLazy<int>.ResetAll(EGLContextFactory.CurrentContext.JniIdentityHashCode) // textures
 
+
+/// Active pattern that matches on flattened inner exceptions in an AggregateException.
+/// from https://github.com/fsprojects/FSharpx.Extras
+let (|AggregateExn|_|) (e:exn) =
+    match e with
+    | :? System.AggregateException as ae ->
+        ae.Flatten().InnerExceptions
+        |> List.ofSeq
+        |> Some
+    | _ -> None
 
 
 [<AbstractClass>]
@@ -327,8 +348,8 @@ type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
             | _ ->
                 writeLog("Request renderer instance")
                 let renderer = rendererFactory()
-                instance <- Some(renderer)
                 renderer.Initialize()
+                instance <- Some(renderer)
                 renderer
     
     member this.ResetInstance() = 
@@ -338,12 +359,12 @@ type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
                 instance <- None
 
 
-type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height : int) =
+type AppearancePresetRenderer private(platform : AbstractPlatform, width : int, height : int) =
     inherit BasePresetRenderer(platform, width, height)
 
     let sdfTexture = platform.GetTexture("preview_sdf.png")
 
-    let mutable texturesInitialized = false
+    let mutable initialized = false
 
     static let singleton = RendererSingleton<AppearancePresetRenderer>()
 
@@ -358,6 +379,7 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
 
     override this.Initialize() =
         base.Initialize()
+        writeLog("Initialize AppearancePresetRenderer")
 
         GL.Viewport(0, 0, width, height); checkError(__LINE__)
 
@@ -368,38 +390,53 @@ type AppearancePresetRenderer(platform : AbstractPlatform, width : int, height :
         GL.Disable(EnableCap.DepthTest); checkError(__LINE__)
         GL.Disable(EnableCap.CullFace); checkError(__LINE__)
 
+        this.InitializeMaterialTextures()
+        sdfTexture.Value |> ignore
+
+        initialized <- true
+
     member this.RenderPreview(bgColor : Graphics.Color4, fgColor : Graphics.Color4, background : Material, foreground : Material, effect : Effect) : Async<Bitmap> = 
         let hash = bgColor.GetHashCode() ^^^ fgColor.GetHashCode() ^^^ background.GetHashCode() ^^^ foreground.GetHashCode() ^^^ effect.GetHashCode()
         writeLog(sprintf "Request render %d" hash)
+
+        effect.SetMaterialProperties(
+            { Color=fgColor; Specular=foreground.Specular; Roughness=foreground.Roughness },
+            { Color=bgColor; Specular=background.Specular; Roughness=background.Roughness })
+        // account for smaller size
+        background.ExtraScaleFactor <- 0.25f
+        foreground.ExtraScaleFactor <- 0.25f
         
         let getBitmap() =
             writeLog(sprintf "Begin   render %d  on thread#%d" hash System.Threading.Thread.CurrentThread.ManagedThreadId)
-            // account for smaller size
-            background.ExtraScaleFactor <- 0.25f
-            foreground.ExtraScaleFactor <- 0.25f
 
             this.Background <- background
             this.Foreground <- foreground
             this.Effect <- effect
-            this.Effect.SetMaterialProperties(
-                { Color=fgColor; Specular=foreground.Specular; Roughness=foreground.Roughness },
-                { Color=bgColor; Specular=background.Specular; Roughness=background.Roughness })
-
-            if not texturesInitialized then
-                this.InitializeMaterialTextures() // call it here to avoid unnecessary DrawMaterial calls
-                texturesInitialized <- true
-
+            
             this.DrawImage()
             writeLog(sprintf "End     render %d" hash)
             this.CaptureRenderbuffer()
+        
+        // If OpenGL context gets broken, reinitialize and retry one more time
+        async {
+            try
+                return! OffscreenRendering.processRequest getBitmap
+            with
+            | AggregateExn([ LibDworkin.RendererComponents.GLException(errorCode, descritption) ]) ->
+                writeLog(sprintf "Exception when rendering %d: %A (%s)" hash errorCode descritption)
+                if initialized then
+                    initialized <- false
+                    do! OffscreenRendering.processRequest OffscreenRendering.resetShadersAndTextures
+                    do! OffscreenRendering.processRequest this.Initialize
+                return! OffscreenRendering.processRequest getBitmap
+        }
 
-        OffscreenRendering.processRequest getBitmap
 
-
-type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : int) =
+type OverallPresetRenderer private(platform : AbstractPlatform, width : int, height : int) =
     inherit BasePresetRenderer(platform, width, height)
 
     let mutable onSurfaceChangedCalled = false
+    let mutable initialized = false
 
     static let singleton = RendererSingleton<OverallPresetRenderer>()
 
@@ -413,7 +450,7 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
     override this.Initialize() =
         base.Initialize()
         this.OnSurfaceCreated()
-        LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset <- true
+        initialized <- true
 
     member this.RenderPreview(settings : LibDworkin.DworkinSettings.SettingsHolder) : Async<Bitmap> = 
         let hash = settings.GetHashCode()
@@ -464,4 +501,17 @@ type OverallPresetRenderer(platform : AbstractPlatform, width : int, height : in
             writeLog(sprintf "End     render [overall] %d (%f ms)" hash stopwatch.Elapsed.TotalMilliseconds)
             this.CaptureRenderbuffer()
 
-        OffscreenRendering.processRequest getBitmap
+        // If OpenGL context gets broken, reinitialize and retry one more time
+        async {
+            try
+                return! OffscreenRendering.processRequest getBitmap
+            with
+            | AggregateExn([ LibDworkin.RendererComponents.GLException(errorCode, descritption) ]) ->
+                writeLog(sprintf "Exception when rendering %d: %A (%s)" hash errorCode descritption)
+                if initialized then
+                    initialized <- false
+                    onSurfaceChangedCalled <- false
+                    do! OffscreenRendering.processRequest OffscreenRendering.resetShadersAndTextures
+                    do! OffscreenRendering.processRequest this.Initialize
+                return! OffscreenRendering.processRequest getBitmap
+        }

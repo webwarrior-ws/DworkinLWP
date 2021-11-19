@@ -16,6 +16,13 @@ open Android.Opengl
 open Javax.Microedition.Khronos
 #endif
 
+let inline writeLog(message: string) =
+#if DEBUG && __ANDROID__
+    Android.Util.Log.Debug("Renderer", message) |> ignore
+#else
+    ()
+#endif
+
 let inline checkError(lineInfo: string) =
 #if DEBUG && __ANDROID__
     let errorCode = GL.GetErrorCode()
@@ -128,13 +135,34 @@ type BaseRenderer(platform : AbstractPlatform) =
             base.Handle
 
         member this.OnSurfaceChanged(gl: Opengles.IGL10, width: int, height: int) = 
-            this.OnSurfaceChanged(width, height)
+            try this.OnSurfaceChanged(width, height)
+            with 
+            | GLException(errorCode, descritption) -> 
+                writeLog(sprintf "Exception in OnSurfaceChanged: %A (%s)" errorCode descritption)
 
         member this.OnSurfaceCreated(gl: Opengles.IGL10, config: Egl.EGLConfig) = 
-            this.OnSurfaceCreated()
+            try this.OnSurfaceCreated()
+            with 
+            | GLException(errorCode, descritption) -> 
+                writeLog(sprintf "Exception in OnSurfaceCreated: %A (%s)" errorCode descritption)
 
         member this.OnDrawFrame(gl : Opengles.IGL10) =
-            this.OnDrawFrame()
+            try 
+                if lastContext <> EGLContextFactory.CurrentContext then
+                    writeLog("OnDrawFrame: OpenGL context was lost, restart")
+                    ResettableLazy<Shader>.ResetAll()
+                    ResettableLazy<int>.ResetAll() // textures
+                    this.OnSurfaceCreated()
+                else
+                    this.OnDrawFrame()
+            with | GLException(errorCode, descritption) -> 
+                writeLog(sprintf "Exception in OnDrawFrame: %A (%s)" errorCode descritption)
+                ResettableLazy<Shader>.ResetAll()
+                ResettableLazy<int>.ResetAll() // textures
+                lastContext <- Egl.EGL10.EglNoContext
+                try this.OnSurfaceCreated()
+                with | GLException(errorCode, descritption) -> 
+                    writeLog(sprintf "Exception in OnDrawFrame[exception handler]: %A (%s)" errorCode descritption)
 #endif 
     // Methods that perform some OpenGL-specific tasks
     member this.PerformDrawElements(indicesBuffer : Buffer<int>) =
@@ -219,6 +247,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     /// initialize sdf texture and framebuffer
     member private this.InitializeSDF() =
+        writeLog("InitializeSDF")
         if sdfTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(sdfTextures.Length, sdfTextures) 
         GL.GenTextures(sdfTextures.Length, sdfTextures); checkError(__LINE__)
         if sdfFrameBuffer = 0 then 
@@ -241,6 +270,7 @@ type BaseRenderer(platform : AbstractPlatform) =
                                 TextureTarget.Texture2D, this.SDFTexture, 0); checkError(__LINE__)
     
     member this.InitializeMaterialTextures() =
+        writeLog("InitializeMaterialTextures")
         if materialTextures |> Array.exists ((<>) 0) then GL.DeleteTextures(materialTextures.Length, materialTextures) 
         GL.GenTextures(materialTextures.Length, materialTextures); checkError(__LINE__)
         if materialFrameBuffer = 0 then 
@@ -270,6 +300,7 @@ type BaseRenderer(platform : AbstractPlatform) =
         GL.BindTexture(TextureTarget.Texture2D, 0); checkError(__LINE__)
     
     member this.InitializeQuadVBO() =
+        writeLog("InitializeQuadVBO")
         quadVBO <- gen1 GL.GenBuffers
         GL.BindBuffer(BufferTarget.ArrayBuffer, this.QuadVBO); checkError(__LINE__)
         GL.BufferData(BufferTarget.ArrayBuffer, 
@@ -280,6 +311,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     member this.ResetStencil() = stencil.Reset()
 
     member this.DrawMaterial(material : Material, texture : int) =
+        writeLog(sprintf "DrawMaterial %A" material)
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         GL.BindTexture(TextureTarget.Texture2D, texture); checkError(__LINE__)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, materialFrameBuffer); checkError(__LINE__)
@@ -301,6 +333,7 @@ type BaseRenderer(platform : AbstractPlatform) =
 
     abstract member OnSurfaceChanged : int * int -> unit
     default this.OnSurfaceChanged(width: int, height: int) = 
+        writeLog("OnSurfaceChanged")
         // Set the OpenGL viewport to fill the entire surface. 
         GL.Viewport(0, 0, width, height); checkError(__LINE__)
         // setup scale and offset
@@ -322,6 +355,7 @@ type BaseRenderer(platform : AbstractPlatform) =
     
     abstract member OnSurfaceCreated : unit -> unit
     default this.OnSurfaceCreated() = 
+        writeLog("OnSurfaceCreated")
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f); checkError(__LINE__)
 
         this.ResetStencil()
@@ -346,14 +380,13 @@ type BaseRenderer(platform : AbstractPlatform) =
 #endif
     
     abstract member OnDrawFrame : unit -> unit
-    default this.OnDrawFrame() =
-        // Clear the rendering surface. 
-        GL.Clear(ClearBufferMask.ColorBufferBit); checkError(__LINE__)
+    default this.OnDrawFrame() = ()
     
     abstract member ResetEnvironment : Point -> unit
     default this.ResetEnvironment(dimensions) = ()
 
     member this.ClearSDF() =
+        writeLog("ClearSDF")
         GL.ColorMask(true, true, true, true); checkError(__LINE__)
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, this.SDFFrameBuffer); checkError(__LINE__)
         for texture in sdfTextures do
@@ -617,6 +650,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
     let mutable nextSeed : int option = None
     // following piece of code must be performed in OnSurfaceChanged or OnSurfaceCreated or OnDrawFrame method
     let initialSetupRoutine = lazy(
+        writeLog("initialSetupRoutine")
         let getRandom() = System.Random(currentSettings.Seed) // use independent PRNGs for each setting
         let fgColor, bgColor = currentSettings.GetColors(getRandom())
         this.Effect <- currentSettings.Effect.Build(platform, getRandom())
@@ -742,6 +776,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             this.EnvironmentStepper.SpeedFactor <- CurrentSettings.speedFactor
 
     override this.ResetEnvironment(dimensions : Point) =
+        writeLog("ResetEnvironment")
         match state with
         | Transitioning(_, 0) -> ()
         | _ -> state <- Drawing
@@ -775,6 +810,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
 #else
             false
 #endif
+        writeLog(sprintf "OnSurfaceChanged(contextLost=%A)" contextLost)
         if this.WallpaperSize <> (width, height) || (contextLost && width > 0 && height > 0) then
             initialSetupRoutine.Force()
             base.OnSurfaceChanged(width, height)
