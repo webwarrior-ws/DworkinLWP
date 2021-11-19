@@ -9,6 +9,14 @@ open SpecializedCollections
 open System
 
 
+/// Needed for some devices (e.g. Galaxy S9) because otherwise will produce glitches when points are too close
+let minThickness = 0.01f
+let minDistanceSquared = squared (minThickness * 2.0f) * 4.0f
+
+let inline tooClose (a : Point) (b : Point) =
+    (a-b).LengthSquared < minDistanceSquared
+
+
 type BrushCap =
     | NoCap
     | Round
@@ -68,7 +76,7 @@ type BrushSolidBase() =
     default this.GetAngle(_) = 0.0f
 
     override this.Evaluate(agent) =
-        let mutable perpendicular = agent.Direction.LeftRotated * (agent.Thickness * 0.5f)
+        let mutable perpendicular = agent.Direction.LeftRotated * ((max minThickness agent.Thickness) * 0.5f)
         let angle = this.GetAngle(agent)
         if angle <> 0.0f then
             perpendicular <- (perpendicular / (max (cos angle) 0.25f)).Rotate(angle)
@@ -130,11 +138,10 @@ type BrushSolidSmoother(smoothness) =
     let mutable lastS = 0.0f
 
     member this.NumStepsFor(k) =
-        floor (sqrt (k * smoothness)) |> int
+        (floor (sqrt (k * smoothness)) |> int) + 1
 
     override this.Evaluate(agent) =
-        let mutable perpendicular = agent.Direction.LeftRotated * (agent.Thickness * 0.5f)
-        
+        let perpendicular = agent.Direction.LeftRotated * ((max minThickness agent.Thickness) * 0.5f)
         let lhs = agent.Position + perpendicular
         let rhs = agent.Position - perpendicular
         match this.PrevPoints with
@@ -143,18 +150,21 @@ type BrushSolidSmoother(smoothness) =
             let mutable prevRhs = prevRhs
             let k = (abs (agent.Thickness - lastThickness)) / (agent.DistanceCovered - lastS)
             let n = this.NumStepsFor(k)
-            for i=0 to n do
-                let t = float32(i) / (float32 (n + 1))
+            for i=0 to n-1 do
+                let t = float32(i) / float32(n)
                 let pos = lerp lastPosition agent.Position t
                 let thickness = 
                     let s = lerp lastS agent.DistanceCovered t
-                    agent.Config.Thickness.Evaluate(s * DworkinAgentFormula.Factor, s / agent.TotalDistance)
-                let perp = (lerp lastDirection agent.Direction t).LeftRotated * ((thickness * agent.ThicknessFactor) * 0.5f)
+                    agent.Config.Thickness.Evaluate(s * DworkinAgentFormula.Factor, s / agent.TotalDistance) * agent.ThicknessFactor
+                let perp = (lerp lastDirection agent.Direction t).LeftRotated * ((max minThickness thickness) * 0.5f)
                 let currLhs = pos + perp
                 let currRhs = pos - perp
-                agent.DworkinEnvironment.AddShape(Shape.Quad(prevLhs, currLhs, currRhs, prevRhs), ShapePaint.Default)
-                prevLhs <- currLhs
-                prevRhs <- currRhs
+                if tooClose prevLhs currLhs || tooClose prevRhs currRhs || tooClose lhs currLhs || tooClose rhs currRhs then
+                    () // if points are too close, skip
+                else
+                    agent.DworkinEnvironment.AddShape(Shape.Quad(prevLhs, currLhs, currRhs, prevRhs), ShapePaint.Default)
+                    prevLhs <- currLhs
+                    prevRhs <- currRhs
             agent.DworkinEnvironment.AddShape(Shape.Quad(prevLhs, lhs, rhs, prevRhs), ShapePaint.Default)
         | ValueNone -> ()
         this.PrevPoints <- ValueSome(struct(lhs, rhs))

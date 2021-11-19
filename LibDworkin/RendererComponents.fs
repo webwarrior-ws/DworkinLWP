@@ -25,6 +25,7 @@ let inline writeLog(message: string) =
 
 exception GLException of errorCode : ErrorCode * description : string
 
+
 #nowarn "44"
 type EGLContextFactory private() =
     inherit Java.Lang.Object()
@@ -344,14 +345,15 @@ type Shader(vertexShader : string, fragmentShader : string) =
     member this.Program = program
 
     member this.Use() = 
+#if __ANDROID__
         GL.GetErrorCode() |> ignore // clear previous errors
-        
+#endif        
         GL.UseProgram(program)
-        
+#if __ANDROID__        
         match GL.GetErrorCode() with
         | ErrorCode.NoError -> ()
         | errorCode -> raise (GLException(errorCode, "GL.UseProgram() in Shader.Use()"))
-        
+#endif        
         if not deferredActions.IsEmpty then
             let actions = deferredActions.Values
             deferredActions.Clear()
