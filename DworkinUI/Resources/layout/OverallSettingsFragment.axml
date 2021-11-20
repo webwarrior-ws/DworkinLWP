@@ -142,35 +142,45 @@
 					android:textAppearance="@style/SettingsGroupTitle" />
 				
 				<LinearLayout
-					android:orientation="horizontal"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
+					android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
 					android:paddingHorizontal="@dimen/editor_padding_h"
-					android:paddingVertical="@dimen/editor_padding_v"
-					android:focusableInTouchMode="true"
-					android:focusable="true">
-					<TextView
-						android:text="Seed"
-						android:textAppearance="@style/SettingTitle"
-						android:paddingRight="6dp"
-						android:layout_width="wrap_content"
-						android:layout_height="match_parent"
-						android:gravity="center_vertical"/>
-					<EditText
-						android:id="@+id/seed_display"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginHorizontal="6dp"
-						android:layout_weight="1"
-						android:inputType="number"
-						android:text="0"/>
-					<Button
-						android:id="@+id/next_seed_button"
-						android:text="Next"
+					android:paddingVertical="@dimen/editor_padding_v">
+					<LinearLayout
+						android:orientation="horizontal"
 						android:layout_width="match_parent"
 						android:layout_height="wrap_content"
-						android:layout_marginBottom="6dp"
-						android:layout_weight="1"/>
+						android:focusableInTouchMode="true"
+						android:focusable="true">
+						<TextView
+							android:text="Seed"
+							android:textAppearance="@style/SettingTitle"
+							android:paddingRight="6dp"
+							android:layout_width="wrap_content"
+							android:layout_height="match_parent"
+							android:gravity="center_vertical"/>
+						<EditText
+							android:id="@+id/seed_display"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_marginHorizontal="6dp"
+							android:layout_weight="1"
+							android:inputType="number"
+							android:text="0"/>
+						<Button
+							android:id="@+id/next_seed_button"
+							android:text="Next"
+							android:layout_width="match_parent"
+							android:layout_height="wrap_content"
+							android:layout_marginBottom="6dp"
+							android:layout_weight="1"/>
+					</LinearLayout>
+					<TextView
+						android:paddingTop="@dimen/editor_padding_v"
+						android:text="Use double tap on wallpaper to randomize"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content" />
 				</LinearLayout>
 
 				<LinearLayout
