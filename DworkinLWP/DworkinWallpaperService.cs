@@ -109,6 +109,16 @@ namespace DworkinLWP
             private readonly DworkinWallpaperService enclosingInstance;
             private WallpaperGLSurfaceView glSurfaceView;
             private bool rendererSet;
+            private GestureDetector gestureListener;
+
+            private class GestureListener : GestureDetector.SimpleOnGestureListener
+            {
+                public override bool OnDoubleTap(MotionEvent e)
+                {
+                    CurrentSettings.changeSeed(new System.Random().Next());
+                    return base.OnDoubleTap(e);
+                }
+            }
 
             public DworkinEngine(WallpaperService __self) : base(__self)
             {
@@ -129,6 +139,14 @@ namespace DworkinLWP
                 glSurfaceView.PreserveEGLContextOnPause = true;
                 glSurfaceView.SetRenderer(renderer);
                 rendererSet = true;
+
+                gestureListener = new GestureDetector(enclosingInstance.ApplicationContext, new GestureListener());
+                SetTouchEventsEnabled(true);
+            }
+
+            public override void OnTouchEvent(MotionEvent evt) 
+            {
+                gestureListener.OnTouchEvent(evt);
             }
 
             public override void OnDestroy()

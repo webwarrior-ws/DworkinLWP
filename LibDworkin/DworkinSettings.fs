@@ -538,6 +538,9 @@ module CurrentSettings =
     let get() : SettingsHolder = currSettings.Value
     let set(value : SettingsHolder) = currSettings <- Some(value)
     let isSet() = currSettings.IsSome
+    /// Convenience method to set seed from C#
+    let changeSeed(newSeed : int) =
+        currSettings <- Some({ currSettings.Value with Seed=newSeed })
 
     let mutable speedFactor = 1.0f
     let mutable randomizationInterval = RandomizationInterval.FiveSeconds
