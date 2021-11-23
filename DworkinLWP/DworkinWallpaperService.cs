@@ -36,8 +36,8 @@ namespace DworkinLWP
                 var defaultSettings = new SettingsHolder(
                         new ConfigSettings.FlowingLeaves(),
                         new Effects.Plain(),
-                        new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(0.0f, 0.0f, 0.0f)),
-                        new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(1.0f, 1.0f, 1.0f)),
+                        new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(0.1f, 0.1f, 0.1f)),
+                        new Settings.Randomizeable<Tuple<float, float, float>>.Defined(new Tuple<float, float, float>(0.95f, 0.95f, 0.95f)),
                         new Materials.SolidColor(),
                         new Materials.SolidColor(),
                         1054841354);

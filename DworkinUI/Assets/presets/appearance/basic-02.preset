@@ -1,1 +1,1 @@
-{"bgColor": [0, 0, 0], "bgMaterial": {"<<<Type>>>": "SolidColor"}, "effect": {"<<<Type>>>": "Plain"}, "fgColor": [1, 1, 1], "fgMaterial": {"<<<Type>>>": "SolidColor"}}
+{"bgColor": [0.1, 0.1, 0.1], "bgMaterial": {"<<<Type>>>": "SolidColor"}, "effect": {"<<<Type>>>": "Plain"}, "fgColor": [0.95, 0.95, 0.95], "fgMaterial": {"<<<Type>>>": "SolidColor"}}
