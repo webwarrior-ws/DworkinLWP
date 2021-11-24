@@ -71,10 +71,14 @@ namespace DworkinUITest
             app.Screenshot("Color picker");
             app.Back();
 
-            app.WaitForElement(x => x.Id("preset_control"));
-            app.Tap(c => c.Id("preset_control"));
+            app.WaitForNoElement(x => x.Id("color_picker_view"));
+
+            var isTabletLayout = app.Query(c => c.Id("settings_secondary")).Any();
+            if (isTabletLayout)
+                app.Tap(c => c.Marked("Open appearance preset manager"));
+            else
+                app.Tap(c => c.Id("preset_control"));
             this.WaitForTimeSpan(TimeSpan.FromSeconds(1.0));
-            app.Screenshot("Appearance presets");
 
             app.Tap(c => c.Id("save_preset_button"));
             this.WaitForTimeSpan(TimeSpan.FromSeconds(0.2));
@@ -82,17 +86,23 @@ namespace DworkinUITest
 
             app.Back();
             app.WaitForElement(c => c.Id("save_preset_button"));
+            app.Screenshot("Appearance presets");
+
             app.Back();
             app.WaitForElement(c => c.Id("preset_control"));
-            app.Back();
+            if(!isTabletLayout)
+                app.Back();
 
             app.Tap(c => c.Id("preset_control"));
             this.WaitForTimeSpan(TimeSpan.FromSeconds(1.5));
-            app.Screenshot("Overall presets");
 
             app.Tap(c => c.Id("save_preset_button"));
             this.WaitForTimeSpan(TimeSpan.FromSeconds(1.5));
             app.Screenshot("Overall presets save");
+
+            app.Back();
+            app.WaitForElement(c => c.Id("save_preset_button"));
+            app.Screenshot("Overall presets");
         }
     
     }
