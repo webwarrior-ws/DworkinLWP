@@ -2,7 +2,6 @@
 <wallpaper
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/wallpaper_description"
-    android:settingsActivity="dworkinLWP.SettingsActivity" >
+    android:settingsActivity="dworkinLWP.SettingsActivity"
+	android:thumbnail="@mipmap/ic_launcher" >
 </wallpaper>
-
-<!--android:thumbnail="@drawable/icon"-->
