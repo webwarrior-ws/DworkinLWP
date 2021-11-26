@@ -307,10 +307,10 @@ type PresetPreview(context : Context, preset : Preset) =
 type SpacingItemDecoration(context: Context) =
     inherit RecyclerView.ItemDecoration()
 
-    let spacing = int (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing))
+    member val Spacing = int (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing))
 
     override this.GetItemOffsets(outRect, view, parent, state) =
-        outRect.Set(spacing, spacing, spacing, spacing)
+        outRect.Set(this.Spacing, this.Spacing, this.Spacing, this.Spacing)
         
 
 type PresetPreviewViewHolder(context) =
@@ -382,15 +382,18 @@ and [<AllowNullLiteral>]
             each.Initialize()
             this.Activity.RegisterForContextMenu(each)
         adapter.ParentFragment <- this
+        let itemDecoration = new SpacingItemDecoration(this.Context)
         let numColumns = 
             if previews.Count > 0 then
                 let previewWidth, _ = previews.[0].ImageSize
                 let screenWidth = this.Context.Resources.DisplayMetrics.WidthPixels
-                if screenWidth > 0 then screenWidth / previewWidth else 2
+                if screenWidth > 0 then 
+                    (screenWidth - itemDecoration.Spacing) / (previewWidth + itemDecoration.Spacing) 
+                else 2
             else 2
         recyclerView.SetLayoutManager(new GridLayoutManager(this.Context, numColumns))
         recyclerView.SetAdapter(adapter)
-        recyclerView.AddItemDecoration(new SpacingItemDecoration(this.Context))
+        recyclerView.AddItemDecoration(itemDecoration)
         view         
 
     override this.OnStop() =
