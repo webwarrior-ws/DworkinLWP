@@ -29,6 +29,7 @@ let inline checkError(lineInfo: string) =
 #endif
 
 
+#nowarn "44"
 module OffscreenRendering =
     open System.Threading
     open System.Threading.Tasks
@@ -168,11 +169,11 @@ module OffscreenRendering =
             initResult.display <- null
     
     let EndOurGL() =
-        EndAndDispose()
         if LibDworkin.RendererComponents.EGLContextFactory.CurrentContext = EGL10.EglNoContext then
             // No context is shared with our context, so reset shaders and textures (they will be lost when context is destroyed)
             ResettableLazy<Shader>.ResetAll()
             ResettableLazy<int>.ResetAll() // textures
+        EndAndDispose()
         initResult.egl10 <- null
 
     let CreateGLAndSurface(width, height) : bool =
@@ -291,6 +292,7 @@ module OffscreenRendering =
             let ts = new SingleThreadTaskScheduler(cts.Token)
             ts.Start()
             ts)
+        writeLog("Offscreen renderer resources released")
 
     /// Preform given function (request) on a dedicated thread and return its result.
     /// Requests are queued up and run sequentially.
@@ -340,23 +342,24 @@ type BasePresetRenderer(platform, width : int, height : int) =
 
 type RendererSingleton<'T when 'T :> BasePresetRenderer>() =
     let mutable instance : 'T option = None
+    static let lockObject = obj()
     
-    member this.RequestInstance(rendererFactory : unit -> 'T, width, height) : Async<'T> =
-        OffscreenRendering.processRequest <| fun () ->
+    member this.RequestInstance(rendererFactory : unit -> 'T) : 'T =
+        lock lockObject <| fun () ->
             match instance with
-            | Some(renderer) when renderer.WallpaperSize = (width, height) -> renderer
+            | Some(renderer) -> renderer
             | _ ->
                 writeLog("Request renderer instance")
                 let renderer = rendererFactory()
-                renderer.Initialize()
                 instance <- Some(renderer)
                 renderer
     
     member this.ResetInstance() = 
         OffscreenRendering.processRequest <| fun () ->
-            if instance.IsSome then
-                OffscreenRendering.Release()
-                instance <- None
+            lock lockObject <| fun () ->
+                if instance.IsSome then
+                    OffscreenRendering.Release()
+                    instance <- None
 
 
 type AppearancePresetRenderer private(platform : AbstractPlatform, width : int, height : int) =
@@ -368,12 +371,15 @@ type AppearancePresetRenderer private(platform : AbstractPlatform, width : int, 
 
     static let singleton = RendererSingleton<AppearancePresetRenderer>()
 
-    static member RequestInstance(platform, width, height) : Async<AppearancePresetRenderer> =
+    static member RequestInstance(platform, width, height) : AppearancePresetRenderer =
         let factory () = new AppearancePresetRenderer(platform, width , height)
-        singleton.RequestInstance(factory, width, height)
+        singleton.RequestInstance(factory)
     
     static member ResetInstance() = 
         singleton.ResetInstance()
+
+    member private this.SetSizeAndScaleVariables() =
+        this.SetScale(Vector2(float32 width, float32 height), width, height)
 
     override this.SDFTexture = sdfTexture.Value
 
@@ -383,8 +389,7 @@ type AppearancePresetRenderer private(platform : AbstractPlatform, width : int, 
 
         GL.Viewport(0, 0, width, height); checkError(__LINE__)
 
-        let dimensions = Vector2(float32 width, float32 height)
-        this.SetSizeAndScaleVariables(dimensions, width, height)
+        this.SetSizeAndScaleVariables()
         this.InitializeQuadVBO()
         
         GL.Disable(EnableCap.DepthTest); checkError(__LINE__)
@@ -407,6 +412,9 @@ type AppearancePresetRenderer private(platform : AbstractPlatform, width : int, 
         foreground.ExtraScaleFactor <- 0.25f
         
         let getBitmap() =
+            if not initialized then this.Initialize()
+            this.SetSizeAndScaleVariables()
+
             writeLog(sprintf "Begin   render %d  on thread#%d" hash System.Threading.Thread.CurrentThread.ManagedThreadId)
 
             this.Background <- background
@@ -427,7 +435,6 @@ type AppearancePresetRenderer private(platform : AbstractPlatform, width : int, 
                 if initialized then
                     initialized <- false
                     do! OffscreenRendering.processRequest OffscreenRendering.resetShadersAndTextures
-                    do! OffscreenRendering.processRequest this.Initialize
                 return! OffscreenRendering.processRequest getBitmap
         }
 
@@ -440,9 +447,9 @@ type OverallPresetRenderer private(platform : AbstractPlatform, width : int, hei
 
     static let singleton = RendererSingleton<OverallPresetRenderer>()
 
-    static member RequestInstance(platform, width, height) : Async<OverallPresetRenderer> =
-        let factory () = new OverallPresetRenderer(platform, width , height)
-        singleton.RequestInstance(factory, width, height)
+    static member RequestInstance(platform, width, height) : OverallPresetRenderer =
+        let factory () = new OverallPresetRenderer(platform, width, height)
+        singleton.RequestInstance(factory)
     
     static member ResetInstance() = 
         singleton.ResetInstance()
@@ -468,6 +475,9 @@ type OverallPresetRenderer private(platform : AbstractPlatform, width : int, hei
         let maxShapesInOnePass = 10000
 
         let getBitmap() =
+            if not initialized then this.Initialize()
+            this.SetScale(this.GetDimensions(width, height), width, height)
+
             let stopwatch = System.Diagnostics.Stopwatch.StartNew()
             writeLog(sprintf "Begin   render [overall] %d on thread#%d" hash  System.Threading.Thread.CurrentThread.ManagedThreadId)
             let random = System.Random(settings.Seed)
@@ -512,6 +522,5 @@ type OverallPresetRenderer private(platform : AbstractPlatform, width : int, hei
                     initialized <- false
                     onSurfaceChangedCalled <- false
                     do! OffscreenRendering.processRequest OffscreenRendering.resetShadersAndTextures
-                    do! OffscreenRendering.processRequest this.Initialize
                 return! OffscreenRendering.processRequest getBitmap
         }

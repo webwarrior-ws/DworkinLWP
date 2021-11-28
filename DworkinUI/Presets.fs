@@ -74,7 +74,7 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
         let effect = this.Effect.Build(platform, getRandom())
 
         async {
-            let! renderer = PreviewRenderers.AppearancePresetRenderer.RequestInstance(platform, w, h)
+            let renderer = PreviewRenderers.AppearancePresetRenderer.RequestInstance(platform, w, h)
             return! renderer.RenderPreview(bgColor, fgColor, background, foreground, effect)
         }
 
@@ -135,7 +135,7 @@ type OverallPreset(settings : SettingsHolder) =
     override this.GeneratePreview(context, w, h) =
         let platform = LibDworkin.RendererComponents.AndroidPlatform(context)
         async {
-            let! renderer = PreviewRenderers.OverallPresetRenderer.RequestInstance(platform, w, h)
+            let renderer = PreviewRenderers.OverallPresetRenderer.RequestInstance(platform, w, h)
             return! renderer.RenderPreview(settings)
         }
 
