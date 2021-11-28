@@ -408,6 +408,10 @@ type SettingsActivity() =
 
     override this.OnResume() =
         base.OnResume()
+        if this.IsTabletLayout then 
+            match this.SupportFragmentManager.FindFragmentById(Resources.Id.settings_secondary) with
+            | :? PatternSettingsFragment as fragment ->  fragment.UpdateEditor()
+            | _ -> ()
         Settings.InAppPurchases.readFromStorage(this.ApplicationContext)
         this.UpdatePurchasesLinkVisibility() // based on purchaes info from storage
         async {

@@ -124,6 +124,8 @@ type OverallSettingsFragment() =
 type PatternSettingsFragment() =
     inherit AndroidX.Fragment.App.Fragment()
     
+    let mutable settingsEditor : SettingsClassChooser<EnvironmentSettings> = null
+
     member private this.GetEnvironmentEditor() =
         let editor = SettingsClassChooser<EnvironmentSettings>.Create(this.Context, ConfigSettings.allEnvironmentSettingsTypes)
         editor.Title <- "Pattern"
@@ -133,10 +135,15 @@ type PatternSettingsFragment() =
                 (fun value -> CurrentSettings.set { CurrentSettings.get() with Environment=unbox<EnvironmentSettings>(value) } ))
         editor
 
+    member this.UpdateEditor() =
+        if not (isNull settingsEditor) then
+            settingsEditor.UpdateValue()
+
     override this.OnCreateView(inflater, container, bundle) = 
         let view = inflater.Inflate(Resources.Layout.PatternSettingsFragment, container, false)
         let editorsGroup = view.FindViewById<ViewGroup>(Resources.Id.editors_group)
-        editorsGroup.AddView(this.GetEnvironmentEditor())
+        settingsEditor <- this.GetEnvironmentEditor()
+        editorsGroup.AddView(settingsEditor)
         view
 
 
