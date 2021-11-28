@@ -815,6 +815,8 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             initialSetupRoutine.Force()
             base.OnSurfaceChanged(width, height)
         else
+            let dimensions = this.GetDimensions(width, height)
+            this.SetScale(dimensions, width, height)
             match state with 
             | Idling(_) when framesAfterStop > 0 -> 
                 // Fixes issue of black screen after pause (e.g. waking after sleep). 

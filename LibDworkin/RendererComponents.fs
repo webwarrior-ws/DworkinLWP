@@ -16,7 +16,7 @@ open Android.Opengl
 open Javax.Microedition.Khronos
 
 let inline writeLog(message: string) =
-#if DEBUG && __ANDROID__
+#if DEBUG
     Android.Util.Log.Debug("Renderer", message) |> ignore
 #else
     ()
