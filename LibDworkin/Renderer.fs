@@ -154,6 +154,8 @@ type BaseRenderer(platform : AbstractPlatform) =
                     ResettableLazy<int>.ResetAll() // textures
                     this.OnSurfaceCreated()
                 else
+                    // next line is needed because otherwise can cause bug in some circumstances on some devices
+                    this.Effect.ScreenDimensions <- this.GetDimensions(wallpaperWidth, wallpaperHeight)
                     this.OnDrawFrame()
             with | GLException(errorCode, descritption) -> 
                 writeLog(sprintf "Exception in OnDrawFrame: %A (%s)" errorCode descritption)
