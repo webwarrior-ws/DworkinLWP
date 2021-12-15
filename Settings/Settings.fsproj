@@ -129,7 +129,7 @@
       <HintPath>..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.28\lib\monoandroid81\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Android.Google.BillingClient">
-      <HintPath>..\packages\Xamarin.Android.Google.BillingClient.4.0.0\lib\monoandroid90\Xamarin.Android.Google.BillingClient.dll</HintPath>
+      <HintPath>..\packages\Xamarin.Android.Google.BillingClient.3.0.0\lib\monoandroid90\Xamarin.Android.Google.BillingClient.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Android.Support.Media.Compat">
       <HintPath>..\packages\Xamarin.Android.Support.Media.Compat.28.0.0.3\lib\monoandroid90\Xamarin.Android.Support.Media.Compat.dll</HintPath>

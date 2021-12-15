@@ -125,11 +125,13 @@ let private getPurchaseItemsAsync() : Async<option<seq<InAppBillingPurchase>>> =
                     for purchase in purchases do
                         if purchase.State = PurchaseState.Purchased && not purchase.IsAcknowledged then
                             writeLog(sprintf "Acknowledging purchase: %s" purchase.ProductId)
-                            let! acknowledged = billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask
-                            if acknowledged then
-                                writeLog("Purchase acknowledged")
-                            else
-                                writeLog("Purchase not acknowledged")
+                            match! billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask |> Async.Catch with
+                            | Choice1Of2(acknowledged) ->
+                                if acknowledged then
+                                    writeLog("Purchase acknowledged")
+                                else
+                                    writeLog("Purchase not acknowledged")
+                            | Choice2Of2(exn) -> writeLog(sprintf"Error trying to acknowledge purchase: %A" exn)
                     return (Some(purchases))
                 else 
                     return None
