@@ -599,7 +599,7 @@ type Effect(shader : ResettableLazy<Shader>) =
         let needsInit = not shader.IsValueCreated || not wasUsed
         base.Use()
         if needsInit then 
-            GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), this.ScreenDimensions.X, this.ScreenDimensions.Y); checkError(__LINE__) 
+            GL.Uniform2(this.Shader.GetUniformLocation("screenDimensions"), this.ScreenDimensions); checkError(__LINE__) 
             this.SetUniforms()
         wasUsed <- true
 
