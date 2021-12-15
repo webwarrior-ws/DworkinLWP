@@ -120,7 +120,19 @@ let private getPurchaseItemsAsync() : Async<option<seq<InAppBillingPurchase>>> =
             async {
                 let! purchases = billing.GetPurchasesAsync(ItemType.InAppPurchase) |> Async.AwaitTask
                 //check for null just incase
-                return (if not (isNull purchases) then Some(purchases) else None)
+                if not (isNull purchases) then
+                    // akcnowledge purchases that somehow have not been akcnowledged
+                    for purchase in purchases do
+                        if purchase.State = PurchaseState.Purchased && not purchase.IsAcknowledged then
+                            writeLog(sprintf "Acknowledging purchase: %s" purchase.ProductId)
+                            let! acknowledged = billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask
+                            if acknowledged then
+                                writeLog("Purchase acknowledged")
+                            else
+                                writeLog("Purchase not acknowledged")
+                    return (Some(purchases))
+                else 
+                    return None
             })
         (async { return None })
         2000
