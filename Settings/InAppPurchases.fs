@@ -126,12 +126,9 @@ let private getPurchaseItemsAsync() : Async<option<seq<InAppBillingPurchase>>> =
                         if purchase.State = PurchaseState.Purchased && not purchase.IsAcknowledged then
                             writeLog(sprintf "Acknowledging purchase: %s" purchase.ProductId)
                             match! billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask |> Async.Catch with
-                            | Choice1Of2(acknowledged) ->
-                                if acknowledged then
-                                    writeLog("Purchase acknowledged")
-                                else
-                                    writeLog("Purchase not acknowledged")
-                            | Choice2Of2(exn) -> writeLog(sprintf"Error trying to acknowledge purchase: %A" exn)
+                            | Choice1Of2(true) -> writeLog("Purchase acknowledged")
+                            | Choice1Of2(false) -> writeLog("Purchase not acknowledged")
+                            | Choice2Of2(exn) -> writeLog(sprintf "Error trying to acknowledge purchase: %A" exn)
                     return (Some(purchases))
                 else 
                     return None
@@ -193,20 +190,27 @@ let getPurchasesDialog(context: Context, purchasesData : seq<InAppBillingProduct
                     (fun billing -> async {
                         let! purchase = billing.PurchaseAsync(each.ProductId, ItemType.InAppPurchase, verifyPurchaseImpl) |> Async.AwaitTask
                         dialog.Cancel()
-                        if not (isNull purchase) && purchase.State = PurchaseState.Purchased then
-                            swap purchasedItems (Set.add purchase.ProductId)
-                            writeToStorage(context)
-                            writeLog(sprintf "Purchased item: %s" each.ProductId)
-                            purchasedItemsChangedCallback()
-                            if not purchase.IsAcknowledged then
-                                let! purchaseAcknowledged = billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask
-                                if not purchaseAcknowledged then
-                                    swap purchasedItems (Set.remove purchase.ProductId)
+                        if isNull purchase then
+                            writeLog("Purchase response is null")
+                        else
+                            writeLog(sprintf "Purchase response: sku=%s; state=%A; isAcknowledged=%b" purchase.ProductId purchase.State purchase.IsAcknowledged)
+                            if purchase.State = PurchaseState.Purchased then
+                                let updatePurchasedItems operation =                          
+                                    swap purchasedItems operation
                                     writeToStorage(context)
-                                    writeLog("Purchase not acknowledged")
                                     purchasedItemsChangedCallback()
-                                else
-                                    writeLog("Purchase acknowledged")
+                                updatePurchasedItems (Set.add purchase.ProductId)
+                                writeLog(sprintf "Purchased item: %s" purchase.ProductId)
+                                if not purchase.IsAcknowledged || purchase.ProductId = IAPItem.EffectsAndMaterials then
+                                    match! billing.AcknowledgePurchaseAsync(purchase.PurchaseToken) |> Async.AwaitTask |> Async.Catch with
+                                    | Choice1Of2(true) -> 
+                                        writeLog("Purchase acknowledged")
+                                    | Choice1Of2(false) -> 
+                                        updatePurchasedItems (Set.remove purchase.ProductId)
+                                        writeLog("Purchase not acknowledged")
+                                    | Choice2Of2(exn) -> 
+                                        updatePurchasedItems (Set.remove purchase.ProductId)
+                                        writeLog(sprintf "Error trying to acknowledge purchase: %A" exn)
                         })
                     (async { (errorDialog "Could not connect to Billing API").Show() |> ignore })
                     1000
