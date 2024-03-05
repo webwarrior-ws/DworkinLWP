@@ -1,8 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <SelectedDevice>tablet_m-dpi_10_1in_q_10_0_-_api_29</SelectedDevice>
-    <DefaultDevice>tablet_m-dpi_10_1in_q_10_0_-_api_29</DefaultDevice>
+    <SelectedDevice>pixel_4a_-_api_31</SelectedDevice>
+    <DefaultDevice>pixel_4a_-_api_31</DefaultDevice>
     <AndroidDesignerPreferredTheme>Theme.AppCompat.NoActionBar</AndroidDesignerPreferredTheme>
+    <SelectedPlatformGroup>Emulator</SelectedPlatformGroup>
+    <ActiveDebugProfile>Pixel 4a - API 31 %28Android 12.0 - API 31%29</ActiveDebugProfile>
   </PropertyGroup>
 </Project>

@@ -107,6 +107,9 @@
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Cheesebaron.ColorPickers">
+      <HintPath>..\packages\Cheesebaron.ColorPickers.0.1.21\lib\monoandroid90\Cheesebaron.ColorPickers.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\portable-net45+monoandroid10+monotouch10+xamarinios10\FSharp.Core.dll</HintPath>
     </Reference>
@@ -251,13 +254,6 @@
     <Reference Include="Xamarin.Essentials">
       <HintPath>..\packages\Xamarin.Essentials.1.5.3.2\lib\monoandroid10.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Cheesebaron.ColorPickers\Cheesebaron.ColorPickers\Cheesebaron.ColorPickers.csproj">
-      <Name>Cheesebaron.ColorPickers</Name>
-      <Project>{466058da-23be-483a-ac62-f0ab2c968b4b}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

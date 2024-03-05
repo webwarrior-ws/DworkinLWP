@@ -72,17 +72,17 @@ type PCB_RandomPosChips() =
     override this.Build(seed) =
         let random = System.Random(seed)
         let getValue expr = Randomizeable.getValue random expr
-        let isOctagonal = match getValue<@ this.ChipsShape @> with | PCBChipShape.Octagonal -> true | _ -> false
+        let isOctagonal = match getValue <@ this.ChipsShape @> with | PCBChipShape.Octagonal -> true | _ -> false
         PCB.PCB_RandomPosChips(
             RandomSeed=seed,
             Angle=float32(getValue <@ this.Angle @>),
-            Angles=PCBAngles.GetAngles(getValue<@ this.Angles @>),
+            Angles=PCBAngles.GetAngles(getValue <@ this.Angles @>),
             Octagonal=isOctagonal,
             Size=getValue <@ this.Size @>,
             Vias=getValue <@ this.Vias @>,
             Endpoints=getValue <@ this.Endpoints @>,
             Density=getValue <@ this.Density @>,
-            ThicknessVariance=getValue<@ this.ThicknessVariance @>) 
+            ThicknessVariance=getValue <@ this.ThicknessVariance @>) 
         :> EnvironmentConfig
 
 
