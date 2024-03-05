@@ -53,7 +53,7 @@ type ActivityWithBackButton() =
         ActivityWithBackButton.MenuComponent.OnCreateOptionsMenu(this, menu)
 
 
-[<Activity(Label = "Pattern Settings")>]
+[<Activity(Label = "Pattern Settings", Exported = false)>]
 type PatternSettingsActivity() =
     inherit ActivityWithBackButton()
 
@@ -202,7 +202,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
         System.GC.Collect() // needed because otherwise will eventually get OutOfMemoryException
     
 
-[<Activity(Label = "Appearance Preset")>] 
+[<Activity(Label = "Appearance Preset", Exported = false)>] 
 type AppearancePresetSelectionActivity() =
     inherit PresetSelectionActivity<AppearancePreset>()
 
@@ -242,7 +242,7 @@ type AppearancePresetSelectionActivity() =
         base.OnStop()
 
 
-[<Activity(Label = "Preset")>] 
+[<Activity(Label = "Preset", Exported = false)>] 
 type OverallPresetSelectionActivity() =
     inherit PresetSelectionActivity<OverallPreset>()
 
@@ -274,7 +274,7 @@ type OverallPresetSelectionActivity() =
         base.OnStop()
 
 
-[<Activity(Label = "Appearance Settings")>]
+[<Activity(Label = "Appearance Settings", Exported = false)>]
 type AppearanceSettingsActivity() =
     inherit ActivityWithBackButton()
     
@@ -287,7 +287,7 @@ type AppearanceSettingsActivity() =
         this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
 
 
-[<Activity(Name = "dworkinUI.SettingsActivity", Label = "Settings")>]
+[<Activity(Name = "dworkinUI.SettingsActivity", Label = "Settings", Exported = false)>]
 type SettingsActivity() =
     inherit ActivityWithBackButton()
     

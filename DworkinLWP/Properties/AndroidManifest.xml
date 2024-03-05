@@ -12,7 +12,7 @@
 		  <meta-data android:name="android.service.wallpaper" android:resource="@xml/wallpaper"></meta-data>
 	  
     </service>-->
-		<activity android:name="dworkinLWP.SettingsActivity" android:launchMode="singleTask">
+		<activity android:name="dworkinLWP.SettingsActivity" android:launchMode="singleTask" android:exported="false">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
