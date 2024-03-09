@@ -114,12 +114,7 @@ type SettingsClassChooserAdapter(context : Context, classes: System.Type[]) =
         let view = view :?> TextView
         let cls = classes.[position]
         let name = this.GetClassName(cls)
-        match InAppPurchases.getSKUForClass(cls) with
-        | Some(sku) when not (InAppPurchases.isPurchased sku) ->
-            view.Text <- sprintf "%s [paid content]" name
-            view.Enabled <- false
-        | _ -> 
-            view.Text <- name
+        view.Text <- name
         view :> View
 
     override this.GetView(position, convertView, parent) = 
@@ -129,10 +124,7 @@ type SettingsClassChooserAdapter(context : Context, classes: System.Type[]) =
         this.CustomizeView(base.GetDropDownView(position, convertView, parent), position)
 
     override this.IsEnabled(position) : bool =
-        let cls = classes.[position]
-        match InAppPurchases.getSKUForClass(cls) with
-        | Some(sku) -> InAppPurchases.isPurchased sku
-        | None -> true
+        true
 
 
 [<AllowNullLiteral>]
