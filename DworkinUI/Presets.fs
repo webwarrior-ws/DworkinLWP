@@ -20,9 +20,8 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
                 "fgMaterial", Serialization.toJsonValue preset.Foreground
                 "bgMaterial", Serialization.toJsonValue preset.Background 
             |]
-            System.Json.JsonObject(d) :> System.Json.JsonValue
-        let fromJson (json : System.Json.JsonValue) =
-            let jsonDict = json :?> System.Json.JsonObject
+            Serialization.JsonObject(d)
+        let fromJson (Serialization.JsonObject jsonDict) =
             AppearancePreset(
                 Serialization.fromJsonValue jsonDict.["effect"],
                 Serialization.fromJsonValue jsonDict.["fgColor"],
@@ -95,7 +94,7 @@ type OverallPreset(settings : SettingsHolder) =
 
     static do // register serializer/deserializer
         let toJson (preset : OverallPreset) = Serialization.toJsonValue preset.Settings
-        let fromJson (json : System.Json.JsonValue) = OverallPreset(Serialization.fromJsonValue json)
+        let fromJson (json : Serialization.JsonValue) = OverallPreset(Serialization.fromJsonValue json)
         Serialization.Converters.getOrSetIfAbsent
             typeof<OverallPreset>
             (fun () -> Serialization.Converter(toJson, fromJson) :> Serialization.IConverter)
@@ -165,7 +164,8 @@ module BuiltinPresets =
 
 
 module CurrentPresetSelection =
-    open System.Json
+    open System.Text.Json
+    open Serialization
 
     let mutable appearance : AppearancePreset option = None
     let getAppearancePresetDisplayText() = 
@@ -183,25 +183,25 @@ module CurrentPresetSelection =
 
     /// Install settings save/load hooks. Must be called before loading settings (CurrentSettings.load)
     let installHooks() =
-        CurrentSettings.addSaveHook <| fun _ json ->
+        CurrentSettings.addSaveHook <| fun _ (JsonObject json) ->
             match overall with
-            | Some(preset) -> json.["overallPresetName"] <- JsonPrimitive(preset.Name)
+            | Some(preset) -> json.["overallPresetName"] <- JsonString(preset.Name)
             | None -> ()
             match appearance with
-            | Some(preset) -> json.["appearancePresetName"] <- JsonPrimitive(preset.Name)
+            | Some(preset) -> json.["appearancePresetName"] <- JsonString(preset.Name)
             | None -> ()
 
-        CurrentSettings.addLoadHook <| fun context json ->
+        CurrentSettings.addLoadHook <| fun context (JsonObject json) ->
             match json.TryGetValue("overallPresetName") with
             | true, value -> 
-                let name : string = Serialization.(!>) value
+                let (JsonString name) = value
                 let file = new Java.IO.File(PresetManagement.getFilePath context OverallPreset.DirectoryName name)
                 if file.Exists() then
                     overall <- Some(PresetManagement.loadPreset context file.AbsolutePath)
             | false, _ -> ()
             match json.TryGetValue("appearancePresetName") with
             | true, value -> 
-                let name : string = Serialization.(!>) value
+                let (JsonString name) = value
                 let file = new Java.IO.File(PresetManagement.getFilePath context AppearancePreset.DirectoryName name)
                 if file.Exists() then
                     appearance <- Some(PresetManagement.loadPreset context file.AbsolutePath)

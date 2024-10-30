@@ -132,12 +132,85 @@ module Randomizeable =
 
 
 module Serialization =
-    open System.Json
     open Microsoft.FSharp.Reflection
+    open System.Collections.Generic
+    open System.Text.Json
 
-    // implicit conversion operator
-    let inline (!>) (x:^a) : ^b = 
-        ((^a or ^b) : (static member op_Implicit : ^a -> ^b) x)
+    type JsonValue =
+        | JsonString of string
+        | JsonNumber of float32
+        | JsonBool of bool
+        | JsonArray of JsonValue[]
+        | JsonObject of IDictionary<string, JsonValue>
+
+    type JsonValueConverter() =
+        inherit Serialization.JsonConverter<JsonValue>()
+
+        member private self.ReadArray(reader: byref<Utf8JsonReader>): JsonValue[] =
+            reader.Read() |> ignore
+            let results = ResizeArray()
+            while reader.TokenType <> JsonTokenType.EndArray do
+                results.Add <| self.ReadValue(&reader)
+                reader.Read() |> ignore
+            results.ToArray()
+
+        member private self.ReadObject(reader: byref<Utf8JsonReader>): Dictionary<string, JsonValue> =
+            reader.Read() |> ignore
+            let results = Dictionary()
+            while reader.TokenType <> JsonTokenType.EndObject do
+                if reader.TokenType <> JsonTokenType.PropertyName then
+                    raise <| JsonException "Expected property name"
+                let name = reader.GetString()
+                reader.Read() |> ignore
+                let value = self.ReadValue(&reader)
+                reader.Read() |> ignore
+                results.[name] <- value
+            results
+
+        member private self.ReadValue(reader: byref<Utf8JsonReader>) =
+            match reader.TokenType with
+            | JsonTokenType.String -> JsonString <| reader.GetString()
+            | JsonTokenType.Number -> JsonNumber <| reader.GetSingle()
+            | JsonTokenType.True -> JsonBool true
+            | JsonTokenType.False -> JsonBool false
+            | JsonTokenType.StartArray -> JsonArray <| self.ReadArray(&reader)
+            | JsonTokenType.StartObject -> JsonObject <| self.ReadObject(&reader)
+            | x -> failwithf "Unexpected JSON token type: %A" x
+
+        override self.Read (reader: byref<Utf8JsonReader>, typeToConvert: System.Type, options: JsonSerializerOptions): JsonValue = 
+            let result = self.ReadValue(&reader)
+            reader.Read() |> ignore
+            result
+
+        member private self.WriteArray (writer: Utf8JsonWriter) (arr: JsonValue[]) =
+            writer.WriteStartArray()
+            for each in arr do
+                self.WriteValue writer each
+            writer.WriteEndArray()
+
+        member private self.WriteObject (writer: Utf8JsonWriter) (properties: IDictionary<string, JsonValue>) =
+            writer.WriteStartObject()
+            for KeyValue(key, value) in properties do
+                writer.WritePropertyName key
+                self.WriteValue writer value
+            writer.WriteEndObject()
+
+        member private self.WriteValue (writer: Utf8JsonWriter) (value: JsonValue) =
+            match value with
+            | JsonString str -> writer.WriteStringValue str
+            | JsonNumber num -> writer.WriteNumberValue num
+            | JsonBool  b -> writer.WriteBooleanValue b
+            | JsonArray arr -> self.WriteArray writer arr
+            | JsonObject object -> self.WriteObject writer object
+
+        override self.Write (writer: Utf8JsonWriter, value: JsonValue, options: JsonSerializerOptions): unit = 
+            self.WriteValue writer value
+
+        override self.CanConvert (typeToConvert: System.Type): bool = 
+            typeToConvert = typeof<JsonValue>
+
+    let jsonOptions = JsonSerializerOptions()
+    jsonOptions.Converters.Add <| JsonValueConverter()
 
     type IConverter =
         abstract member ToJsonValue : obj -> JsonValue
@@ -155,32 +228,30 @@ module Serialization =
     module Converters =
         let converters = System.Collections.Concurrent.ConcurrentDictionary<System.Type, IConverter>()
 
-        let inline makePrimitiveConverter< ^T when (JsonValue or  ^T) : (static member op_Implicit : JsonValue ->  ^T) and ( ^T or JsonValue) : (static member op_Implicit :  ^T -> JsonValue) >() : Converter< ^T > = 
-            Converter( (fun (x : ^T) -> !> x) ,  (!>) )
+        //let inline makePrimitiveConverter< ^T when (JsonValue or  ^T) : (static member op_Implicit : JsonValue ->  ^T) and ( ^T or JsonValue) : (static member op_Implicit :  ^T -> JsonValue) >() : Converter< ^T > = 
+        //    Converter( (fun (x : ^T) -> !> x) ,  (!>) )
     
         type RandomizeableConverterMaker<'T> =
             static member Make(valueConverter : IConverter) : Converter<Randomizeable<'T>> =
                 let randomizedMarker = "<<<Randomized>>>"
                 Converter(
-                    (function | Randomized -> !> randomizedMarker | Defined(object) -> valueConverter.ToJsonValue(object)),
+                    (function | Randomized -> JsonString randomizedMarker | Defined(object) -> valueConverter.ToJsonValue(object)),
                     (fun value -> 
-                        match value.JsonType with
-                        | JsonType.String when !> value = randomizedMarker -> Randomized
+                        match value with
+                        | JsonString str when str = randomizedMarker -> Randomized
                         | _ -> Defined(valueConverter.FromJsonValue(value) |> unbox<'T>) ) )
         
-        let inline makeAndRegisterPrimitiveConverter< ^T when (JsonValue or  ^T) : (static member op_Implicit : JsonValue ->  ^T) and ( ^T or JsonValue) : (static member op_Implicit :  ^T -> JsonValue) >() =
-            converters.[typeof< ^T >] <- makePrimitiveConverter< ^T >()
-    
         do
-            makeAndRegisterPrimitiveConverter<int>()
-            makeAndRegisterPrimitiveConverter<float32>()
-            makeAndRegisterPrimitiveConverter<bool>()
-            makeAndRegisterPrimitiveConverter<string>()
+            converters.[typeof<int>] <- Converter(float32 >> JsonNumber, function JsonNumber n -> int n | _ -> failwith "number expected")
+            converters.[typeof<float32>] <- Converter(JsonNumber, function JsonNumber n -> n | _ -> failwith "number expected")
+            converters.[typeof<bool>] <- Converter(JsonBool, function JsonBool b -> b | _ -> failwith "bool expected")
+            converters.[typeof<string>] <- Converter(JsonString, function JsonString s -> s | _ -> failwith "string expected")
+
             // Color
             converters.[typeof<float32 * float32 * float32>] <- 
                 Converter(
-                    (fun (r : float32, g : float32, b : float32) -> JsonArray([| r; g; b |] |> Array.map (!>)) :> JsonValue) ,
-                    (fun value -> !> value.[0], !> value.[1], !> value.[2] ) )
+                    (fun (r : float32, g : float32, b : float32) -> JsonArray([| r; g; b |] |> Array.map JsonValue.JsonNumber)) ,
+                    (fun (JsonArray [| JsonNumber r; JsonNumber b; JsonNumber g |]) -> r,b,g ) )
 
         let getOrSetIfAbsent (typ : System.Type) (valueGenerator : unit -> IConverter) : IConverter =
             match converters.TryGetValue(typ) with
@@ -194,15 +265,15 @@ module Serialization =
             if typ.IsSubclassOf(typeof<Settings>) then
                 let typeMarker = "<<<Type>>>"
                 let toJson (s : Settings) =
-                    let result = JsonObject()
-                    let typeName : JsonValue = !> Settings.GetNameForClass(typ)
+                    let result = Dictionary()
+                    let typeName = JsonString <| Settings.GetNameForClass(typ)
                     result.[typeMarker] <- typeName
                     for prop in s.SettingProperties do
                         let propConverter = getOrSetIfAbsent prop.PropertyType (resolver prop.PropertyType)
                         result.[prop.Name] <- propConverter.ToJsonValue(prop.GetValue(s))
-                    result :> JsonValue
-                let fromJson (value : JsonValue) =
-                    let typeName : string = !> value.[typeMarker]
+                    JsonObject result
+                let fromJson (JsonObject value) =
+                    let typeName : string = match value.[typeMarker] with | JsonString s -> s | _ -> failwith "string expected"
                     let typ = Settings.GetClassForName(typeName)
                     let instance = typ.GetConstructor([||]).Invoke([||]) :?> Settings
                     for prop in instance.SettingProperties do
@@ -223,22 +294,21 @@ module Serialization =
                     let name = typ.GetEnumName(value)
                     if isNull name then // illegal enum value
                         raise (System.Exception(sprintf "Illegal enum value: %A" value))
-                    JsonPrimitive(name) :> JsonValue
-                let fromJson (value : JsonValue) =
-                    let name : string = !> value
+                    JsonString name
+                let fromJson (JsonString name) =
                     System.Enum.Parse(typ, name)
                 Converter(toJson, fromJson) :> IConverter
             elif FSharpType.IsRecord typ then
                 let fields = FSharpType.GetRecordFields typ
                 let toJson (value : obj) =
-                    let res = JsonObject()
+                    let res = Dictionary()
                     for field in fields do
                         let fieldValue =  field.GetValue(value)
                         let fieldValueType = fieldValue.GetType()
                         let fieldConverter = getOrSetIfAbsent fieldValueType (resolver fieldValueType)
                         res.[field.Name] <- fieldConverter.ToJsonValue(fieldValue)
-                    res :> JsonValue
-                let fromJson(value : JsonValue) =
+                    JsonObject res
+                let fromJson(JsonObject value) =
                     FSharpValue.MakeRecord(
                         typ, 
                         [| for field in fields -> 

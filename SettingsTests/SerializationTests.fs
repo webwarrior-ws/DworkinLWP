@@ -1,5 +1,7 @@
 ﻿module SerializationTests
 
+open System.Text.Json
+
 open Expecto
 
 open Settings
@@ -51,8 +53,8 @@ type SampleRecord =
 [<Tests>]
 let serializationTests =
     let roundtrip (x : 'T) = 
-        let json = (Serialization.toJsonValue x).ToString()
-        let x2 = Serialization.fromJsonValue (System.Json.JsonValue.Parse json)
+        let json = JsonSerializer.Serialize(Serialization.toJsonValue x, Serialization.jsonOptions)
+        let x2 = Serialization.fromJsonValue (JsonSerializer.Deserialize(json, Serialization.jsonOptions))
         Expect.equal x x2 "equal"
 
     testList "Serialization" [

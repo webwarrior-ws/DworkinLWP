@@ -2,6 +2,7 @@
 
 
 open System.Collections.Generic
+open System.Text.Json
 
 open Android.Content
 open Android.Util
@@ -50,8 +51,8 @@ module PresetManagement =
             ensurePresetsDir context preset.DirName
             let presetFilename = getFilePath context preset.DirName preset.Name
             use ostream = new System.IO.FileStream(presetFilename, System.IO.FileMode.Create)
-            let json = Serialization.toJsonValue(preset)
-            json.Save(ostream)
+            let jsonValue = Serialization.toJsonValue(preset)
+            JsonSerializer.Serialize(ostream, jsonValue, Serialization.jsonOptions)
             preset.IsSaved <- true
 
     let renamePreset (context : Context) (preset : Preset) (newName : string) =
@@ -86,8 +87,8 @@ module PresetManagement =
             let encodedName = file.Name.Remove(file.Name.Length - fileExtension.Length)
             let name = Java.Net.URLDecoder.Decode(encodedName, "UTF-8")
             use stream = new System.IO.FileStream(file.AbsolutePath, System.IO.FileMode.Open)
-            let json = System.Json.JsonValue.Load(stream)
-            let preset : 'TPreset = Serialization.fromJsonValue(json)
+            let jsonValue = JsonSerializer.Deserialize(stream, Serialization.jsonOptions)
+            let preset : 'TPreset = Serialization.fromJsonValue(jsonValue)
             preset.Name <- name
             preset.IsSaved <- true
             preset
@@ -100,8 +101,8 @@ module PresetManagement =
                     let encodedName = fileName.Remove(fileName.Length - fileExtension.Length)
                     let name = Java.Net.URLDecoder.Decode(encodedName, "UTF-8")
                     use stream = context.Assets.Open(dirPath + "/" + fileName)
-                    let json = System.Json.JsonValue.Load(stream)
-                    let preset : 'TPreset = Serialization.fromJsonValue(json)
+                    let jsonValue = JsonSerializer.Deserialize(stream, Serialization.jsonOptions)
+                    let preset : 'TPreset = Serialization.fromJsonValue(jsonValue)
                     preset.Name <- name
                     preset.IsSaved <- true
                     preset.IsBuiltin <- true

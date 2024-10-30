@@ -489,8 +489,9 @@ type SettingsHolder =
 /// Module that holds current application settings.
 /// GUI and renderer communicate through this module, and it's also used to save settings between launches.
 module CurrentSettings =
+    open System.Text.Json
+    open Serialization
 #if __ANDROID__
-    open System.Json
     open Android.Content
 #endif
 
@@ -509,21 +510,24 @@ module CurrentSettings =
     
 #if __ANDROID__
     // save/load
-    let private saveHooks = ResizeArray<Context -> JsonObject -> unit>()
-    let private loadHooks = ResizeArray<Context -> JsonObject -> unit>()
+    let private saveHooks = ResizeArray<Context -> JsonValue -> unit>()
+    let private loadHooks = ResizeArray<Context -> JsonValue -> unit>()
 
     let save(context : Context) : unit =
         let filePath = context.FilesDir.Path + "/settings"
         match currSettings with
         | Some(settings) ->
-            let json = JsonObject()
-            json.["settingsHolder"] <- Serialization.toJsonValue(settings)
-            json.["speedFactor"] <- Serialization.(!>) speedFactor
-            json.["randomizationInterval"] <- Serialization.(!>) (int randomizationInterval)
-            json.["transitionStrategy"] <- Serialization.(!>) (int transitionStrategy)
-            for action in saveHooks do action context json
+            let jsonDict = 
+                dict [
+                    "settingsHolder", toJsonValue(settings)
+                    "speedFactor", JsonNumber speedFactor
+                    "randomizationInterval", JsonNumber (float32 <| int randomizationInterval)
+                    "transitionStrategy", JsonNumber (float32 <| int transitionStrategy)
+                ]
+            let jsonValue = JsonObject jsonDict
+            for action in saveHooks do action context jsonValue
             use ostream = new System.IO.FileStream(filePath, System.IO.FileMode.Create)
-            json.Save(ostream)
+            JsonSerializer.Serialize(ostream, jsonValue, jsonOptions)
         | None -> ()
 
     let load(context : Context) : unit =
@@ -532,13 +536,13 @@ module CurrentSettings =
         if file.Exists() then
             try
                 use stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open)
-                let json = JsonValue.Load(stream) :?> JsonObject
-                let settings : SettingsHolder = Serialization.fromJsonValue(json.["settingsHolder"])
+                let (JsonObject jsonDict) as json = JsonSerializer.Deserialize(stream, Serialization.jsonOptions)
+                let settings : SettingsHolder = Serialization.fromJsonValue(jsonDict.["settingsHolder"])
                 for action in loadHooks do action context json
                 currSettings <- Some(settings)
-                speedFactor <- Serialization.(!>) json.["speedFactor"]
-                randomizationInterval <- enum<RandomizationInterval>(Serialization.(!>) json.["randomizationInterval"])
-                transitionStrategy <- enum<TransitionStrategy>(Serialization.(!>) json.["transitionStrategy"])
+                speedFactor <- match jsonDict.["speedFactor"] with | JsonNumber num -> num | _ -> failwith "number expected"
+                randomizationInterval <- enum<RandomizationInterval>(match jsonDict.["randomizationInterval"] with | JsonNumber num -> int num | _ -> failwith "number expected")
+                transitionStrategy <- enum<TransitionStrategy>(match jsonDict.["transitionStrategy"] with | JsonNumber num -> int num | _ -> failwith "number expected")
             with | e ->
 #if DEBUG
                 raise e
@@ -546,10 +550,10 @@ module CurrentSettings =
                 ()
 #endif
     // Save/load hooks. Argument is a function that takes context and current JSON object and preforms some actions or adds new properties to the object.
-    let addSaveHook(action : Context -> JsonObject -> unit) : unit =
+    let addSaveHook(action : Context -> JsonValue -> unit) : unit =
         saveHooks.Add action
 
-    let addLoadHook(action : Context -> JsonObject -> unit) : unit =
+    let addLoadHook(action : Context -> JsonValue -> unit) : unit =
         loadHooks.Add action
 #endif
 

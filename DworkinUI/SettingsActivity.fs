@@ -7,7 +7,6 @@ open Android.Views
 open Android.Content
 open AndroidX.RecyclerView.Widget
 
-open Settings
 open Settings.Presets
 open LibDworkin.DworkinSettings
 
@@ -94,13 +93,13 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
         // It's a workaround that causes save dialog to vanish when screen orientation changes.
         base.OnCreate(null)
 
-        let presetsDirPath = Presets.PresetManagement.getPresetsDirPath this this.PresetsDirName
+        let presetsDirPath = PresetManagement.getPresetsDirPath this this.PresetsDirName
         use presetsDir = new Java.IO.File(presetsDirPath)
         let builtinPresets = this.BuiltinPresets
         let presets =
             if presetsDir.Exists() then
                 [| for file in presetsDir.ListFiles() do
-                    let preset : 'TPreset = Presets.PresetManagement.loadPreset this file.AbsolutePath
+                    let preset : 'TPreset = PresetManagement.loadPreset this file.AbsolutePath
                     yield preset |]
                 |> Array.sortBy (fun each -> each.Name)
             else [||]
@@ -227,11 +226,11 @@ type AppearancePresetSelectionActivity() =
         let currSettings = CurrentSettings.get()
         let newSettings = 
             { currSettings with 
-                Effect=Serialization.copy preset.Effect
+                Effect=Settings.Serialization.copy preset.Effect
                 BackgroundColor=preset.BackgroundColor
                 ForegroundColor=preset.ForegroundColor
-                Background=Serialization.copy preset.Background
-                Foreground=Serialization.copy preset.Foreground }
+                Background=Settings.Serialization.copy preset.Background
+                Foreground=Settings.Serialization.copy preset.Foreground }
         CurrentSettings.set(newSettings)
         this.CurrentPresetSelection <- Some(preset)
         this.Finish()
