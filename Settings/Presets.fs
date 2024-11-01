@@ -132,9 +132,9 @@ type PresetPreview(context : Context, preset : Preset) =
 
     member this.State = state
     
-    member internal this.StatusDisplay = this.FindViewById<TextView>(Resources.Id.statusDisplay)
-    member private this.NameDisplay = this.FindViewById<TextView>(Resources.Id.nameDisplay)
-    member private this.NameDisplayContainer = this.FindViewById<View>(Resources.Id.nameDisplayContainer)
+    member internal this.StatusDisplay = this.FindViewById<TextView>(Resource.Id.statusDisplay)
+    member private this.NameDisplay = this.FindViewById<TextView>(Resource.Id.nameDisplay)
+    member private this.NameDisplayContainer = this.FindViewById<View>(Resource.Id.nameDisplayContainer)
 
     member this.NameVisible
         with get() : bool = this.NameDisplayContainer.Visibility = ViewStates.Visible
@@ -155,11 +155,11 @@ type PresetPreview(context : Context, preset : Preset) =
         this.SetInitialState() // if called earlier, may result in preview not being set
 
     member this.Initialize() =
-        FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
+        FrameLayout.Inflate(context, Resource.Layout.PresetPreview, this) |> ignore
         this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
         this.UpdateName()
         if preset.HasRandomizedValues then 
-            this.FindViewById<ImageView>(Resources.Id.random_indicator).Visibility <- ViewStates.Visible
+            this.FindViewById<ImageView>(Resource.Id.random_indicator).Visibility <- ViewStates.Visible
 
     member this.UpdateName() =
         this.NameDisplay.Text <- preset.Name
@@ -244,7 +244,7 @@ type PresetPreview(context : Context, preset : Preset) =
     /// Pending | Generating -> Complete
     member this.SetImage(bitmap : Android.Graphics.Bitmap) =
         if state <> Disposed then
-            let imageView = this.FindViewById<ImageView>(Resources.Id.image)
+            let imageView = this.FindViewById<ImageView>(Resource.Id.image)
             imageView.SetImageBitmap(bitmap)
             this.StatusDisplay.Visibility <- ViewStates.Invisible
             state <- PresetPreviewState.Complete
@@ -293,7 +293,7 @@ type PresetPreview(context : Context, preset : Preset) =
 type SpacingItemDecoration(context: Context) =
     inherit RecyclerView.ItemDecoration()
 
-    member val Spacing = int (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing))
+    member val Spacing = int (context.Resources.GetDimension(Resource.Dimension.preset_preview_spacing))
 
     override this.GetItemOffsets(outRect, view, parent, state) =
         outRect.Set(this.Spacing, this.Spacing, this.Spacing, this.Spacing)
@@ -338,8 +338,8 @@ and [<AllowNullLiteral>]
 
     override this.OnCreateView(inflater, container, bundle) = 
         // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
-        let view = inflater.Inflate(Resources.Layout.PresetSelectionFragment, container, false)
-        let recyclerView = view.FindViewById<RecyclerView>(Resources.Id.previewGrid)
+        let view = inflater.Inflate(Resource.Layout.PresetSelectionFragment, container, false)
+        let recyclerView = view.FindViewById<RecyclerView>(Resource.Id.previewGrid)
         for each in previews do
             each.Initialize()
             this.Activity.RegisterForContextMenu(each)

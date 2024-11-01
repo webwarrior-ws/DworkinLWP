@@ -111,7 +111,7 @@ type RandomizedEditorComponent<'TEditor, 'TItem when 'TEditor :> View and 'TEdit
 
     member this.FireChangedEvent() = changedEvent.Trigger()
 
-    member this.RandomButton : ToggleImageButton = editor.FindViewById<ToggleImageButton>(Resources.Id.dice)
+    member this.RandomButton : ToggleImageButton = editor.FindViewById<ToggleImageButton>(Resource.Id.dice)
 
     member this.Accessor
         with set(newAccessor : Accessor) =
@@ -156,11 +156,11 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
     interface ISettingEditor with
         member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
-            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+            with set(value) = this.FindViewById<TextView>(Resource.Id.title).Text <- value
         member this.Accessor 
             with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
-    member private this.Spinner = this.FindViewById<Spinner>(Resources.Id.spinner1)
+    member private this.Spinner = this.FindViewById<Spinner>(Resource.Id.spinner1)
 
     abstract GetAdapterForSpinner : 'TItem[] -> ArrayAdapter
     default this.GetAdapterForSpinner(itemsArray) =
@@ -172,7 +172,7 @@ type RandomizedSpinner<'TItem when 'TItem : equality>(context : Context, attrs :
         this.Spinner.Adapter <- this.GetAdapterForSpinner(items)
 
     member this.Initialize() =
-        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSpinner, this)
+        let view = LinearLayout.Inflate(context, Resource.Layout.RandomizedSpinner, this)
         randomizedEditorComponent.Initialize()
         this.Spinner.ItemSelected.Add(fun args -> randomizedEditorComponent.FireChangedEvent())
     
@@ -202,8 +202,8 @@ type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defSty
     abstract ProgressToValue : int -> 'TValue
     abstract ValueToString : 'TValue -> string
     
-    member internal this.SeekBar : AndroidX.AppCompat.Widget.AppCompatSeekBar = this.FindViewById<_>(Resources.Id.seek_bar)
-    member private this.NumberDisplay = this.FindViewById<TextView>(Resources.Id.number_display)
+    member internal this.SeekBar : AndroidX.AppCompat.Widget.AppCompatSeekBar = this.FindViewById<_>(Resource.Id.seek_bar)
+    member private this.NumberDisplay = this.FindViewById<TextView>(Resource.Id.number_display)
 
     interface IRandomizedEditor<'TValue> with
         member this.CurrentValue
@@ -219,12 +219,12 @@ type RandomizedSeekBar<'TValue>(context : Context, attrs : IAttributeSet, defSty
     interface ISettingEditor with
         member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
-            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+            with set(value) = this.FindViewById<TextView>(Resource.Id.title).Text <- value
         member this.Accessor 
             with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
     member this.Initialize() =
-        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedSeekbar, this)
+        let view = LinearLayout.Inflate(context, Resource.Layout.RandomizedSeekbar, this)
         randomizedEditorComponent.Initialize()
         let seekbar = this.SeekBar
         seekbar.ProgressChanged.Add(fun args -> 
@@ -306,11 +306,11 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
     interface ISettingEditor with
         member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
-            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+            with set(value) = this.FindViewById<TextView>(Resource.Id.title).Text <- value
         member this.Accessor 
             with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
-    member private this.Swatch = this.FindViewById<Button>(Resources.Id.swatch)
+    member private this.Swatch = this.FindViewById<Button>(Resource.Id.swatch)
 
     member private this.SetSwatchColor(color) =
         this.Swatch.SetBackgroundColor(color)
@@ -324,7 +324,7 @@ type RandomizedColorPicker(context : Context, attrs : IAttributeSet, defStyle : 
             this.SetSwatchColor(value)
 
     member this.Initialize() =
-        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedColorPicker, this)
+        let view = LinearLayout.Inflate(context, Resource.Layout.RandomizedColorPicker, this)
         randomizedEditorComponent.Initialize()
         this.Click.Add(fun args ->
             if (this :> IRandomizedEditor<RGBTriple>).IsEnabled then
@@ -364,14 +364,14 @@ type RandomizedCheckbox(context : Context, attrs : IAttributeSet, defStyle : int
     interface ISettingEditor with
         member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
-            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+            with set(value) = this.FindViewById<TextView>(Resource.Id.title).Text <- value
         member this.Accessor 
             with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
-    member private this.Checkbox = this.FindViewById<CheckBox>(Resources.Id.checkbox)
+    member private this.Checkbox = this.FindViewById<CheckBox>(Resource.Id.checkbox)
 
     member this.Initialize() =
-        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedCheckbox, this)
+        let view = LinearLayout.Inflate(context, Resource.Layout.RandomizedCheckbox, this)
         randomizedEditorComponent.Initialize()
         this.Click.Add(fun args ->
             this.Checkbox.Checked <- not this.Checkbox.Checked
@@ -391,15 +391,15 @@ type SpinnerItem =
     }
 
 type ImageSpinnerAdapter(context : Context, itemsArray : SpinnerItem[]) =
-    inherit ArrayAdapter<SpinnerItem>(context, Resources.Layout.SpinnerItemWithImage, itemsArray)
+    inherit ArrayAdapter<SpinnerItem>(context, Resource.Layout.SpinnerItemWithImage, itemsArray)
 
     let inflater : LayoutInflater = context.GetSystemService(Context.LayoutInflaterService) :?> LayoutInflater
 
     override this.GetView(position, convertView, parent) = 
-        let itemView = inflater.Inflate(Resources.Layout.SpinnerItemWithImage, parent, false)
-        let imageView = itemView.FindViewById<ImageView>(Resources.Id.image)
+        let itemView = inflater.Inflate(Resource.Layout.SpinnerItemWithImage, parent, false)
+        let imageView = itemView.FindViewById<ImageView>(Resource.Id.image)
         imageView.SetImageResource(itemsArray.[position].ImageID)
-        let textView = itemView.FindViewById<TextView>(Resources.Id.text)
+        let textView = itemView.FindViewById<TextView>(Resource.Id.text)
         textView.Text <- itemsArray.[position].Label
         itemView
 
@@ -422,7 +422,7 @@ type RandomizedSpinnerWithImages<'TItem when 'TItem : equality>(context : Contex
 
 
 type GridImageAdapter(context : Context, itemsArray : SpinnerItem[]) =
-    inherit ArrayAdapter<SpinnerItem>(context, Resources.Layout.SpinnerItemWithImage, itemsArray)
+    inherit ArrayAdapter<SpinnerItem>(context, Resource.Layout.SpinnerItemWithImage, itemsArray)
 
     override this.GetView(position, convertView, parent) = 
         let view = new ImageView(context)
@@ -462,31 +462,31 @@ type RandomizedItemChooser<'TItem when 'TItem : equality>(context : Context, map
     interface ISettingEditor with
         member this.Changed = randomizedEditorComponent.Changed
         member this.Title 
-            with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+            with set(value) = this.FindViewById<TextView>(Resource.Id.title).Text <- value
         member this.Accessor 
             with set(newAccessor) = randomizedEditorComponent.Accessor <- newAccessor
 
-    member private this.ImageView = this.FindViewById<ImageView>(Resources.Id.imageView)
+    member private this.ImageView = this.FindViewById<ImageView>(Resource.Id.imageView)
 
     member private this.UpdateDisplay(value : 'TItem) =
         let mappedValue = mapping value
         this.ImageView.SetImageResource(mappedValue.ImageID)
-        this.FindViewById<TextView>(Resources.Id.item_name).Text <- mappedValue.Label
+        this.FindViewById<TextView>(Resource.Id.item_name).Text <- mappedValue.Label
 
     member this.SetItems(newItems : 'TItem[]) =
         items <- newItems
 
     member this.Initialize() =
-        let view = LinearLayout.Inflate(context, Resources.Layout.RandomizedItemChooser, this)
+        let view = LinearLayout.Inflate(context, Resource.Layout.RandomizedItemChooser, this)
         randomizedEditorComponent.Initialize()
         this.Click.Add(fun args ->
-            use builder = new AlertDialog.Builder(context, Resources.Style.AlertDialogTheme)
-            let titleView = this.FindViewById<TextView>(Resources.Id.title)
+            use builder = new AlertDialog.Builder(context, Resource.Style.AlertDialogTheme)
+            let titleView = this.FindViewById<TextView>(Resource.Id.title)
             
             builder.SetTitle("Select " + titleView.Text.ToLower()) |> ignore
             let dialog : AlertDialog = 
                 if this.NumColumns > 1 then
-                    let grid = GridView.Inflate(context, Resources.Layout.ItemChooserGrid, null) :?> GridView
+                    let grid = GridView.Inflate(context, Resource.Layout.ItemChooserGrid, null) :?> GridView
                     grid.NumColumns <- this.NumColumns
                     builder.SetView(grid) |> ignore
                     grid.Adapter <- new GridImageAdapter(context, items |> Array.map mapping)

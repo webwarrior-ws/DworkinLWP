@@ -145,7 +145,7 @@ type SettingsClassChooser<'T when 'T :> Settings>(context : Context, attrs : IAt
         res.SetClasses(classes)
         res
     
-    member private this.Spinner = this.FindViewById<Spinner>(Resources.Id.spinner)
+    member private this.Spinner = this.FindViewById<Spinner>(Resource.Id.spinner)
 
     member private this.SetItemView(view : SettingsView) =
         match itemView with
@@ -173,7 +173,7 @@ type SettingsClassChooser<'T when 'T :> Settings>(context : Context, attrs : IAt
             this.SetValue(value)
 
     member this.Title 
-        with set(value) = this.FindViewById<TextView>(Resources.Id.title).Text <- value
+        with set(value) = this.FindViewById<TextView>(Resource.Id.title).Text <- value
     
     member this.Accessor
         with get() = accessor
@@ -192,7 +192,7 @@ type SettingsClassChooser<'T when 'T :> Settings>(context : Context, attrs : IAt
         classes <- newClasses
 
     member this.Initialize() =
-        let view = LinearLayout.Inflate(context, Resources.Layout.SettingsClassChooser, this)
+        let view = LinearLayout.Inflate(context, Resource.Layout.SettingsClassChooser, this)
         view.LayoutParameters <- new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent)
         (view :?> LinearLayout).Orientation <- Orientation.Vertical
         //this.Spinner.ItemClick

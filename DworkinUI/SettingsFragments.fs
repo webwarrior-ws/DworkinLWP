@@ -10,8 +10,6 @@ open Settings
 open LibDworkin.DworkinSettings
 
 
-
-
 type OverallSettingsFragment() =
     inherit AndroidX.Fragment.App.Fragment()
     
@@ -39,10 +37,10 @@ type OverallSettingsFragment() =
         transitionDisplay.Text <- CurrentSettings.transitionStrategy.ToString()
     
     override this.OnCreateView(inflater, container, bundle) = 
-        let view = inflater.Inflate(Resources.Layout.OverallSettingsFragment, container)
+        let view = inflater.Inflate(Resource.Layout.OverallSettingsFragment, container)
         
-        seedDisplay <- view.FindViewById<EditText>(Resources.Id.seed_display)
-        let nextSeedButton = view.FindViewById<Button>(Resources.Id.next_seed_button)
+        seedDisplay <- view.FindViewById<EditText>(Resource.Id.seed_display)
+        let nextSeedButton = view.FindViewById<Button>(Resource.Id.next_seed_button)
         seedDisplay.Text <- CurrentSettings.get().Seed |> string
         seedDisplay.TextChanged.Add(fun args -> 
             match System.Int32.TryParse seedDisplay.Text with
@@ -59,15 +57,15 @@ type OverallSettingsFragment() =
             seedDisplay.Text <- string nextSeed //this.SetRandomSeed() is called here beacuse text is changed 
         )
         
-        speedFactorSlider <- view.FindViewById<SeekBar>(Resources.Id.speed_display)
+        speedFactorSlider <- view.FindViewById<SeekBar>(Resource.Id.speed_display)
         this.UpdateSpeedFactorSlider()
         speedFactorSlider.ProgressChanged.Add(fun args -> this.SetSpeedFactor(args.Progress))
         
-        intervalDisplay <- view.FindViewById<TextView>(Resources.Id.interval_text)
-        transitionDisplay <- view.FindViewById<TextView>(Resources.Id.transition_text)
+        intervalDisplay <- view.FindViewById<TextView>(Resource.Id.interval_text)
+        transitionDisplay <- view.FindViewById<TextView>(Resource.Id.transition_text)
         this.UpdateRandomizationControls()
 
-        view.FindViewById<View>(Resources.Id.interval_control).Click.Add(fun _ -> 
+        view.FindViewById<View>(Resource.Id.interval_control).Click.Add(fun _ -> 
             use builder = new AlertDialog.Builder(this.Context)
             let items = 
                 [| for each in RandomizationInterval.GetValues(typeof<RandomizationInterval>) -> unbox<RandomizationInterval> each |]
@@ -81,7 +79,7 @@ type OverallSettingsFragment() =
                 .Show()
                 |> ignore
         )
-        view.FindViewById<View>(Resources.Id.transition_control).Click.Add(fun _ -> 
+        view.FindViewById<View>(Resource.Id.transition_control).Click.Add(fun _ -> 
             use builder = new AlertDialog.Builder(this.Context)
             let items = 
                 [| for each in TransitionStrategy.GetValues(typeof<TransitionStrategy>) -> unbox<TransitionStrategy> each |]
@@ -95,11 +93,11 @@ type OverallSettingsFragment() =
                 |> ignore
         )
 
-        view.FindViewById<View>(Resources.Id.license_control).Click.Add(fun _ ->
+        view.FindViewById<View>(Resource.Id.license_control).Click.Add(fun _ ->
             use builder = new AlertDialog.Builder(this.Context)
             let root = new RelativeLayout(this.Context)
-            let scrollView = inflater.Inflate(Resources.Layout.LicenseInfo, root)
-            let textView = scrollView.FindViewById<TextView>(Resources.Id.text)
+            let scrollView = inflater.Inflate(Resource.Layout.LicenseInfo, root)
+            let textView = scrollView.FindViewById<TextView>(Resource.Id.text)
             use reader = new System.IO.StreamReader(this.Context.Assets.Open("LicenseInfo.txt"))
             textView.Text <- reader.ReadToEnd()
             builder
@@ -140,8 +138,8 @@ type PatternSettingsFragment() =
             settingsEditor.UpdateValue()
 
     override this.OnCreateView(inflater, container, bundle) = 
-        let view = inflater.Inflate(Resources.Layout.PatternSettingsFragment, container, false)
-        let editorsGroup = view.FindViewById<ViewGroup>(Resources.Id.editors_group)
+        let view = inflater.Inflate(Resource.Layout.PatternSettingsFragment, container, false)
+        let editorsGroup = view.FindViewById<ViewGroup>(Resource.Id.editors_group)
         settingsEditor <- this.GetEnvironmentEditor()
         editorsGroup.AddView(settingsEditor)
         view
@@ -230,15 +228,15 @@ type AppearanceSettingsFragment() =
         editor
 
     override this.OnCreateView(inflater, container, bundle) = 
-        let view = inflater.Inflate(Resources.Layout.AppearanceSettingsFragment, container, false)
-        let editorsGroup = view.FindViewById<ViewGroup>(Resources.Id.editors_group)
+        let view = inflater.Inflate(Resource.Layout.AppearanceSettingsFragment, container, false)
+        let editorsGroup = view.FindViewById<ViewGroup>(Resource.Id.editors_group)
         editorsGroup.AddView(this.GetBackgroundColorEditor())
         editorsGroup.AddView(this.GetForegroundColorEditor())
         editorsGroup.AddView(this.GetBackgroundEditor())
         editorsGroup.AddView(this.GetForegroundEditor())
         editorsGroup.AddView(this.GetEffectEditor())
-        display <- view.FindViewById<TextView>(Resources.Id.preset_name_display)
-        view.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args -> this.PresetButtonAction())
+        display <- view.FindViewById<TextView>(Resource.Id.preset_name_display)
+        view.FindViewById<View>(Resource.Id.preset_control).Click.Add(fun args -> this.PresetButtonAction())
         view
 
     override this.OnCreate(bundle) =

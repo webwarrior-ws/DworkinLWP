@@ -33,8 +33,8 @@ type ToggleImageButton(context : Context, attrs : IAttributeSet, defStyle : int)
     new(context) = new ToggleImageButton(context, null)
 
     member this.Initialize() =
-        let a = context.ObtainStyledAttributes(attrs, Resources.Styleable.ToogleImageButton, defStyle, 0)
-        (this :> ICheckable).Checked <- a.GetBoolean(Resources.Styleable.ToogleImageButton_checked, false)
+        let a = context.ObtainStyledAttributes(attrs, Resource.Styleable.ToogleImageButton, defStyle, 0)
+        (this :> ICheckable).Checked <- a.GetBoolean(Resource.Styleable.ToogleImageButton_checked, false)
         a.Recycle()
         this.Clickable <- true
 

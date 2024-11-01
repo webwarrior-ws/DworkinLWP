@@ -25,11 +25,6 @@ namespace DworkinLWP
         {
             DworkinWallpaperService.EnsureCurrentSettings(this);
             _ = DworkinUI.CustomEnumEditors.RegisterCustomEditors.Value;
-            if (bundle == null) // TODO: see if this is no longer needed
-            {
-                Settings.XamarinCrutch.updateLibraryResourceIds(typeof(Resource), typeof(DworkinUI.Resources));
-                Settings.XamarinCrutch.updateLibraryResourceIds(typeof(Resource), typeof(Settings.Resources));
-            }
             base.OnCreate(bundle);
             Microsoft.Maui.ApplicationModel.Platform.Init(this, bundle);
         }

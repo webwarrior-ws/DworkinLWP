@@ -5,8 +5,6 @@ open LibDworkin.DworkinSettings
 open Settings
 open Settings.Presets
 
-type Resources = DworkinUI.Resource
-
 
 type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) = 
     inherit Preset()
@@ -44,11 +42,11 @@ type AppearancePreset(effect, fgColor, bgColor, fgMaterial, bgMaterial) =
     static member GetPreviewSize(context : Android.Content.Context) : (int * int) =
         let displayMetrics = context.Resources.DisplayMetrics
         let smallerSide = min displayMetrics.WidthPixels displayMetrics.HeightPixels
-        let spacing = (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing)) / displayMetrics.Density // in dp
+        let spacing = (context.Resources.GetDimension(Resource.Dimension.preset_preview_spacing)) / displayMetrics.Density // in dp
         let targetSize = displayMetrics.Density * (150.0f + float32(spacing * 2.0f))
         let n : int = int <| round(float32(smallerSide) / targetSize)
         let n = max n 3
-        let padding = context.Resources.GetDimension(Resources.Dimension.preset_preview_padding) // in pixels
+        let padding = context.Resources.GetDimension(Resource.Dimension.preset_preview_padding) // in pixels
         let numPixels = (smallerSide - int(spacing * displayMetrics.Density)*(n+1) - int(padding * 2.0f)) / n
         let numPixels = numPixels - (numPixels%2) // make it even
         (numPixels, numPixels)
@@ -114,14 +112,14 @@ type OverallPreset(settings : SettingsHolder) =
     static member GetPreviewSize(context : Android.Content.Context) : (int * int) =
         let displayMetrics = context.Resources.DisplayMetrics
         // https://stackoverflow.com/questions/9279111/determine-if-the-device-is-a-smartphone-or-tablet
-        let isTablet = context.Resources.GetBoolean(Resources.Boolean.isTablet)
+        let isTablet = context.Resources.GetBoolean(Resource.Boolean.isTablet)
         let smallerSide = min displayMetrics.WidthPixels displayMetrics.HeightPixels
         let largerSide = max displayMetrics.WidthPixels displayMetrics.HeightPixels 
         let width = if isTablet then largerSide else smallerSide
         let height = if isTablet then smallerSide else largerSide
 
-        let spacing = (context.Resources.GetDimension(Resources.Dimension.preset_preview_spacing)) / displayMetrics.Density // in dp
-        let padding = context.Resources.GetDimension(Resources.Dimension.preset_preview_padding) // in pixels
+        let spacing = (context.Resources.GetDimension(Resource.Dimension.preset_preview_spacing)) / displayMetrics.Density // in dp
+        let padding = context.Resources.GetDimension(Resource.Dimension.preset_preview_padding) // in pixels
         let n = 2
         
         let numPixelsX = (width - int(spacing * displayMetrics.Density)*(n+1) - int(padding * 2.0f)) / n

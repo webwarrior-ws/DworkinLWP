@@ -33,15 +33,15 @@ type PresetNameCollisionWarning(context : Context, attrs : Android.Util.IAttribu
     new(context) = new PresetNameCollisionWarning(context, null)
     
     member internal this.UpdateDisplay(collision : PresetNameCollision) =
-        let warningBuiltin = view.FindViewById<View>(Resources.Id.warning_text_builtin)
-        let warningUser = view.FindViewById<View>(Resources.Id.warning_text_user)
+        let warningBuiltin = view.FindViewById<View>(Resource.Id.warning_text_builtin)
+        let warningUser = view.FindViewById<View>(Resource.Id.warning_text_user)
         warningBuiltin.Visibility <- 
             if collision = BuiltinPreset then ViewStates.Visible else ViewStates.Gone
         warningUser.Visibility <- 
             if collision = UserPreset then ViewStates.Visible else ViewStates.Gone
 
     override this.OnFinishInflate() =
-        view <- FrameLayout.Inflate(context, Resources.Layout.PresetNameCollisionWarning, this)
+        view <- FrameLayout.Inflate(context, Resource.Layout.PresetNameCollisionWarning, this)
 
 
 type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset, previewSize : (int*int), allPresets : 'TPreset[]) =
@@ -58,18 +58,18 @@ type SavePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPreset
     member private this.UpdateWarningsAndSaveButton(dialog : AlertDialog, collision : PresetNameCollision) = 
         let saveButton = dialog.GetButton(int Android.Content.DialogButtonType.Positive)
         saveButton.Enabled <- collision <> BuiltinPreset
-        let warningWidget = dialog.FindViewById<PresetNameCollisionWarning>(Resources.Id.preset_name_warning)
+        let warningWidget = dialog.FindViewById<PresetNameCollisionWarning>(Resource.Id.preset_name_warning)
         warningWidget.UpdateDisplay(collision)
 
     override this.OnCreateDialog(bundle) =
         use builder = new AlertDialog.Builder(this.Context)
-        let dialogView = this.Activity.LayoutInflater.Inflate(Resources.Layout.SavePresetDialog, null)
-        let nameInput = dialogView.FindViewById<EditText>(Resources.Id.preset_name_input)
+        let dialogView = this.Activity.LayoutInflater.Inflate(Resource.Layout.SavePresetDialog, null)
+        let nameInput = dialogView.FindViewById<EditText>(Resource.Id.preset_name_input)
         
         let preview = new PresetPreview(this.Context, currentPreset, ImageSize=previewSize)
         preview.Initialize()
         preview.NameVisible <- false
-        dialogView.FindViewById<ViewGroup>(Resources.Id.preview_display).AddView(preview)
+        dialogView.FindViewById<ViewGroup>(Resource.Id.preview_display).AddView(preview)
         
         let dialog = 
             builder
@@ -103,13 +103,13 @@ type RenamePresetDialog<'TPreset when 'TPreset :> Preset>(currentPreset : 'TPres
     member private this.UpdateWarningsAndSaveButton(dialog : AlertDialog, collision : PresetNameCollision) = 
         let okButton = dialog.GetButton(int Android.Content.DialogButtonType.Positive)
         okButton.Enabled <- collision <> BuiltinPreset
-        let warningWidget = dialog.FindViewById<PresetNameCollisionWarning>(Resources.Id.preset_name_warning)
+        let warningWidget = dialog.FindViewById<PresetNameCollisionWarning>(Resource.Id.preset_name_warning)
         warningWidget.UpdateDisplay(collision)
 
     override this.OnCreateDialog(bundle) =
         use builder = new AlertDialog.Builder(this.Context)
-        let dialogView = this.Activity.LayoutInflater.Inflate(Resources.Layout.RenamePresetDialog, null)
-        let nameInput = dialogView.FindViewById<EditText>(Resources.Id.preset_name_input)
+        let dialogView = this.Activity.LayoutInflater.Inflate(Resource.Layout.RenamePresetDialog, null)
+        let nameInput = dialogView.FindViewById<EditText>(Resource.Id.preset_name_input)
 
         let dialog = 
             builder

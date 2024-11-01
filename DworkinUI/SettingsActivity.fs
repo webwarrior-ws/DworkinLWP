@@ -29,7 +29,7 @@ type ActivityWithBackButton() =
             override this.OnOptionsItemSelected(_, _) = false
             override this.OnActivityResult(_, _, _) = () } with get, set
     
-    member this.Toolbar = this.FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resources.Id.app_toolbar)
+    member this.Toolbar = this.FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.app_toolbar)
 
     member this.SetupToolbar() =
         this.SetSupportActionBar(this.Toolbar)
@@ -58,10 +58,10 @@ type PatternSettingsActivity() =
 
     override this.OnCreate(bundle) =
         base.OnCreate (bundle)
-        this.SetContentView(Resources.Layout.Empty)
+        this.SetContentView(Resource.Layout.Empty)
         this.SetupToolbar()
         let fragment = new PatternSettingsFragment()
-        this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
+        this.SupportFragmentManager.BeginTransaction().Replace(Resource.Id.content, fragment).Commit() |> ignore
 
 
 type private PresetContextMenuChoice =
@@ -109,14 +109,14 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
         for preset in allPresets do
             previews.Add <| new Settings.Presets.PresetPreview(this, preset, ImageSize=previewSize)
 
-        this.SetContentView(Resources.Layout.PresetSelectionScreen)
+        this.SetContentView(Resource.Layout.PresetSelectionScreen)
         this.SetupToolbar()
 
         fragment <- new Settings.Presets.PresetSelectionFragment(previews)
         fragment.PresetSelected.Add(fun preset -> this.OnPresetSelected(preset :?> 'TPreset) )
     
-        this.FindViewById<Button>(Resources.Id.save_preset_button).Click.Add(fun args ->
-            let currPreset = this.GetCurrentPreset() |> Serialization.copy
+        this.FindViewById<Button>(Resource.Id.save_preset_button).Click.Add(fun args ->
+            let currPreset = this.GetCurrentPreset() |> Settings.Serialization.copy
             match this.CurrentPresetSelection with
             | Some(preset) -> currPreset.Name <- preset.Name
             | None -> currPreset.Name <- "Custom"
@@ -140,7 +140,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
                 fragment.Update() )
             dialog.Show(this.SupportFragmentManager, dialog.GetType().Name) )
 
-        this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
+        this.SupportFragmentManager.BeginTransaction().Replace(Resource.Id.content, fragment).Commit() |> ignore
 
     override this.OnResume() =
         base.OnResume()
@@ -219,7 +219,7 @@ type AppearancePresetSelectionActivity() =
     override this.GetPreviewSize() = AppearancePreset.GetPreviewSize(this)
     
     override this.UpdatePresetNameDisplay() =
-        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        let display = this.FindViewById<TextView>(Resource.Id.preset_name_display)
         display.Text <- CurrentPresetSelection.getAppearancePresetDisplayText()
 
     override this.OnPresetSelected(preset) =  
@@ -257,12 +257,12 @@ type OverallPresetSelectionActivity() =
     override this.GetPreviewSize() = OverallPreset.GetPreviewSize(this)
 
     override this.UpdatePresetNameDisplay() =
-        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        let display = this.FindViewById<TextView>(Resource.Id.preset_name_display)
         display.Text <- CurrentPresetSelection.getOverallPresetDisplayText()
 
     override this.OnPresetSelected(preset) =
         let oldSettings = CurrentSettings.get()
-        let newSettings = Serialization.copy preset.Settings
+        let newSettings = Settings.Serialization.copy preset.Settings
         CurrentSettings.set(newSettings)
         this.CurrentPresetSelection <- Some(preset)
         this.Finish()
@@ -278,11 +278,11 @@ type AppearanceSettingsActivity() =
     
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
-        this.SetContentView(Resources.Layout.Empty)
+        this.SetContentView(Resource.Layout.Empty)
         this.SetupToolbar()
         let fragment = new AppearanceSettingsFragment()
         fragment.PresetButtonAction <- fun () -> this.StartActivity(typeof<AppearancePresetSelectionActivity>)
-        this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.content, fragment).Commit() |> ignore
+        this.SupportFragmentManager.BeginTransaction().Replace(Resource.Id.content, fragment).Commit() |> ignore
 
 
 [<Activity(Name = "dworkinUI.SettingsActivity", Label = "Settings", Exported = false)>]
@@ -290,15 +290,15 @@ type SettingsActivity() =
     inherit ActivityWithBackButton()
     
     member private this.UpdatePresetName() =
-        let display = this.FindViewById<TextView>(Resources.Id.preset_name_display)
+        let display = this.FindViewById<TextView>(Resource.Id.preset_name_display)
         if not (isNull display) then
             display.Text <- CurrentPresetSelection.getOverallPresetDisplayText()
 
     member this.IsTabletLayout : bool =
-        this.Resources.GetBoolean(Resources.Boolean.isTablet)
+        this.Resources.GetBoolean(Resource.Boolean.isTablet)
 
     member private this.SecondaryPaneTitleView =
-        this.FindViewById<TextView>(Resources.Id.settings_secondary_title)
+        this.FindViewById<TextView>(Resource.Id.settings_secondary_title)
 #if DEBUG
     static member val CREATE_FILE = 5
     
@@ -325,49 +325,43 @@ type SettingsActivity() =
     override this.OnCreate(bundle) =
         base.OnCreate (bundle)
         
-        if isNull bundle then
-            // TODO: see if this is no longer needed
-            XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
-            for each in Settings.AdditionalResourceValues.resourceTypesToBeUpdated do
-                XamarinCrutch.updateLibraryResourceIds typeof<Resources> each
-
         // Create your application here
-        this.SetContentView(Resources.Layout.SettingsScreen)
+        this.SetContentView(Resource.Layout.SettingsScreen)
         this.SetupToolbar()
         
         if this.IsTabletLayout then // two-pane tablet layout
-            let secondPane = this.FindViewById<LinearLayout>(Resources.Id.second_pane)
+            let secondPane = this.FindViewById<LinearLayout>(Resource.Id.second_pane)
             if not (isNull bundle) then
                 let title = bundle.GetString("secondary_pane_title")
                 if not (isNull title) then
                     this.SecondaryPaneTitleView.Text <- title
                     secondPane.ShowDividers <- ShowDividers.Middle
-            this.FindViewById<View>(Resources.Id.pattern_link).Click.Add(fun _ -> 
+            this.FindViewById<View>(Resource.Id.pattern_link).Click.Add(fun _ -> 
                 this.SecondaryPaneTitleView.Text <- "Pattern settings"
                 secondPane.ShowDividers <- ShowDividers.Middle
                 let fragment = new PatternSettingsFragment()
-                this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.settings_secondary, fragment).Commit() |> ignore
+                this.SupportFragmentManager.BeginTransaction().Replace(Resource.Id.settings_secondary, fragment).Commit() |> ignore
             )
-            this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
+            this.FindViewById<View>(Resource.Id.appearance_link).Click.Add(fun _ -> 
                 this.SecondaryPaneTitleView.Text <- "Appearance settings"
                 secondPane.ShowDividers <- ShowDividers.Middle
                 let fragment = new AppearanceSettingsFragment()
                 fragment.PresetButtonAction <- fun () -> this.StartActivity(typeof<AppearancePresetSelectionActivity>)
-                this.SupportFragmentManager.BeginTransaction().Replace(Resources.Id.settings_secondary, fragment).Commit() |> ignore
+                this.SupportFragmentManager.BeginTransaction().Replace(Resource.Id.settings_secondary, fragment).Commit() |> ignore
             )
         else // normal phone one-pane layout
-            this.FindViewById<View>(Resources.Id.pattern_link).Click.Add(fun _ -> 
+            this.FindViewById<View>(Resource.Id.pattern_link).Click.Add(fun _ -> 
                 this.StartActivity(typeof<PatternSettingsActivity>) )
 
-            this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
+            this.FindViewById<View>(Resource.Id.appearance_link).Click.Add(fun _ -> 
                 this.StartActivity(typeof<AppearanceSettingsActivity>) )
 
         this.UpdatePresetName()
         // open presets manager
-        this.FindViewById<View>(Resources.Id.preset_control).Click.Add(fun args ->
+        this.FindViewById<View>(Resource.Id.preset_control).Click.Add(fun args ->
             this.StartActivity(typeof<OverallPresetSelectionActivity>))
 #if DEBUG
-        let controlsGroup = this.FindViewById<ViewGroup>(Resources.Id.controls_group)
+        let controlsGroup = this.FindViewById<ViewGroup>(Resource.Id.controls_group)
         let savePresetsArchiveButton = new Button(this, Text="Save presets")
         savePresetsArchiveButton.Click.Add(fun _ -> 
             let intent = new Intent(Intent.ActionCreateDocument)
@@ -389,7 +383,7 @@ type SettingsActivity() =
     override this.OnResume() =
         base.OnResume()
         if this.IsTabletLayout then 
-            match this.SupportFragmentManager.FindFragmentById(Resources.Id.settings_secondary) with
+            match this.SupportFragmentManager.FindFragmentById(Resource.Id.settings_secondary) with
             | :? PatternSettingsFragment as fragment ->  fragment.UpdateEditor()
             | _ -> ()
         
