@@ -3,7 +3,6 @@
 	<shortcut
 	  android:shortcutId="Dworkin"
 	  android:enabled="true"
-	  android:icon="@drawable/icon"
 	  android:shortcutShortLabel="@string/shortcut_short_label" >
 		<intent
 		  android:action="android.intent.action.MAIN"

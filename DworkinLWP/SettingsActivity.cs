@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.Maui.ApplicationModel;
 
 
 namespace DworkinLWP
@@ -30,7 +31,7 @@ namespace DworkinLWP
                 Settings.XamarinCrutch.updateLibraryResourceIds(typeof(Resource), typeof(Settings.Resources));
             }
             base.OnCreate(bundle);
-            Xamarin.Essentials.Platform.Init(this, bundle);
+            Microsoft.Maui.ApplicationModel.Platform.Init(this, bundle);
         }
 
         protected override void OnStop()
@@ -91,19 +92,6 @@ namespace DworkinLWP
             if (requestCode == REQUEST_CODE_CHANGE_WALLPAPER && resultCode == Result.Ok)
             {
                 activity.Finish();
-            }
-        }
-    }
-
-    // trick the linker
-    class LinkerPleaseInclude
-    {
-        static bool falseflag = false;
-        static LinkerPleaseInclude()
-        {
-            if (falseflag)
-            {
-                var ignore = new AndroidX.AppCompat.Widget.FitWindowsFrameLayout(Application.Context);
             }
         }
     }

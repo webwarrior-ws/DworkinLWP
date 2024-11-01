@@ -131,9 +131,6 @@
     </Reference>
     <Reference Include="Java.Interop" />
     <Reference Include="OpenTK-1.0" />
-    <Reference Include="Plugin.InAppBilling">
-      <HintPath>..\packages\Plugin.InAppBilling.4.0.2\lib\monoandroid10.0\Plugin.InAppBilling.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Json" />
     <Reference Include="System.Numerics" />

@@ -13,14 +13,15 @@ using Javax.Microedition.Khronos.Egl;
 using Javax.Microedition.Khronos.Opengles;
 
 using static LibDworkin.DworkinSettings;
+using Microsoft.Maui.ApplicationModel;
 
 
 namespace DworkinLWP
 {
-    [Service(Name = "dworkinLWP.DworkinWallpaperService", Enabled = true, Label = "@string/app_name", Permission = "android.permission.BIND_WALLPAPER", Exported = false)]
+    [Service(Name = "dworkinLWP.DworkinWallpaperService", Enabled = true, Label = "@string/app_name", Permission = "android.permission.BIND_WALLPAPER", Exported = true)]
     [IntentFilter(new string[] { "android.service.wallpaper.WallpaperService" })]
     [MetaData("android.service.wallpaper", Resource = "@xml/wallpaper")]
-    class DworkinWallpaperService : WallpaperService
+    public class DworkinWallpaperService : WallpaperService
     {
         static private LibDworkin.RendererComponents.AndroidPlatform platformContainer;
 
@@ -44,8 +45,8 @@ namespace DworkinLWP
                 CurrentSettings.set(defaultSettings);
             }
         }
-        
-        internal LibDworkin.RendererComponents.AndroidPlatform Platform 
+
+        internal LibDworkin.RendererComponents.AndroidPlatform Platform
         {
             get
             {
@@ -74,7 +75,8 @@ namespace DworkinLWP
             return new DworkinEngine(this);
         }
 
-        class DworkinEngine : Engine
+        [Register("dowrkinLWP/DworkinWallpaperService$DworkinEngine", DoNotGenerateAcw = true)]
+        class DworkinEngine(DworkinWallpaperService __self) : Engine(__self)
         {
             class WallpaperGLSurfaceView : GLSurfaceView
             {
@@ -106,7 +108,6 @@ namespace DworkinLWP
                 }
             }
 
-            private readonly DworkinWallpaperService enclosingInstance;
             private WallpaperGLSurfaceView glSurfaceView;
             private bool rendererSet;
             private GestureDetector gestureListener;
@@ -120,19 +121,14 @@ namespace DworkinLWP
                 }
             }
 
-            public DworkinEngine(WallpaperService __self) : base(__self)
-            {
-                enclosingInstance = __self as DworkinWallpaperService;
-            }
-
             public override void OnCreate(ISurfaceHolder surfaceHolder)
             {
                 base.OnCreate(surfaceHolder);
                 
-                glSurfaceView = WallpaperGLSurfaceView.Create(enclosingInstance, this);
+                glSurfaceView = WallpaperGLSurfaceView.Create(__self, this);
 
                 var isPreview = Microsoft.FSharp.Core.FSharpOption<bool>.Some(this.IsPreview);
-                var renderer = new LibDworkin.Renderer.DworkinRenderer(enclosingInstance.Platform, null, isPreview);
+                var renderer = new LibDworkin.Renderer.DworkinRenderer(__self.Platform, null, isPreview);
 
                 glSurfaceView.SetEGLContextClientVersion(2);
                 glSurfaceView.SetEGLContextFactory(LibDworkin.RendererComponents.EGLContextFactory.Instance);
@@ -140,7 +136,7 @@ namespace DworkinLWP
                 glSurfaceView.SetRenderer(renderer);
                 rendererSet = true;
 
-                gestureListener = new GestureDetector(enclosingInstance.ApplicationContext, new GestureListener());
+                gestureListener = new GestureDetector(__self.ApplicationContext, new GestureListener());
                 SetTouchEventsEnabled(true);
             }
 
