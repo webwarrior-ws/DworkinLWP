@@ -12,11 +12,10 @@
     <MonoAndroidAssetsPrefix>Assets</MonoAndroidAssetsPrefix>
     <MonoAndroidResourcePrefix>Resources</MonoAndroidResourcePrefix>
     <AndroidResgenClass>Resource</AndroidResgenClass>
-    <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidApplication>True</AndroidApplication>
     <AndroidUseLatestPlatformSdk>false</AndroidUseLatestPlatformSdk>
     <AssemblyName>DworkinTestingApp</AssemblyName>
-    <TargetFrameworkVersion>v11.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v13.0</TargetFrameworkVersion>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
     <Name>DworkinTestingApp</Name>
@@ -125,9 +124,6 @@
       <Project>{8149a570-4624-42b7-a0bb-1992b19dc25a}</Project>
       <Private>True</Private>
     </ProjectReference>
-    <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
-      <HintPath>..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.28\lib\monoandroid81\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
-    </Reference>
     <Reference Include="Xamarin.Android.Google.BillingClient">
       <HintPath>..\packages\Xamarin.Android.Google.BillingClient.3.0.0\lib\monoandroid90\Xamarin.Android.Google.BillingClient.dll</HintPath>
     </Reference>
@@ -290,6 +286,7 @@
     <Error Condition="!Exists('..\packages\Xamarin.AndroidX.SwipeRefreshLayout.1.0.0\build\monoandroid90\Xamarin.AndroidX.SwipeRefreshLayout.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Xamarin.AndroidX.SwipeRefreshLayout.1.0.0\build\monoandroid90\Xamarin.AndroidX.SwipeRefreshLayout.targets'))" />
     <Error Condition="!Exists('..\packages\Xamarin.AndroidX.Legacy.Support.Core.UI.1.0.0\build\monoandroid90\Xamarin.AndroidX.Legacy.Support.Core.UI.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Xamarin.AndroidX.Legacy.Support.Core.UI.1.0.0\build\monoandroid90\Xamarin.AndroidX.Legacy.Support.Core.UI.targets'))" />
     <Error Condition="!Exists('..\packages\Xamarin.AndroidX.Browser.1.0.0\build\monoandroid90\Xamarin.AndroidX.Browser.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Xamarin.AndroidX.Browser.1.0.0\build\monoandroid90\Xamarin.AndroidX.Browser.targets'))" />
+    <Error Condition="!Exists('..\packages\FSharp.Android.Resource.1.1.1\build\FSharp.Android.Resource.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FSharp.Android.Resource.1.1.1\build\FSharp.Android.Resource.targets'))" />
   </Target>
   <Import Project="..\packages\Xamarin.AndroidX.MultiDex.2.0.1.5\build\monoandroid90\Xamarin.AndroidX.MultiDex.targets" Condition="Exists('..\packages\Xamarin.AndroidX.MultiDex.2.0.1.5\build\monoandroid90\Xamarin.AndroidX.MultiDex.targets')" />
   <Import Project="..\packages\Xamarin.AndroidX.Migration.1.0.8\build\monoandroid90\Xamarin.AndroidX.Migration.targets" Condition="Exists('..\packages\Xamarin.AndroidX.Migration.1.0.8\build\monoandroid90\Xamarin.AndroidX.Migration.targets')" />
@@ -328,4 +325,5 @@
   <Import Project="..\packages\Xamarin.AndroidX.SwipeRefreshLayout.1.0.0\build\monoandroid90\Xamarin.AndroidX.SwipeRefreshLayout.targets" Condition="Exists('..\packages\Xamarin.AndroidX.SwipeRefreshLayout.1.0.0\build\monoandroid90\Xamarin.AndroidX.SwipeRefreshLayout.targets')" />
   <Import Project="..\packages\Xamarin.AndroidX.Legacy.Support.Core.UI.1.0.0\build\monoandroid90\Xamarin.AndroidX.Legacy.Support.Core.UI.targets" Condition="Exists('..\packages\Xamarin.AndroidX.Legacy.Support.Core.UI.1.0.0\build\monoandroid90\Xamarin.AndroidX.Legacy.Support.Core.UI.targets')" />
   <Import Project="..\packages\Xamarin.AndroidX.Browser.1.0.0\build\monoandroid90\Xamarin.AndroidX.Browser.targets" Condition="Exists('..\packages\Xamarin.AndroidX.Browser.1.0.0\build\monoandroid90\Xamarin.AndroidX.Browser.targets')" />
+  <Import Project="..\packages\FSharp.Android.Resource.1.1.1\build\FSharp.Android.Resource.targets" Condition="Exists('..\packages\FSharp.Android.Resource.1.1.1\build\FSharp.Android.Resource.targets')" />
 </Project>

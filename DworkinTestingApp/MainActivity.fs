@@ -12,9 +12,6 @@ open LibDworkin.DworkinSettings
 open Settings
 
 
-type Resources = DworkinTestingApp.Resource
-
-
 [<Activity(Label = "DworkinTestingApp", 
            ConfigurationChanges=(ConfigChanges.Orientation ||| ConfigChanges.KeyboardHidden), 
            Icon = "@mipmap/icon", 
@@ -50,11 +47,6 @@ type MainActivity() =
 
     override this.OnCreate(bundle) =
         base.OnCreate(bundle)
-
-        if isNull bundle then
-            // TODO: see if this is no longer needed
-            XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<DworkinUI.Resources>
-            XamarinCrutch.updateLibraryResourceIds typeof<Resources> typeof<Settings.Resources>
         
         Xamarin.Essentials.Platform.Init(this, bundle)
 
@@ -101,9 +93,9 @@ type MainActivity() =
             Android.Widget.Toast.MakeText(this, "This device does not support OpenGL ES 2.0.", Android.Widget.ToastLength.Long).Show()
         
         //this.SetContentView(view)
-        this.SetContentView(Resources.Layout.Main)
-        this.FindViewById<ViewGroup>(Resources.Id.app_root).AddView(view, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent))
-        let toolbar = this.FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resources.Id.app_toolbar)
+        this.SetContentView(Resource.Layout.Main)
+        this.FindViewById<ViewGroup>(Resource.Id.app_root).AddView(view, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent))
+        let toolbar = this.FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.app_toolbar)
         toolbar.Title <- "Dworkin"
         this.SetSupportActionBar(toolbar)
     
@@ -123,21 +115,24 @@ type MainActivity() =
         // reset size and scale shader uniforms that might be upset by overall preset preview renderer
         match MainActivity.RendererContainer with
         | Some(renderer) -> 
-            let w, h = renderer.WallpaperSize
+            ()
+            //let w, h = renderer.WallpaperSize
+            (*
             if LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset then
                 renderer.SetScale(renderer.GetDimensions(w, h), w, h)
                 LibDworkin.RendererComponents.EGLContextFactory.NeedsShaderUniformsReset <- false
+            *)
         | None -> ()
 
     override this.OnCreateOptionsMenu(menu) =
-        this.MenuInflater.Inflate(Resources.Menu.menu, menu)
+        this.MenuInflater.Inflate(Resource.Menu.menu, menu)
         true
     
     override this.OnOptionsItemSelected(item) =
-        if item.ItemId = Resources.Id.menuitem_settings then
+        if item.ItemId = Resource.Id.menuitem_settings then
             this.OpenSettings()
             true
-        elif item.ItemId = Resources.Id.menuitem_nextseed then
+        elif item.ItemId = Resource.Id.menuitem_nextseed then
             CurrentSettings.set({ CurrentSettings.get() with Seed = System.Random().Next() })
             true
         else
