@@ -75,7 +75,7 @@ namespace DworkinLWP
             return new DworkinEngine(this);
         }
 
-        [Register("dowrkinLWP/DworkinWallpaperService$DworkinEngine", DoNotGenerateAcw = true)]
+        [Register("dworkinLWP/DworkinWallpaperService_DworkinEngine", DoNotGenerateAcw = true)]
         class DworkinEngine(DworkinWallpaperService __self) : Engine(__self)
         {
             class WallpaperGLSurfaceView : GLSurfaceView

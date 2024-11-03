@@ -20,7 +20,6 @@
     <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
     <JavaMaximumHeapSize>
     </JavaMaximumHeapSize>
-    <AndroidLinkSkip>androidx.appcompat.widget.FitWindowsFrameLayout;Plugin.InAppBilling;Xamarin.Android.Google.BillingClient</AndroidLinkSkip>
     <BundleAssemblies>false</BundleAssemblies>
     <AndroidDexTool>d8</AndroidDexTool>
     <RuntimeIdentifiers>android-arm;android-x64;android-arm64</RuntimeIdentifiers>
