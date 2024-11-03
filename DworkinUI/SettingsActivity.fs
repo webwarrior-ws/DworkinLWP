@@ -300,11 +300,6 @@ type SettingsActivity() =
 
     member private this.SecondaryPaneTitleView =
         this.FindViewById<TextView>(Resources.Id.settings_secondary_title)
-
-    member private this.UpdatePurchasesLinkVisibility() =
-        let purchasesLink = this.FindViewById<View>(Resources.Id.purchases_link)
-        if not (isNull purchasesLink) then
-            purchasesLink.Visibility <- ViewStates.Gone
 #if DEBUG
     static member val CREATE_FILE = 5
     
