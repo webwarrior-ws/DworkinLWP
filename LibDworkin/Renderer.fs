@@ -860,7 +860,7 @@ type DworkinRenderer(platform, ?stepper : AbstractEnvironmentStepper, ?inPreview
             if not platform.IsAndroid then
                 this.DrawImage() // always do redraw on PC
             else
-                if framesAfterStop < 3 then // avoid flicker from triple buffering
+                if framesAfterStop < 6 then // avoid flicker from triple buffering
                     this.DrawImage()
                     framesAfterStop <- framesAfterStop + 1
         | Transitioning(strategy, numFrames) ->
