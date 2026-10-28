@@ -12,7 +12,7 @@ using System.Text;
 
 namespace DworkinLWP
 {
-    [Activity(Name="dworkinLWP.SettingsActivity", Label = "Dworkin LWP")]
+    [Activity(Name="dworkinLWP.SettingsActivity", Label = "Dworkin LWP", Exported = true)]
     public class SettingsActivity : DworkinUI.SettingsActivity
     {
         static SettingsActivity()

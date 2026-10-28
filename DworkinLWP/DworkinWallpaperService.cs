@@ -17,7 +17,7 @@ using static LibDworkin.DworkinSettings;
 
 namespace DworkinLWP
 {
-    [Service(Name = "dworkinLWP.DworkinWallpaperService", Enabled = true, Label = "@string/app_name", Permission = "android.permission.BIND_WALLPAPER")]
+    [Service(Name = "dworkinLWP.DworkinWallpaperService", Enabled = true, Label = "@string/app_name", Permission = "android.permission.BIND_WALLPAPER", Exported = true)]
     [IntentFilter(new string[] { "android.service.wallpaper.WallpaperService" })]
     [MetaData("android.service.wallpaper", Resource = "@xml/wallpaper")]
     class DworkinWallpaperService : WallpaperService

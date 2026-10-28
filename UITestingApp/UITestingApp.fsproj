@@ -10,7 +10,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>UITestingApp</RootNamespace>
     <AssemblyName>UITestingApp</AssemblyName>
-    <TargetFrameworkVersion>v11.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v12.0</TargetFrameworkVersion>
     <AndroidApplication>True</AndroidApplication>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidResgenClass>Resource</AndroidResgenClass>
