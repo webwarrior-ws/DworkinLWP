@@ -153,8 +153,7 @@ type PresetSelectionActivity<'TPreset when 'TPreset :> Preset>() =
             let preset = preview.Preset
             let position = allPresets.FindIndex(fun x -> LanguagePrimitives.PhysicalEquality preset (x :> Preset))
             menu.SetHeaderTitle(preset.Name) |> ignore
-            if preset.InAppPurchases.IsEmpty then
-                menu.Add(position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
+            menu.Add(position, int PresetContextMenuChoice.Select, 0, "Select") |> ignore
             if not preset.IsBuiltin then
                 menu.Add(position, int PresetContextMenuChoice.Rename, 1, "Rename") |> ignore
                 menu.Add(position, int PresetContextMenuChoice.Delete, 2, "Delete") |> ignore
@@ -305,11 +304,7 @@ type SettingsActivity() =
     member private this.UpdatePurchasesLinkVisibility() =
         let purchasesLink = this.FindViewById<View>(Resources.Id.purchases_link)
         if not (isNull purchasesLink) then
-            let availablePurchases = Settings.InAppPurchases.getAvailablePurchases()
-            if Array.isEmpty availablePurchases then
-                purchasesLink.Visibility <- ViewStates.Gone
-            else
-                purchasesLink.Visibility <- ViewStates.Visible
+            purchasesLink.Visibility <- ViewStates.Gone
 #if DEBUG
     static member val CREATE_FILE = 5
     
@@ -372,15 +367,6 @@ type SettingsActivity() =
 
             this.FindViewById<View>(Resources.Id.appearance_link).Click.Add(fun _ -> 
                 this.StartActivity(typeof<AppearanceSettingsActivity>) )
-        
-        this.FindViewById<View>(Resources.Id.purchases_link).Click.Add(fun _ ->
-            let skus = Settings.InAppPurchases.getAvailablePurchases()
-            async {
-                let! data = InAppPurchases.getPurchasesDataAsync(skus)
-                this.RunOnUiThread(fun () -> InAppPurchases.getPurchasesDialog(this, data, ignore).Show())
-            }
-            |> Async.Start
-        )
 
         this.UpdatePresetName()
         // open presets manager
@@ -412,14 +398,6 @@ type SettingsActivity() =
             match this.SupportFragmentManager.FindFragmentById(Resources.Id.settings_secondary) with
             | :? PatternSettingsFragment as fragment ->  fragment.UpdateEditor()
             | _ -> ()
-        Settings.InAppPurchases.readFromStorage(this.ApplicationContext)
-        this.UpdatePurchasesLinkVisibility() // based on purchaes info from storage
-        async {
-            // fetch purchases info from billing API and update "Premium content" element visibility again
-            do! Settings.InAppPurchases.refreshPurchasesInfoAsync(this.ApplicationContext)
-            this.RunOnUiThread(this.UpdatePurchasesLinkVisibility)
-        }
-        |> Async.Start
         
 #if DEBUG
     override this.OnActivityResult(requestCode, resultCode, data) =

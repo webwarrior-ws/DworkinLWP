@@ -28,13 +28,6 @@ type Preset() =
 
     abstract UsedClasses : System.Type[]
 
-    member this.InAppPurchases : Set<string> =
-        this.UsedClasses
-        |> Array.choose InAppPurchases.getSKUForClass
-        |> Array.filter (fun sku -> not <| InAppPurchases.isPurchased sku)
-        |> Set.ofArray
-        
-
 
 /// Functions and classes used to manage presets (save/load/etc.)
 module PresetManagement =
@@ -164,16 +157,8 @@ type PresetPreview(context : Context, preset : Preset) =
         FrameLayout.Inflate(context, Resources.Layout.PresetPreview, this) |> ignore
         this.LayoutParameters <- new ViewGroup.LayoutParams(fst this.ImageSize, snd this.ImageSize)
         this.UpdateName()
-        this.UpdatePurchasesStatus()
         if preset.HasRandomizedValues then 
             this.FindViewById<ImageView>(Resources.Id.random_indicator).Visibility <- ViewStates.Visible
-    
-    member this.UpdatePurchasesStatus() =
-        this.FindViewById<View>(Resources.Id.premium_indicator).Visibility <-
-            if preset.InAppPurchases.IsEmpty then
-                ViewStates.Invisible
-            else
-                ViewStates.Visible
 
     member this.UpdateName() =
         this.NameDisplay.Text <- preset.Name
@@ -348,31 +333,7 @@ and [<AllowNullLiteral>]
         adapter.NotifyDataSetChanged()
 
     member this.OnPresetClicked(preview : PresetPreview) =
-        let skus = preview.Preset.InAppPurchases
-        if not skus.IsEmpty then
-            // inform user that he needs to purchase items
-            use builder = new Android.App.AlertDialog.Builder(this.Context)
-            builder
-                .SetTitle("Preset with premium content")
-                .SetView(Resources.Layout.PremiumPresetDialog)
-                .SetNegativeButton("Cancel", (fun _ _ -> ()))
-                .SetPositiveButton(
-                    "Buy", 
-                    (fun _ _ ->
-                        async {
-                            let! data = InAppPurchases.getPurchasesDataAsync(skus |> Set.toArray)
-                            this.Activity.RunOnUiThread(
-                                fun () -> 
-                                    let callback () = 
-                                        this.Activity.RunOnUiThread(fun () -> for each in previews do each.UpdatePurchasesStatus())
-                                    let dialog = InAppPurchases.getPurchasesDialog(this.Activity, data, callback)
-                                    dialog.Show())
-                        }
-                        |> Async.Start
-                    )) |> ignore
-            builder.Show() |> ignore
-        else
-            presetSelectedEvent.Trigger(preview.Preset)
+        presetSelectedEvent.Trigger(preview.Preset)
 
     override this.OnCreateView(inflater, container, bundle) = 
         // third parameter to Inflate is used to avoid error when adding fragment using fragment manager
